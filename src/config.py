@@ -127,6 +127,7 @@ class Settings:
     oauth_client_secret: str
     app_base_url: str
     source_repo_url: str
+    translations_dir: str
     refresh_schedule: str
     secret_key: str
     port: int
@@ -209,6 +210,7 @@ def _parse_app(raw: dict, country: Country) -> Settings:
         # its own leaves the field rather than deleting the key.
         source_repo_url=raw.get("source_repo_url")
         or _default("app", "source_repo_url"),
+        translations_dir=raw.get("translations_dir", _default("app", "translations_dir")),
         refresh_schedule=raw.get("refresh_schedule", _default("app", "refresh_schedule")),
         port=raw.get("port", _default("app", "port")),
         db=Database(

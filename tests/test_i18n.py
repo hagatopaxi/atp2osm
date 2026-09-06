@@ -187,3 +187,31 @@ def test_every_key_the_scripts_ask_for_is_rendered():
         asked |= set(re.findall(r"""\bt\(\s*["'](\w+)["']""", script.read_text()))
 
     assert asked <= keys, f"not rendered: {sorted(asked - keys)}"
+
+
+def test_a_mounted_catalog_wins_over_the_shipped_one(tmp_path):
+    """A deployment adds a language, or fixes a wording, without a fork."""
+    import subprocess
+
+    from flask import Flask
+    from flask_babel import get_domain, gettext
+
+    from src import i18n
+
+    catalog = tmp_path / "fr" / "LC_MESSAGES"
+    catalog.mkdir(parents=True)
+    (catalog / "messages.po").write_text(
+        'msgid ""\nmsgstr "Content-Type: text/plain; charset=utf-8\\n"\n\n'
+        'msgid "Statistics"\nmsgstr "Chiffres"\n'
+    )
+    subprocess.run(["pybabel", "compile", "-d", str(tmp_path)], check=True)
+
+    app = Flask(__name__)
+    i18n.init_app(app, ("fr",), ("/",), "Europe/Paris", str(tmp_path))
+    with app.test_request_context("/", environ_overrides={i18n.ENVIRON_KEY: "fr"}):
+        # Flask-Babel caches the merged catalogs on a module-level domain, which
+        # an earlier test in this file has already filled for `fr`.
+        get_domain().cache.clear()
+        assert gettext("Statistics") == "Chiffres"
+        # A string the mounted catalog says nothing about keeps its own.
+        assert gettext("Documentation") == "Documentation"

@@ -163,6 +163,11 @@
           "type": "string",
           "default": "https://github.com/hagatopaxi/atp2osm-import"
         },
+        "translations_dir": {
+          "description": "Directory of extra gettext catalogs, merged over the ones the image ships and winning on the strings they both hold. This is how a deployment serves a language the product does not ship, or changes a wording, without a fork: put <lang>/LC_MESSAGES/messages.mo under it, compiled from the msgids of the revision you run. Left out, only the shipped catalogs are read.",
+          "type": "string",
+          "default": ""
+        },
         "refresh_schedule": {
           "description": "When the daily ATP + OSM refresh runs, in systemd OnCalendar syntax, read in the country's timezone. Pick an hour when the machine is idle: the refresh downloads and imports the whole country.",
           "type": "string",
@@ -304,6 +309,7 @@
         "port": 8000,
         "osm_api_host": "https://api.openstreetmap.org",
         "source_repo_url": "https://github.com/hagatopaxi/atp2osm-import",
+        "translations_dir": "",
         "refresh_schedule": "*-*-* 04:00:00",
         "db": {
           "name": "",

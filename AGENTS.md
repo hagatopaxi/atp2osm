@@ -144,6 +144,11 @@ A complete example lives in the schema's own `examples`, so there is one file
 to keep in step instead of two — copy it out with
 `jq '.examples[0]' config.schema.json`. A test loads it, so it cannot drift.
 
+The image ships the catalogs of `website/translations/`, which are maintained
+with the templates they come from. `app.translations_dir` points at catalogs
+the deployment adds: they are merged over the shipped ones and win on the
+strings they both hold, so a language the product does not ship needs no fork.
+
 Secrets stay in the environment, `.env` today and sops tomorrow:
 `OSM_DB_PASSWORD`, `OSM_OAUTH_CLIENT_ID`, `OSM_OAUTH_CLIENT_SECRET`,
 `SECRET_KEY`. So does `GIT_COMMIT`, which the build computes.

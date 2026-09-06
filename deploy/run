@@ -70,8 +70,14 @@ mkdir -p "$QUADLET_DIR" "$SYSTEMD_USER_DIR" "$PROJECT_DIR/data" "$PROJECT_DIR/lo
 export PROJECT_NAME PROJECT_DIR IMAGE_NAME CONTAINER_NAME GIT_SHORT
 export TIMEZONE REFRESH_SCHEDULE
 
-# Container Quadlet
+# Container Quadlet. A translations/ directory next to the configuration is
+# mounted when it exists: that is how a deployment ships a language of its own.
 envsubst < "$WORK_DIR/deploy/atp2osm.container" > "$QUADLET_DIR/${CONTAINER_NAME}.container"
+if [ -d "$PROJECT_DIR/translations" ]; then
+  echo "Volume=${PROJECT_DIR}/translations:/app/translations:ro,Z" \
+    >> "$QUADLET_DIR/${CONTAINER_NAME}.container"
+  echo "    Mounting $PROJECT_DIR/translations"
+fi
 
 # Refresh timer units
 envsubst < "$WORK_DIR/deploy/refresh.service" > "$SYSTEMD_USER_DIR/${CONTAINER_NAME}-refresh.service"

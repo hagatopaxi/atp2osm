@@ -40,7 +40,11 @@ app.config["CACHE_DEFAULT_TIMEOUT"] = 0  # Infinite cache duration
 
 cache.init_app(app)
 i18n.init_app(
-    app, settings.country.locales, TRANSLATED_PATHS, settings.country.timezone
+    app,
+    settings.country.locales,
+    TRANSLATED_PATHS,
+    settings.country.timezone,
+    settings.translations_dir,
 )
 
 app.register_blueprint(auth_bp)
