@@ -194,7 +194,7 @@ def test_a_mounted_catalog_wins_over_the_shipped_one(tmp_path):
     import subprocess
 
     from flask import Flask
-    from flask_babel import get_domain, gettext
+    from flask_babel import gettext
 
     from src import i18n
 
@@ -209,9 +209,6 @@ def test_a_mounted_catalog_wins_over_the_shipped_one(tmp_path):
     app = Flask(__name__)
     i18n.init_app(app, ("fr",), ("/",), "Europe/Paris", str(tmp_path))
     with app.test_request_context("/", environ_overrides={i18n.ENVIRON_KEY: "fr"}):
-        # Flask-Babel caches the merged catalogs on a module-level domain, which
-        # an earlier test in this file has already filled for `fr`.
-        get_domain().cache.clear()
         assert gettext("Statistics") == "Chiffres"
         # A string the mounted catalog says nothing about keeps its own.
         assert gettext("Documentation") == "Documentation"
