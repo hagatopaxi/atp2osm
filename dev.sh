@@ -70,6 +70,10 @@ fi
 [ -e .env ] || ln -s "$main/.env" .env
 [ -e config.json ] || ln -s "$main/config.json" config.json
 
+# Les .mo sont des artefacts de build, donc absents d'un worktree neuf : sans
+# eux le site sert les msgid anglais sans rien dire.
+uv run pybabel compile -d website/translations >/dev/null 2>&1 || true
+
 # ponytail: les worktrees partagent la base PostGIS de dev (OSM_DB_* dans .env).
 # Suffisant pour tester ; override OSM_DB_NAME si des migrations entrent en conflit.
 : > "$log"

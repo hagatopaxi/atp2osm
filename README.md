@@ -49,7 +49,8 @@ the database password, the OSM OAuth credentials and the session key.
 ./dev.sh logs -f     # follow the logs
 ```
 
-It symlinks `.env` and `config.json` from the main checkout, picks a stable port (one per git worktree) and installs
+It symlinks `.env` and `config.json` from the main checkout, compiles the
+translation catalogs, picks a stable port (one per git worktree) and installs
 the versioned git hooks (pre-push runs the tests). It takes an optional worktree
 name: `./dev.sh up my-feature` serves `.worktrees/my-feature`.
 
