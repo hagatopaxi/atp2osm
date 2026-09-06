@@ -12,7 +12,7 @@ import tempfile
 
 CONFIG = {
     "country": {
-        "code": "fr",
+        "territory_codes": ["fr", "mq"],
         "locales": ["fr"],
         "timezone": "Europe/Paris",
         "geofabrik": ["europe/france"],

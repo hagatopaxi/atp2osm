@@ -52,8 +52,8 @@ _COUNTRY_CODES = frozenset(
 
 
 def _foreign_country_codes() -> frozenset[str]:
-    """Every country code but ours — computed, so a country lists nothing."""
-    return _COUNTRY_CODES - {get_country().code}
+    """Every country code but ours and its territories' — nothing to configure."""
+    return _COUNTRY_CODES - set(get_country().territory_codes)
 
 
 def is_relevant_spider(filename: str) -> bool:
@@ -288,7 +288,9 @@ def import_atp():
             ddb.execute(f"ATTACH '{db_url}' AS pg (TYPE postgres);")
 
             logger.info("Creating atp_places table from parquet...")
-            country_code = get_country().code.upper()
+            # A POI of ours carries the country code or one of its territories':
+            # ISO codes Martinique MQ, and ATP follows its sources.
+            countries = ", ".join(f"'{c.upper()}'" for c in get_country().territory_codes)
             ddb.execute(f"""
                 CREATE TABLE pg.atp_places AS
                 SELECT
@@ -309,7 +311,7 @@ def import_atp():
                     properties->>'$.@source_uri'      AS source_uri,
                     ST_AsGeoJSON(geom)                AS geom
                 FROM read_parquet('{PARQUET_PATH}')
-                WHERE properties->>'$.addr:country' = '{country_code}'
+                WHERE properties->>'$.addr:country' IN ({countries})
                     AND geom IS NOT NULL
             """)
 

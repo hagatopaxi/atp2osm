@@ -70,7 +70,7 @@ def _default(*path):
 class Country:
     """Everything that differs from one country to the next."""
 
-    code: str
+    territory_codes: tuple[str, ...]
     locales: tuple[str, ...]
     timezone: str
     geofabrik: tuple[str, ...]
@@ -80,6 +80,11 @@ class Country:
     nsi_locations: frozenset[str]
     nsi_writable_tags: frozenset[str]
     nsi_calibration: dict = field(default_factory=dict, compare=False)
+
+    @property
+    def code(self) -> str:
+        """The country itself, which its territories follow — the first code."""
+        return self.territory_codes[0]
 
     @property
     def geofabrik_regions(self) -> dict[str, str]:
@@ -185,7 +190,7 @@ def _parse_country(raw: dict) -> Country:
         )
 
     return Country(
-        code=raw["code"],
+        territory_codes=tuple(raw["territory_codes"]),
         locales=locales,
         timezone=timezone,
         geofabrik=tuple(raw["geofabrik"]),

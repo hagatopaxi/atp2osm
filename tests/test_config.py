@@ -27,6 +27,7 @@ def test_a_complete_document_arrives_intact():
     settings = load()
 
     assert settings.country.code == "fr"
+    assert settings.country.territory_codes == ("fr", "mq")
     assert settings.country.locales == ("fr",)
     assert settings.country.geofabrik == ("europe/france",)
     assert settings.country.geofabrik_regions == {"france": "europe/france"}
@@ -57,7 +58,7 @@ def test_the_optional_settings_have_defaults():
 @pytest.mark.parametrize(
     "section, key",
     [
-        ("country", "code"),
+        ("country", "territory_codes"),
         ("country", "locales"),
         ("country", "geofabrik"),
         ("country", "admin_level"),
@@ -75,7 +76,7 @@ def test_a_required_setting_is_named_when_it_is_missing(section, key):
 @pytest.mark.parametrize(
     "section, key, value",
     [
-        ("country", "code", 33),
+        ("country", "territory_codes", "fr"),
         ("country", "admin_level", "6"),
         ("country", "admin_level", True),  # a bool is an int, and never a level
         ("country", "locales", "fr"),  # a string is not a list of strings
@@ -100,8 +101,9 @@ def test_an_unknown_setting_is_refused_rather_than_ignored(section):
 @pytest.mark.parametrize(
     "changes, message",
     [
-        ({"country": {"code": "FR"}}, "country.code"),
-        ({"country": {"code": "fra"}}, "country.code"),
+        ({"country": {"territory_codes": ["FR"]}}, "territory_codes"),
+        ({"country": {"territory_codes": ["fra"]}}, "territory_codes"),
+        ({"country": {"territory_codes": []}}, "territory_codes"),
         ({"country": {"locales": ["fr", "zz"]}}, "zz"),
         ({"country": {"timezone": "Mars/Olympus"}}, "Mars/Olympus"),
         ({"country": {"admin_level": 6, "admin_level_max": 4}}, "admin_level_max"),
@@ -183,3 +185,15 @@ def test_the_example_the_schema_carries_is_a_document_the_loader_accepts():
     settings = config.load(document)
     assert settings.country.code == "fr"
     assert settings.env == "PRODUCTION"
+
+
+def test_the_first_code_is_the_country_and_the_rest_its_territories():
+    """ISO codes Martinique separately, and ATP tags its POIs MQ, not FR."""
+    settings = load(country={"territory_codes": ["fr", "mq", "gp"]})
+
+    assert settings.country.code == "fr"
+    assert settings.country.territory_codes == ("fr", "mq", "gp")
+
+
+def test_a_country_without_territories_reads_one_code():
+    assert load(country={"territory_codes": ["de"]}).country.code == "de"

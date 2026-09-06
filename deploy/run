@@ -17,7 +17,8 @@ IMAGE_NAME="$CONTAINER_NAME"
 # a timer that fires at a default hour in a default timezone.
 CONFIG="$PROJECT_DIR/config.json"
 if [ ! -f "$CONFIG" ]; then
-  echo "ERROR: no configuration file at $CONFIG (see config.example.json)" >&2
+  echo "ERROR: no configuration file at $CONFIG" >&2
+  echo "       start from: jq '.examples[0]' config.schema.json" >&2
   exit 1
 fi
 

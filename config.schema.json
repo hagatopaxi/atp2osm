@@ -14,7 +14,7 @@
       "description": "What differs from one country to the next. Two instances serving the same country share this section.",
       "type": "object",
       "required": [
-        "code",
+        "territory_codes",
         "locales",
         "geofabrik",
         "admin_level",
@@ -22,10 +22,37 @@
       ],
       "additionalProperties": false,
       "properties": {
-        "code": {
-          "description": "ISO 3166-1 alpha-2 code, lowercase. Matched against addr:country in the ATP data, and read as a spider suffix (aldi_de) to tell foreign spiders apart.",
-          "type": "string",
-          "pattern": "^[a-z]{2}$"
+        "territory_codes": {
+          "description": "ISO 3166-1 alpha-2 codes, lowercase, whose POIs belong to this instance — the first one being the country itself, the rest its dependent territories, like locales lists its default first. ISO gives a separate code to every geographically distinct territory, so a POI in Martinique is tagged addr:country=MQ although Martinique is a French département, and reading the country code alone drops it: list the territories whose Geofabrik extracts you download. A country without territories holds one entry. The first code also names the instance (og:locale) and tells a foreign spider suffix apart (aldi_de).",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z]{2}$"
+          },
+          "minItems": 1,
+          "examples": [
+            [
+              "fr",
+              "gp",
+              "mq",
+              "gf",
+              "re",
+              "yt",
+              "nc",
+              "pf",
+              "wf"
+            ],
+            [
+              "de"
+            ],
+            [
+              "nl",
+              "aw",
+              "cw",
+              "sx",
+              "bq"
+            ]
+          ]
         },
         "locales": {
           "description": "Interface languages, the first one being the default and the fallback. A country may have several (Switzerland has four); the language selector only appears when there is more than one. Each needs a catalog in website/translations/. The OSM changeset comment follows the contributor's language, so every entry here must be a language the local mapping community reads.",
@@ -233,7 +260,17 @@
   "examples": [
     {
       "country": {
-        "code": "fr",
+        "territory_codes": [
+          "fr",
+          "gp",
+          "mq",
+          "gf",
+          "re",
+          "yt",
+          "nc",
+          "pf",
+          "wf"
+        ],
         "locales": [
           "fr"
         ],
