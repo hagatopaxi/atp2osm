@@ -20,6 +20,7 @@ dependencies = [
     "staticmap>=0.5.7",
     "gunicorn>=23.0.0",
     "flask-babel>=4.0.0",
+    "jsonschema>=4.26.0",
 ]
 
 [dependency-groups]

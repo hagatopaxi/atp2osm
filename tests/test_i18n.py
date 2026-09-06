@@ -115,25 +115,6 @@ def test_dates_follow_the_language_and_the_country_timezone(app):
     assert get(app, "/de/when").text == "31.08.26, 08:48"
 
 
-def test_a_bad_language_or_timezone_refuses_to_start(monkeypatch):
-    """Validated at startup, because Babel would 500 on every page instead."""
-    from src import config
-
-    monkeypatch.setenv("LOCALES", "fr,zz")
-    with pytest.raises(config.ConfigError, match="zz"):
-        config.get_locales()
-
-    monkeypatch.setenv("LOCALES", "fr,de")
-    assert config.get_locales() == ("fr", "de")
-
-    monkeypatch.setenv("TIMEZONE", "Mars/Olympus")
-    with pytest.raises(config.ConfigError, match="Mars/Olympus"):
-        config.get_timezone()
-
-    monkeypatch.delenv("TIMEZONE")
-    assert config.get_timezone() == "Europe/Paris"
-
-
 def test_every_message_is_translated():
     """A missing or fuzzy translation silently falls back to the English msgid."""
     from pathlib import Path

@@ -125,9 +125,29 @@ Functional specs live in `specs/`, prefixed with a two-digit id in creation
 order (`01_`, `02_`…). They state the intended behaviour, not the history of
 the decisions that led to it.
 
-## Environment Variables
+## Configuration
 
-See `.env.sample`. Key variables: `OSM_DB_*` (PostGIS connection), `OSM_API_HOST` (OSM API base URL), `OSM_OAUTH_CLIENT_ID`/`SECRET` (OAuth2 app credentials).
+Everything that is not a secret lives in one JSON file, named by
+`ATP2OSM_CONFIG` — no default, so an instance that provides none refuses to
+start rather than quietly serving France. No country file ships with the
+product, not even the French one.
+
+**`config.schema.json` is the documentation**: every setting is described where
+it is declared, and the file is validated against it at startup. Read it before
+asking what a key does, and add a `description` when you add a key. Only what a
+schema cannot express stays in `src/config.py`: a language Babel knows, a real
+IANA timezone, `admin_level_max` above `admin_level`.
+
+A complete example lives in the schema's own `examples`, so there is one file
+to keep in step instead of two — copy it out with
+`jq '.examples[0]' config.schema.json`. A test loads it, so it cannot drift.
+
+Secrets stay in the environment, `.env` today and sops tomorrow:
+`OSM_DB_PASSWORD`, `OSM_OAUTH_CLIENT_ID`, `OSM_OAUTH_CLIENT_SECRET`,
+`SECRET_KEY`. So does `GIT_COMMIT`, which the build computes.
+
+In development, `config.json` sits in the main checkout, gitignored, and
+`dev.sh` symlinks it into every worktree next to `.env`.
 
 ## Testing
 

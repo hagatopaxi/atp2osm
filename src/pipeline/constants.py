@@ -2,10 +2,9 @@
 Shared constants for the ATP2OSM import pipeline.
 """
 
-import os
 from pathlib import Path
 
-from src.config import get_pipeline
+from src.config import get_country, get_pipeline
 
 # Parallel processing configuration
 WORKERS = get_pipeline().workers
@@ -48,48 +47,17 @@ NSI_CDN_URL = (
 
 # The finest administrative level a POI is attached to, and the deepest one
 # imported: the attachment falls back down to 2 (the country) when no polygon of
-# that level covers it, so anything below is dead weight. Phase D moves it to
-# the country configuration file.
-ADMIN_LEVEL = 6
+# that level covers it, so anything below is dead weight.
+ADMIN_LEVEL = get_country().admin_level
+ADMIN_LEVEL_MAX = get_country().admin_level_max
 
-# Each entry: geofabrik path suffix (without -latest.osm.pbf).
-# url, state_url and pbf_path are derived automatically.
-# DOM are sub-regions of europe/france on Geofabrik.
-# COM in the Pacific are under australia-oceania (French names).
-# Note: Saint-Pierre-et-Miquelon has no dedicated Geofabrik extract.
-_GEOFABRIK_PATHS = {
-    "france":              "europe/france",
-    # DOM — overseas départements
-    "guadeloupe":          "europe/france/guadeloupe",
-    "martinique":          "europe/france/martinique",
-    "guyane":              "europe/france/guyane",
-    "reunion":             "europe/france/reunion",
-    "mayotte":             "europe/france/mayotte",
-    # COM — overseas collectivities (Pacific)
-    "new-caledonia":       "australia-oceania/new-caledonia",
-    "polynesie-francaise": "australia-oceania/polynesie-francaise",
-    "wallis-et-futuna":    "australia-oceania/wallis-et-futuna",
-}
-
-# Local recipes need a fraction of the country, not the nine extracts: set
-# ATP2OSM_GEOFABRIK_PATHS to a comma-separated list of Geofabrik paths and it
-# replaces the table above entirely. The name of a region is the last path
-# segment, which is also what names its PBF file.
-# ponytail: dev-only override, superseded by the country file's `geofabrik` key
-# in phase D.
-_paths_override = os.getenv("ATP2OSM_GEOFABRIK_PATHS", "").strip()
-if _paths_override:
-    _GEOFABRIK_PATHS = {
-        path.strip().rsplit("/", 1)[-1]: path.strip()
-        for path in _paths_override.split(",")
-        if path.strip()
-    }
-
+# One entry per Geofabrik extract of the country. The region name is the last
+# path segment, which is also what names the PBF file.
 GEOFABRIK_REGIONS = {
     name: {
         "url":      f"{GEOFABRIK_BASE}/{path}-latest.osm.pbf",
         "state_url": f"{GEOFABRIK_BASE}/{path}-updates/state.txt",
         "pbf_path": PROJECT_ROOT / "data" / "osm" / f"{path.split('/')[-1]}-latest.osm.pbf",
     }
-    for name, path in _GEOFABRIK_PATHS.items()
+    for name, path in get_country().geofabrik_regions.items()
 }

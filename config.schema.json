@@ -1,0 +1,321 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/hagatopaxi/atp2osm-import/config.schema.json",
+  "title": "atp2osm configuration",
+  "description": "Every setting that is not a secret. The file is named by ATP2OSM_CONFIG, which has no default: an instance that provides none refuses to start rather than quietly serving France. Secrets stay in the environment (OSM_DB_PASSWORD, OSM_OAUTH_CLIENT_ID, OSM_OAUTH_CLIENT_SECRET, SECRET_KEY), and so does GIT_COMMIT, which the build computes.",
+  "type": "object",
+  "required": [
+    "country",
+    "app"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "country": {
+      "description": "What differs from one country to the next. Two instances serving the same country share this section.",
+      "type": "object",
+      "required": [
+        "code",
+        "locales",
+        "geofabrik",
+        "admin_level",
+        "nsi_locations"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "description": "ISO 3166-1 alpha-2 code, lowercase. Matched against addr:country in the ATP data, and read as a spider suffix (aldi_de) to tell foreign spiders apart.",
+          "type": "string",
+          "pattern": "^[a-z]{2}$"
+        },
+        "locales": {
+          "description": "Interface languages, the first one being the default and the fallback. A country may have several (Switzerland has four); the language selector only appears when there is more than one. Each needs a catalog in website/translations/. The OSM changeset comment follows the contributor's language, so every entry here must be a language the local mapping community reads.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 2
+          },
+          "minItems": 1
+        },
+        "timezone": {
+          "description": "IANA timezone the dates are displayed in, and the one the daily refresh timer runs on.",
+          "type": "string",
+          "default": "UTC"
+        },
+        "geofabrik": {
+          "description": "Geofabrik extract paths, without the -latest.osm.pbf suffix (europe/france, australia-oceania/new-caledonia). One entry per extract to download; overseas territories are separate extracts and sometimes sit under another continent.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        },
+        "admin_level": {
+          "description": "Finest OSM admin_level a POI is attached to — the unit of a batch, of a changeset and of the cooldown. The attachment walks down from here to 2 (the country), so a territory with no polygon at this level still lands somewhere: 6 gives French départements, and Martinique falls back to 4 on its own.",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 11
+        },
+        "admin_level_max": {
+          "description": "Deepest level imported from the PBF. Must be at least admin_level; take it franker rather than tighter, since its only job is to leave room to lower admin_level later without reimporting 20 GB. Level 8 adds about 35 000 polygons in France, the order of magnitude of its communes.",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 11,
+          "default": 8
+        },
+        "match_radius_m": {
+          "description": "How far an ATP POI may sit from an OSM object and still match it. 500 m is calibrated on European urban density; worth rediscussing where POIs sit further apart.",
+          "type": "integer",
+          "minimum": 1,
+          "default": 500
+        },
+        "nsi_locations": {
+          "description": "Location codes whose name-suggestion-index brands apply here: the country code, its dependent territories, and the codes that contain it (150 Europe, eu, 001 world). An NSI item is kept when its locationSet includes one of these.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 2
+          },
+          "minItems": 1
+        },
+        "nsi_writable_tags": {
+          "description": "Tags NSI is allowed to write. NOT copied from another country: the list is produced by measuring, tag by tag, how often NSI agrees with the OSM objects of this country — run scripts/calibrate_nsi_tags.py, which writes this key and nsi_calibration together. A tag wrongly listed here raises no error, it just mistags thousands of objects. Default: the one tag whose correctness does not depend on the language.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "default": [
+            "brand:wikidata"
+          ]
+        },
+        "nsi_calibration": {
+          "description": "The measurement that justifies nsi_writable_tags, written by scripts/calibrate_nsi_tags.py — never by hand. A tag listed as writable but absent from `agreement` is warned about at startup.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "nsi_version": {
+              "description": "NSI release the measurement was taken on.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "measured_at": {
+              "description": "Date of the measurement, YYYY-MM-DD.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "agreement": {
+              "description": "Tag → share of objects where NSI agrees with what OSM already carries, between 0 and 1.",
+              "type": "object",
+              "additionalProperties": {
+                "type": "number"
+              }
+            }
+          },
+          "default": {}
+        }
+      }
+    },
+    "app": {
+      "description": "What differs from one deployment to the next. Two instances serving the same country differ here.",
+      "type": "object",
+      "required": [
+        "base_url",
+        "osm_api_host",
+        "db"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "env": {
+          "description": "PRODUCTION refuses to start without GIT_COMMIT and caches the assets for a year; DEVELOPMENT revalidates them on every request.",
+          "type": "string",
+          "enum": [
+            "DEVELOPMENT",
+            "PRODUCTION",
+            ""
+          ],
+          "default": ""
+        },
+        "base_url": {
+          "description": "Public URL of the instance, without a trailing slash. Used to build the OAuth callback.",
+          "type": "string",
+          "minLength": 1
+        },
+        "port": {
+          "description": "Port the server listens on.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "default": 5000
+        },
+        "osm_api_host": {
+          "description": "Base URL of the OSM API the changesets go to. The sandbox (master.apis.dev.openstreetmap.org) for development, the real one for production — they hold different accounts and different OAuth applications.",
+          "type": "string",
+          "minLength": 1
+        },
+        "source_repo_url": {
+          "description": "Repository the sidebar links to. A fork serving its own instance points at itself; left out or left empty, it points at the upstream project.",
+          "type": "string",
+          "default": "https://github.com/hagatopaxi/atp2osm-import"
+        },
+        "refresh_schedule": {
+          "description": "When the daily ATP + OSM refresh runs, in systemd OnCalendar syntax, read in the country's timezone. Pick an hour when the machine is idle: the refresh downloads and imports the whole country.",
+          "type": "string",
+          "minLength": 1,
+          "default": "*-*-* 04:00:00"
+        },
+        "db": {
+          "description": "PostGIS connection. The password is a secret and comes from OSM_DB_PASSWORD.",
+          "type": "object",
+          "required": [
+            "name",
+            "user",
+            "host"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "description": "Database name.",
+              "type": "string",
+              "minLength": 1
+            },
+            "user": {
+              "description": "Role the application connects as.",
+              "type": "string",
+              "minLength": 1
+            },
+            "host": {
+              "description": "Host or socket directory.",
+              "type": "string",
+              "minLength": 1
+            },
+            "port": {
+              "description": "TCP port.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535,
+              "default": 5432
+            }
+          }
+        },
+        "pipeline": {
+          "description": "How hard the daily refresh is allowed to push the host.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "workers": {
+              "description": "Parallel workers for the ATP conversion. Defaults to half the CPUs.",
+              "type": "integer",
+              "minimum": 1
+            },
+            "min_free_gb": {
+              "description": "Free disk space below which the osm2pgsql import refuses to start, rather than filling the disk and leaving a half-imported database.",
+              "type": "number",
+              "minimum": 0,
+              "default": 15
+            }
+          },
+          "default": {}
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "country": {
+        "code": "fr",
+        "locales": [
+          "fr"
+        ],
+        "timezone": "Europe/Paris",
+        "geofabrik": [
+          "europe/france",
+          "europe/france/guadeloupe",
+          "europe/france/martinique",
+          "europe/france/guyane",
+          "europe/france/reunion",
+          "europe/france/mayotte",
+          "australia-oceania/new-caledonia",
+          "australia-oceania/polynesie-francaise",
+          "australia-oceania/wallis-et-futuna"
+        ],
+        "admin_level": 6,
+        "admin_level_max": 8,
+        "match_radius_m": 500,
+        "nsi_locations": [
+          "fr",
+          "fx",
+          "gp",
+          "mq",
+          "gf",
+          "re",
+          "yt",
+          "pm",
+          "bl",
+          "mf",
+          "nc",
+          "pf",
+          "wf",
+          "tf",
+          "001",
+          "150",
+          "europe",
+          "eu"
+        ],
+        "nsi_writable_tags": [
+          "brand:wikidata",
+          "shop",
+          "amenity",
+          "office",
+          "tourism",
+          "leisure",
+          "healthcare",
+          "craft",
+          "network:wikidata",
+          "operator:wikidata",
+          "official_name",
+          "alt_name",
+          "brand:short",
+          "name:en",
+          "brand:en",
+          "name:fr",
+          "brand:fr",
+          "government",
+          "drive_through",
+          "healthcare:speciality",
+          "service:vehicle:glass",
+          "delivery",
+          "access",
+          "self_service",
+          "clothes",
+          "takeaway",
+          "operator:type"
+        ],
+        "nsi_calibration": {}
+      },
+      "app": {
+        "env": "PRODUCTION",
+        "base_url": "",
+        "port": 8000,
+        "osm_api_host": "https://api.openstreetmap.org",
+        "source_repo_url": "https://github.com/hagatopaxi/atp2osm-import",
+        "refresh_schedule": "*-*-* 04:00:00",
+        "db": {
+          "name": "",
+          "user": "",
+          "host": "",
+          "port": 5432
+        },
+        "pipeline": {
+          "workers": 4,
+          "min_free_gb": 15
+        }
+      }
+    }
+  ]
+}

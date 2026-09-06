@@ -12,3 +12,4 @@ dist
 .dev.log
 .claude
 *.mo
+config.json
