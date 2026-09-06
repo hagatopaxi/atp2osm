@@ -42,7 +42,7 @@ SHORT_NUMBER = r"(?:3\d{3}|10\d{2})"
 
 # Built on normalize_phone(), so they hold keys computed by whichever
 # definition was current when they were built.
-PHONE_INDEXES = ("atp_fr_phone_norm_idx", "mv_places_phone_norm_idx")
+PHONE_INDEXES = ("atp_places_phone_norm_idx", "mv_places_phone_norm_idx")
 
 # Arbitrary, only has to be stable: it serialises concurrent installs.
 _LOCK_KEY = 8_314_020_251

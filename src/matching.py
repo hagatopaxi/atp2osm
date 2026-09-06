@@ -5,6 +5,7 @@ from psycopg import Cursor
 from psycopg.rows import dict_row
 from typing import Any, NamedTuple
 
+from src.config import get_country
 from src.phone import format_phone
 
 
@@ -16,6 +17,10 @@ from src.phone import format_phone
 # Deduplication includes atp_brand_wikidata: a single OSM object can match two
 # different brands, and must then be counted for each one (like /validate does,
 # which filters on a single brand).
+#
+# `matched_poi_sql()` fills the radius, which the country sets: 500 m is
+# calibrated on European urban density, and a country whose POIs sit further
+# apart says so in its configuration rather than in this file.
 MATCHED_POI_SQL = """
     WITH joined_poi AS (
     SELECT
@@ -50,11 +55,11 @@ MATCHED_POI_SQL = """
         count(*) FILTER (WHERE osm.node_type IN ('way', 'relation'))   OVER (PARTITION BY atp.id) AS poly_cnt
     FROM
         mv_places osm
-    INNER JOIN atp_fr atp ON
+    INNER JOIN atp_places atp ON
         ST_DWithin(
             osm.geom::geography,
             ST_GeomFromGeoJSON(atp.geom)::geography,
-            500
+            {match_radius_m}
         )
     WHERE
         {where_options} AND
@@ -74,13 +79,23 @@ MATCHED_POI_SQL = """
 """
 
 
+def matched_poi_sql(where_options: str = "TRUE") -> str:
+    """The matching query, ready to run: its filters and the country's radius.
+
+    One `format` call, never two: the SQL escapes its own braces (`'{{}}'::jsonb`)
+    and a second pass would unescape them into replacement fields.
+    """
+    return MATCHED_POI_SQL.format(
+        where_options=where_options, match_radius_m=get_country().match_radius_m
+    )
+
+
 def get_filtered(
     cursor: Cursor,
     brand: str = None,
     postcode: str = None,
     subdivision_code: str = None,
 ) -> Cursor:
-    query = MATCHED_POI_SQL
     options = []
     params = []
     if brand:
@@ -93,9 +108,9 @@ def get_filtered(
         options.append("atp.subdivision_code = %s")
         params.append(subdivision_code)
 
-    where_options = " AND ".join(options) or "TRUE"
+    query = matched_poi_sql(" AND ".join(options) or "TRUE")
 
-    return cursor.execute(query.format(where_options=where_options), params)
+    return cursor.execute(query, params)
 
 
 # Cooldowns: how long an import keeps hiding what it just touched, until the

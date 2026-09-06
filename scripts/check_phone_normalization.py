@@ -24,7 +24,7 @@ LEGACY_SQL = MIGRATIONS / "012_normalize_phone_fn.sql"
 SCHEMA = "phone_check"
 
 # Both sides of the join, as they are named today.
-TABLES = (("atp_fr", "phone"), ("mv_places", "phone"))
+TABLES = (("atp_places", "phone"), ("mv_places", "phone"))
 
 
 def pairs_matched_on_phone_only(cur, function):
@@ -32,7 +32,7 @@ def pairs_matched_on_phone_only(cur, function):
     cur.execute(
         f"""
         SELECT count(*) FROM mv_places osm
-        JOIN atp_fr atp
+        JOIN atp_places atp
           ON {function}(osm.phone) = {function}(atp.phone)
          AND ST_DWithin(osm.geom::geography,
                         ST_GeomFromGeoJSON(atp.geom)::geography, 500)
