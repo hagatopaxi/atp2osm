@@ -72,3 +72,6 @@ ATP2OSM_CONFIG=./config.json uv run --env-file .env python -m src.pipeline
 
 A fresh database gets its schema from the app, which runs the migrations at
 startup: start the server once before the first pipeline run.
+
+In production it runs daily, on a systemd timer whose hour and timezone come
+from the configuration.

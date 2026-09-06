@@ -7,8 +7,10 @@ Image=${IMAGE_NAME}:${GIT_SHORT}
 ContainerName=${CONTAINER_NAME}
 Network=host
 EnvironmentFile=${PROJECT_DIR}/.env
+Environment=ATP2OSM_CONFIG=/app/config.json
 # Authoritative version: the image ENV can be stale when the build hits the cache.
 Environment=GIT_COMMIT=${GIT_SHORT}
+Volume=${PROJECT_DIR}/config.json:/app/config.json:ro,Z
 Volume=${PROJECT_DIR}/data:/app/data:Z
 Volume=${PROJECT_DIR}/logs:/app/logs:Z
 
