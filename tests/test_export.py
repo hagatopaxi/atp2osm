@@ -7,7 +7,7 @@ import pytest
 from src.routes.export import DATASETS, _csv_value
 
 # Tables holding ATP or OSM data (or derived from them) — never exportable.
-UPSTREAM_TABLES = {"atp_fr", "points", "polygons", "mv_places", "mv_places_brand"}
+UPSTREAM_TABLES = {"atp_places", "points", "polygons", "mv_places", "mv_places_brand"}
 
 
 def test_only_own_tables_are_exposed():

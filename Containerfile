@@ -1,8 +1,7 @@
 FROM docker.io/library/python:3.11-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    locales osm2pgsql \
-    && locale-gen fr_FR.UTF-8 \
+    osm2pgsql \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
@@ -19,6 +18,7 @@ COPY src/ src/
 COPY website/ website/
 COPY static/ static/
 COPY migrations/ migrations/
+COPY config.schema.json ./
 
 # Catalogs are compiled here: only the .po files are tracked
 RUN uv run --no-sync pybabel compile -d website/translations

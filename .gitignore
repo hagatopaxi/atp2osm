@@ -12,3 +12,8 @@ dist
 .dev.log
 .claude
 *.mo
+# Configuration belongs to the deployment, never to the repository — except
+# the example and the schema, which document it.
+config*.json
+!config.schema.json
+*.log

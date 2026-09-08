@@ -119,12 +119,12 @@ def build_parts(conn):
 
 
 def attach(conn, points):
-    """Run the real attachment on a hand-made atp_fr and return its rows."""
+    """Run the real attachment on a hand-made atp_places and return its rows."""
     with conn.cursor() as cur:
-        cur.execute(f"DROP TABLE IF EXISTS {SCHEMA}.atp_fr")
-        cur.execute(f"CREATE TABLE {SCHEMA}.atp_fr (id TEXT PRIMARY KEY, geom TEXT)")
+        cur.execute(f"DROP TABLE IF EXISTS {SCHEMA}.atp_places")
+        cur.execute(f"CREATE TABLE {SCHEMA}.atp_places (id TEXT PRIMARY KEY, geom TEXT)")
         cur.executemany(
-            f"INSERT INTO {SCHEMA}.atp_fr (id, geom) VALUES (%s, ST_AsGeoJSON(ST_Point(%s, %s)))",
+            f"INSERT INTO {SCHEMA}.atp_places (id, geom) VALUES (%s, ST_AsGeoJSON(ST_Point(%s, %s)))",
             [(name, x, y) for name, (x, y) in points.items()],
         )
     conn.commit()
@@ -133,7 +133,7 @@ def attach(conn, points):
 
     with conn.cursor() as cur:
         rows = cur.execute(
-            f"SELECT id, subdivision_code, subdivision_name FROM {SCHEMA}.atp_fr"
+            f"SELECT id, subdivision_code, subdivision_name FROM {SCHEMA}.atp_places"
         ).fetchall()
     return {r["id"]: (r["subdivision_code"], r["subdivision_name"]) for r in rows}
 

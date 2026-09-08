@@ -10,7 +10,7 @@ This exists because the alternatives both fail:
 * rebuilding every night costs a minute for nothing, 364 nights out of 365;
 * guarding on the freshness of a single datasource silently freezes the object
   when *another* one moves — mv_places reads nsi_brands as well as the OSM
-  tables, and mv_places_brand reads mv_places and atp_fr.
+  tables, and mv_places_brand reads mv_places and atp_places.
 
 Listing the inputs is therefore not optional: an input left out is an update
 that never lands. Whatever an object reads, pass it here.

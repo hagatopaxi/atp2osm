@@ -1,6 +1,6 @@
 import logging
 
-from src.matching import MATCHED_POI_SQL
+from src.matching import matched_poi_sql
 from src.pipeline import _matview
 from src.pipeline._version import app_version
 from src.pipeline._db import connect, last_import_comment, last_import_date
@@ -20,7 +20,7 @@ def _mv_places_brand_sql() -> str:
             atp_brand_wikidata AS brand_wikidata,
             subdivision_code,
             COUNT(*)           AS total
-        FROM ({MATCHED_POI_SQL.format(where_options="TRUE")}) matched
+        FROM ({matched_poi_sql("TRUE")}) matched
         WHERE is_importable
         GROUP BY atp_brand_wikidata, subdivision_code
     """
@@ -30,7 +30,7 @@ def create_mv_places_brand():
     view_sql = _mv_places_brand_sql()
     conn = connect()
     try:
-        # It counts matches between mv_places and atp_fr, so it has to be
+        # It counts matches between mv_places and atp_places, so it has to be
         # rebuilt when either moves — and when MATCHED_POI_SQL itself changes,
         # since /validate applies that same SQL live and the two counts must
         # never diverge.

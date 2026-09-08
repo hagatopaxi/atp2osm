@@ -115,25 +115,6 @@ def test_dates_follow_the_language_and_the_country_timezone(app):
     assert get(app, "/de/when").text == "31.08.26, 08:48"
 
 
-def test_a_bad_language_or_timezone_refuses_to_start(monkeypatch):
-    """Validated at startup, because Babel would 500 on every page instead."""
-    from src import config
-
-    monkeypatch.setenv("LOCALES", "fr,zz")
-    with pytest.raises(config.ConfigError, match="zz"):
-        config.get_locales()
-
-    monkeypatch.setenv("LOCALES", "fr,de")
-    assert config.get_locales() == ("fr", "de")
-
-    monkeypatch.setenv("TIMEZONE", "Mars/Olympus")
-    with pytest.raises(config.ConfigError, match="Mars/Olympus"):
-        config.get_timezone()
-
-    monkeypatch.delenv("TIMEZONE")
-    assert config.get_timezone() == "Europe/Paris"
-
-
 def test_every_message_is_translated():
     """A missing or fuzzy translation silently falls back to the English msgid."""
     from pathlib import Path
@@ -206,3 +187,28 @@ def test_every_key_the_scripts_ask_for_is_rendered():
         asked |= set(re.findall(r"""\bt\(\s*["'](\w+)["']""", script.read_text()))
 
     assert asked <= keys, f"not rendered: {sorted(asked - keys)}"
+
+
+def test_a_mounted_catalog_wins_over_the_shipped_one(tmp_path):
+    """A deployment adds a language, or fixes a wording, without a fork."""
+    import subprocess
+
+    from flask import Flask
+    from flask_babel import gettext
+
+    from src import i18n
+
+    catalog = tmp_path / "fr" / "LC_MESSAGES"
+    catalog.mkdir(parents=True)
+    (catalog / "messages.po").write_text(
+        'msgid ""\nmsgstr "Content-Type: text/plain; charset=utf-8\\n"\n\n'
+        'msgid "Statistics"\nmsgstr "Chiffres"\n'
+    )
+    subprocess.run(["pybabel", "compile", "-d", str(tmp_path)], check=True)
+
+    app = Flask(__name__)
+    i18n.init_app(app, ("fr",), ("/",), "Europe/Paris", str(tmp_path))
+    with app.test_request_context("/", environ_overrides={i18n.ENVIRON_KEY: "fr"}):
+        assert gettext("Statistics") == "Chiffres"
+        # A string the mounted catalog says nothing about keeps its own.
+        assert gettext("Documentation") == "Documentation"

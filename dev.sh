@@ -8,8 +8,8 @@
 #
 # Le checkout principal garde :5000 ; le port d'un worktree est dérivé de son nom,
 # donc l'URL est stable et le port sert d'identité du process (down sans pidfile).
-# Chaque worktree écrit son propre $wt/.dev.log. Le .env est symlinké depuis le
-# checkout principal — jamais copié, jamais lu.
+# Chaque worktree écrit son propre $wt/.dev.log. Le .env et le config.json sont
+# symlinkés depuis le checkout principal — jamais copiés, jamais lus.
 set -euo pipefail
 
 # Share the versioned hooks (git never installs them on clone).
@@ -68,11 +68,16 @@ if pgrep -f "$pattern" >/dev/null; then
 fi
 
 [ -e .env ] || ln -s "$main/.env" .env
+[ -e config.json ] || ln -s "$main/config.json" config.json
+
+# Les .mo sont des artefacts de build, donc absents d'un worktree neuf : sans
+# eux le site sert les msgid anglais sans rien dire.
+uv run pybabel compile -d website/translations >/dev/null 2>&1 || true
 
 # ponytail: les worktrees partagent la base PostGIS de dev (OSM_DB_* dans .env).
 # Suffisant pour tester ; override OSM_DB_NAME si des migrations entrent en conflit.
 : > "$log"
-setsid bash -c "cd '$wt' && exec uv run --env-file .env flask $flask_args" >>"$log" 2>&1 &
+setsid bash -c "cd '$wt' && ATP2OSM_CONFIG='$wt/config.json' exec uv run --env-file .env flask $flask_args" >>"$log" 2>&1 &
 
 echo "worktree : $name"
 echo "app      : http://$host:$port"

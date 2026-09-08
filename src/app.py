@@ -39,7 +39,13 @@ app.config["CACHE_THRESHOLD"] = 1000
 app.config["CACHE_DEFAULT_TIMEOUT"] = 0  # Infinite cache duration
 
 cache.init_app(app)
-i18n.init_app(app, settings.locales, TRANSLATED_PATHS, settings.timezone)
+i18n.init_app(
+    app,
+    settings.country.locales,
+    TRANSLATED_PATHS,
+    settings.country.timezone,
+    settings.translations_dir,
+)
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(brands_bp)
@@ -82,7 +88,8 @@ def inject_globals():
         "api_url": settings.api_url,
         "app_version": settings.app_version,
         "is_dev": settings.is_dev,
-        "country_code": settings.country_code,
+        "country_code": settings.country.code.upper(),
+        "source_repo_url": settings.source_repo_url,
         "error_reasons": ERROR_REASONS,
     }
 

@@ -461,29 +461,29 @@ def test_changing_the_country_rebuilds_the_index(conn, install_schema):
     disagree, silently.
     """
     ensure_normalize_phone(conn)
-    conn.execute("CREATE TABLE atp_fr (phone TEXT)")
+    conn.execute("CREATE TABLE atp_places (phone TEXT)")
     conn.execute(
-        "INSERT INTO atp_fr SELECT unnest(%s::text[])",
+        "INSERT INTO atp_places SELECT unnest(%s::text[])",
         (["+49 30 123456", "030 123456", "+33 1 23 45 67 89"],),
     )
     conn.execute(
-        "CREATE INDEX atp_fr_phone_norm_idx ON atp_fr (normalize_phone(phone))"
+        "CREATE INDEX atp_places_phone_norm_idx ON atp_places (normalize_phone(phone))"
     )
-    conn.execute("ANALYZE atp_fr")
+    conn.execute("ANALYZE atp_places")
     conn.commit()
 
     ensure_normalize_phone(conn, ("49",), "0")
-    conn.execute("ANALYZE atp_fr")
+    conn.execute("ANALYZE atp_places")
 
     conn.execute("SET LOCAL enable_seqscan = off")
     with_index = conn.execute(
-        "SELECT count(*) FROM atp_fr WHERE normalize_phone(phone) = '30123456'"
+        "SELECT count(*) FROM atp_places WHERE normalize_phone(phone) = '30123456'"
     ).fetchone()[0]
     conn.execute("SET LOCAL enable_seqscan = on")
     conn.execute("SET LOCAL enable_indexscan = off")
     conn.execute("SET LOCAL enable_bitmapscan = off")
     without_index = conn.execute(
-        "SELECT count(*) FROM atp_fr WHERE normalize_phone(phone) = '30123456'"
+        "SELECT count(*) FROM atp_places WHERE normalize_phone(phone) = '30123456'"
     ).fetchone()[0]
     conn.execute("RESET enable_indexscan")
     conn.execute("RESET enable_bitmapscan")

@@ -45,7 +45,8 @@ Git worktrees **always** live in `.worktrees/<name>` at the project root, never 
 ## Commands
 
 ```bash
-# Run the app for a worktree (port derived from the name, .env symlinked from the main checkout)
+# Run the app for a worktree (port derived from the name, .env and config.json
+# symlinked from the main checkout)
 ./dev.sh up [-d] [name]     # start (-d = detached)
 ./dev.sh down [name]        # stop
 ./dev.sh logs [name] [-f]   # show the logs
@@ -54,7 +55,7 @@ Git worktrees **always** live in `.worktrees/<name>` at the project root, never 
 uv sync
 
 # Run the Flask server (development)
-uv run --env-file .env flask --app ./src/app.py run --debug
+ATP2OSM_CONFIG=./config.json uv run --env-file .env flask --app ./src/app.py run --debug
 
 # Production: app runs via gunicorn inside a container (see Containerfile)
 # Deploy is triggered by git push to the server (deploy/run hook)
@@ -74,18 +75,19 @@ podman-compose run osm2pgsql osm2pgsql --output flex -S /osm2pgsql/generic.lua -
 # Manual trigger on server:
 #   systemctl --user start atp2osm-gwenael-leger-fr-refresh.service
 # Manual trigger locally:
-#   OSM_DB_NAME=o2p OSM_DB_USER=o2p OSM_DB_PASSWORD=... OSM_DB_HOST=127.0.0.1 OSM_DB_PORT=5432 ./run-pipeline.sh
+#   ATP2OSM_CONFIG=./config.json OSM_DB_PASSWORD=... ./run-pipeline.sh
 
-# Import a fraction of the country instead of the nine extracts (dev only)
-ATP2OSM_GEOFABRIK_PATHS=europe/france/provence-alpes-cote-d-azur,europe/france/martinique
+# Import a fraction of the country instead of the nine extracts: shorten the
+# `geofabrik` list of a configuration file of your own, and point
+# ATP2OSM_CONFIG at it — nothing in the code knows about a dev shortcut.
 ```
 
 ## Architecture
 
 **Data pipeline** (runs outside the web server, via `run-pipeline.sh` and `src/pipeline/`):
 1. `run-pipeline.sh` — Entry point of the daily refresh: runs `src/pipeline` inside the container via podman. Copied into the project directory on every deploy. Triggered by a systemd timer (04:00 Europe/Paris). A branch no-ops when nothing it depends on has moved — *including its own code*: see **Rebuild guards** below.
-2. `src/pipeline/` — Python module orchestrating the whole pipeline: OSM PBF download from Geofabrik, osm2pgsql import, ATP parquet download, load into `atp_fr` through DuckDB, materialized view refresh.
-3. `osm2pgsql/generic.lua` — Flex output style that imports OSM PBF into `points`, `polygons` and `subdivisions` tables in PostGIS (SRID 4326). Administrative boundaries take a separate path, before the POI filters, down to `ATP2OSM_ADMIN_LEVEL` (6), the finest level the attachment reads. Two filters run on the POIs: objects that are definitely not places (roads, boundaries, transport…) and objects carrying none of the attributes a match can key on — no name, brand, email, phone or website. The second one drops ~95% of the objects.
+2. `src/pipeline/` — Python module orchestrating the whole pipeline: OSM PBF download from Geofabrik, osm2pgsql import, ATP parquet download, load into `atp_places` through DuckDB, materialized view refresh.
+3. `osm2pgsql/generic.lua` — Flex output style that imports OSM PBF into `points`, `polygons` and `subdivisions` tables in PostGIS (SRID 4326). Administrative boundaries take a separate path, before the POI filters, down to `ATP2OSM_ADMIN_LEVEL_MAX` (`country.admin_level_max`, 8 in France) — deeper than `country.admin_level`, the level the attachment reads, so lowering that one is a SQL filter rather than a reimport. Two filters run on the POIs: objects that are definitely not places (roads, boundaries, transport…) and objects carrying none of the attributes a match can key on — no name, brand, email, phone or website. The second one drops ~95% of the objects.
 
 **Rebuild guards** — a step never decides on the freshness of its source alone. Editing `generic.lua`, `atp.py` or the NSI constants changes what the tables contain while the upstream timestamp stays put, so a date-only guard holds the change back until the source happens to publish. Production ran that way once: code expecting a `subdivisions` table, and a database that had none.
 
@@ -106,16 +108,16 @@ In development the version is a constant, so nothing rebuilds on its own: rerun 
 - SQL migrations in `migrations/` auto-run at startup (`src/migrate.py`), tracked in `schema_migrations` table
 
 **Core modules:**
-- `src/matching.py` — Spatial join queries between `mv_places` and `atp_fr` (`MATCHED_POI_SQL`, shared with the `mv_places_brand` view and never duplicated), tag diffing logic (`apply_on_node`), batch composition (`pack_subdivisions`, `select_batch`), cooldown SQL, stats aggregation
-- `src/upload.py` — `BulkUpload` class that creates OSM changesets grouped by department, uploads via `osmapi`
+- `src/matching.py` — Spatial join queries between `mv_places` and `atp_places` (`MATCHED_POI_SQL`, shared with the `mv_places_brand` view and never duplicated), tag diffing logic (`apply_on_node`), batch composition (`pack_subdivisions`, `select_batch`), cooldown SQL, stats aggregation
+- `src/upload.py` — `BulkUpload` class that creates OSM changesets grouped by subdivision, uploads via `osmapi`
 - `src/migrate.py` — Simple sequential SQL migration runner
 
 **Key database objects:**
 - `points`, `polygons` — Raw OSM data (from osm2pgsql)
 - `mv_places` — Materialized view joining both with normalized columns, restricted to objects a match can key on (same filter as `generic.lua`, kept as a safety net)
-- `subdivisions` — OSM administrative boundaries (from osm2pgsql). Each ATP POI is attached to the finest one containing it, walking down from `ADMIN_LEVEL` to the country
+- `subdivisions` — OSM administrative boundaries (from osm2pgsql). Each ATP POI is attached to the finest one containing it, walking down from `country.admin_level` to the country
 - `mv_places_brand` — Match count per (brand, subdivision); `get_all` sums the subdivisions that are not under cooldown
-- `atp_fr` — ATP data filtered to metropolitan France
+- `atp_places` — ATP data filtered to the country served
 - `import_history` — One row per human integration action
 - `import_subdivisions` — One row per changeset: subdivision code and name, count, status. Carries the per-subdivision blocking and the history detail
 
@@ -125,9 +127,34 @@ Functional specs live in `specs/`, prefixed with a two-digit id in creation
 order (`01_`, `02_`…). They state the intended behaviour, not the history of
 the decisions that led to it.
 
-## Environment Variables
+## Configuration
 
-See `.env.sample`. Key variables: `OSM_DB_*` (PostGIS connection), `OSM_API_HOST` (OSM API base URL), `OSM_OAUTH_CLIENT_ID`/`SECRET` (OAuth2 app credentials).
+Everything that is not a secret lives in one JSON file, named by
+`ATP2OSM_CONFIG` — no default, so an instance that provides none refuses to
+start rather than quietly serving France. No country file ships with the
+product, not even the French one.
+
+**`config.schema.json` is the documentation**: every setting is described where
+it is declared, and the file is validated against it at startup. Read it before
+asking what a key does, and add a `description` when you add a key. Only what a
+schema cannot express stays in `src/config.py`: a language Babel knows, a real
+IANA timezone, `admin_level_max` above `admin_level`.
+
+A complete example lives in the schema's own `examples`, so there is one file
+to keep in step instead of two — copy it out with
+`jq '.examples[0]' config.schema.json`. A test loads it, so it cannot drift.
+
+The image ships the catalogs of `website/translations/`, which are maintained
+with the templates they come from. `app.translations_dir` points at catalogs
+the deployment adds: they are merged over the shipped ones and win on the
+strings they both hold, so a language the product does not ship needs no fork.
+
+Secrets stay in the environment, `.env` today and sops tomorrow:
+`OSM_DB_PASSWORD`, `OSM_OAUTH_CLIENT_ID`, `OSM_OAUTH_CLIENT_SECRET`,
+`SECRET_KEY`. So does `GIT_COMMIT`, which the build computes.
+
+In development, `config.json` sits in the main checkout, gitignored, and
+`dev.sh` symlinks it into every worktree next to `.env`.
 
 ## Testing
 

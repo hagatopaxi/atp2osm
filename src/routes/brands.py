@@ -64,7 +64,7 @@ SORT_COLUMNS = {
 @brands_bp.before_request
 def maintenance_guard():
     """Only these routes read the tables the pipeline rebuilds (mv_places,
-    mv_places_brand, atp_fr) — the rest of the site stays available."""
+    mv_places_brand, atp_places) — the rest of the site stays available."""
     since = maintenance_since(get_osmdb())
     if since is not None:
         return render_template("errors/503.html", since=since), 503, {"Retry-After": "900"}
@@ -183,7 +183,7 @@ def brands_validate(brand_wikidata):
         osmdb = get_osmdb()
         with osmdb.cursor() as cursor:
             brand_name = cursor.execute(
-                "SELECT brand FROM atp_fr WHERE brand_wikidata = %s LIMIT 1",
+                "SELECT brand FROM atp_places WHERE brand_wikidata = %s LIMIT 1",
                 (brand_wikidata,),
             ).fetchone()
             brand_name = brand_name[0] if brand_name else None

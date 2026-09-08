@@ -15,7 +15,7 @@ from src.pipeline.constants import (
 import duckdb
 import requests
 
-from src.config import get_database
+from src.config import get_country, get_database
 from src.pipeline._version import app_version
 from src.pipeline.errors import unavailable_if_unreachable
 from src.pipeline.osm import forget_geofabrik_timestamp
@@ -33,21 +33,27 @@ from src.utils import delete_file_if_exists, download_large_file
 logger = logging.getLogger(__name__)
 
 
-# ISO 3166-1 alpha-2 codes, minus FR. ATP names its country-specific spiders
-# `<brand>_<cc>` (e.g. `aldi_de`), so a foreign suffix means no French POI.
-# Only the suffix: a leading `la_`/`au_`/`as_` is part of the brand name much
-# more often than it is a country (la_halle_fr, au_vieux_campeur, as_24_fr).
-_FOREIGN_COUNTRY_CODES = frozenset(
+# ISO 3166-1 alpha-2 codes. ATP names its country-specific spiders
+# `<brand>_<cc>` (e.g. `aldi_de`), so a suffix that is a foreign code means no
+# POI of ours. Only the suffix: a leading `la_`/`au_`/`as_` is part of the
+# brand name much more often than it is a country (la_halle_fr,
+# au_vieux_campeur, as_24_fr).
+_COUNTRY_CODES = frozenset(
     """ad ae af ag ai al am ao aq ar as at au aw ax az ba bb bd be bf bg bh bi bj bl bm
     bn bo bq br bs bt bv bw by bz ca cc cd cf cg ch ci ck cl cm cn co cr cu cv cw cx cy
-    cz de dj dk dm do dz ec ee eg eh er es et fi fj fk fm fo ga gb gd ge gf gg gh gi gl
-    gm gn gp gq gr gs gt gu gw gy hk hm hn hr ht hu id ie il im in io iq ir is it je jm
-    jo jp ke kg kh ki km kn kp kr kw ky kz la lb lc li lk lr ls lt lu lv ly ma mc md me
-    mf mg mh mk ml mm mn mo mp mq mr ms mt mu mv mw mx my mz na nc ne nf ng ni nl no np
-    nr nu nz om pa pe pf pg ph pk pl pm pn pr ps pt pw py qa re ro rs ru rw sa sb sc sd
-    se sg sh si sj sk sl sm sn so sr ss st sv sx sy sz tc td tf tg th tj tk tl tm tn to
-    tr tt tv tw tz ua ug um us uy uz va vc ve vg vi vn vu wf ws ye yt za zm zw""".split()
+    cz de dj dk dm do dz ec ee eg eh er es et fi fj fk fm fo fr ga gb gd ge gf gg gh gi
+    gl gm gn gp gq gr gs gt gu gw gy hk hm hn hr ht hu id ie il im in io iq ir is it je
+    jm jo jp ke kg kh ki km kn kp kr kw ky kz la lb lc li lk lr ls lt lu lv ly ma mc md
+    me mf mg mh mk ml mm mn mo mp mq mr ms mt mu mv mw mx my mz na nc ne nf ng ni nl no
+    np nr nu nz om pa pe pf pg ph pk pl pm pn pr ps pt pw py qa re ro rs ru rw sa sb sc
+    sd se sg sh si sj sk sl sm sn so sr ss st sv sx sy sz tc td tf tg th tj tk tl tm tn
+    to tr tt tv tw tz ua ug um us uy uz va vc ve vg vi vn vu wf ws ye yt za zm zw""".split()
 )
+
+
+def _foreign_country_codes() -> frozenset[str]:
+    """Every country code but ours and its territories' — nothing to configure."""
+    return _COUNTRY_CODES - set(get_country().territory_codes)
 
 
 def is_relevant_spider(filename: str) -> bool:
@@ -58,7 +64,7 @@ def is_relevant_spider(filename: str) -> bool:
     """
     stem = filename.rsplit("/", 1)[-1].removesuffix(".geojson").lower()
     return (
-        stem.rsplit("_", 1)[-1] not in _FOREIGN_COUNTRY_CODES
+        stem.rsplit("_", 1)[-1] not in _foreign_country_codes()
         and "addresses" not in stem
     )
 
@@ -113,7 +119,7 @@ def download_atp():
             # last_date, not the run's end_time: recording an older run would
             # make the displayed source date go backwards. And the stamp is the
             # one already there, not app_version(): what it describes is the
-            # atp_fr sitting in the database, which this step did not rebuild.
+            # atp_places sitting in the database, which this step did not rebuild.
             # Recording the running revision here would tell import_atp the
             # table is up to date when it is not.
             record_import(
@@ -202,12 +208,12 @@ def _attach_subdivisions(conn):
     logger.info("Attaching POIs to subdivisions (admin_level <= %d)...", ADMIN_LEVEL)
     with conn.cursor() as cur:
         cur.execute("""
-            ALTER TABLE atp_fr ADD COLUMN subdivision_code TEXT,
+            ALTER TABLE atp_places ADD COLUMN subdivision_code TEXT,
                                ADD COLUMN subdivision_name TEXT;
         """)
         cur.execute(
             """
-            UPDATE atp_fr atp
+            UPDATE atp_places atp
                SET (subdivision_code, subdivision_name) = (
                     -- ponytail: ref is not unique across levels — 16 codes in
                     -- France name both a région and a département (75 is Paris
@@ -229,7 +235,7 @@ def _attach_subdivisions(conn):
             """,
             (ADMIN_LEVEL,),
         )
-        cur.execute("DELETE FROM atp_fr WHERE subdivision_code IS NULL")
+        cur.execute("DELETE FROM atp_places WHERE subdivision_code IS NULL")
         dropped = cur.rowcount
     conn.commit()
     if dropped:
@@ -264,7 +270,7 @@ def import_atp():
 
         try:
             with conn.cursor() as cur:
-                cur.execute("DROP TABLE IF EXISTS atp_fr CASCADE")
+                cur.execute("DROP TABLE IF EXISTS atp_places CASCADE")
                 cur.execute("DROP TABLE IF EXISTS atp_spiders CASCADE")
             conn.commit()
 
@@ -281,9 +287,12 @@ def import_atp():
             ddb.execute("INSTALL spatial; LOAD spatial;")
             ddb.execute(f"ATTACH '{db_url}' AS pg (TYPE postgres);")
 
-            logger.info("Creating atp_fr table from parquet...")
+            logger.info("Creating atp_places table from parquet...")
+            # A POI of ours carries the country code or one of its territories':
+            # ISO codes Martinique MQ, and ATP follows its sources.
+            countries = ", ".join(f"'{c.upper()}'" for c in get_country().territory_codes)
             ddb.execute(f"""
-                CREATE TABLE pg.atp_fr AS
+                CREATE TABLE pg.atp_places AS
                 SELECT
                     id,
                     properties->>'$.addr:country'    AS country,
@@ -302,35 +311,35 @@ def import_atp():
                     properties->>'$.@source_uri'      AS source_uri,
                     ST_AsGeoJSON(geom)                AS geom
                 FROM read_parquet('{PARQUET_PATH}')
-                WHERE properties->>'$.addr:country' = 'FR'
+                WHERE properties->>'$.addr:country' IN ({countries})
                     AND geom IS NOT NULL
             """)
 
             _attach_subdivisions(conn)
 
-            logger.info("Creating indexes for atp_fr...")
+            logger.info("Creating indexes for atp_places...")
             with conn.cursor() as cur:
                 cur.execute("""
-                    CREATE INDEX IF NOT EXISTS atp_fr_geom_idx
-                        ON atp_fr USING GIST ((ST_GeomFromGeoJSON(geom)::geography));
-                    CREATE INDEX IF NOT EXISTS atp_fr_brand_wikidata_idx
-                        ON atp_fr (brand_wikidata);
-                    CREATE INDEX IF NOT EXISTS atp_fr_brand_lower_idx
-                        ON atp_fr (LOWER(brand));
-                    CREATE INDEX IF NOT EXISTS atp_fr_name_lower_idx
-                        ON atp_fr (LOWER(name));
-                    CREATE INDEX IF NOT EXISTS atp_fr_website_norm_idx
-                        ON atp_fr (LOWER(REGEXP_REPLACE(website, '^https?://', '', 'i')));
-                    CREATE INDEX IF NOT EXISTS atp_fr_phone_norm_idx
-                        ON atp_fr (normalize_phone(phone));
-                    CREATE INDEX IF NOT EXISTS atp_fr_email_lower_idx
-                        ON atp_fr (LOWER(email));
-                    CREATE INDEX IF NOT EXISTS atp_fr_subdivision_code_idx
-                        ON atp_fr (subdivision_code);
-                    CREATE INDEX IF NOT EXISTS atp_fr_spider_idx
-                        ON atp_fr (spider_id);
-                    CREATE INDEX IF NOT EXISTS atp_fr_source_type_idx
-                        ON atp_fr (source_type);
+                    CREATE INDEX IF NOT EXISTS atp_places_geom_idx
+                        ON atp_places USING GIST ((ST_GeomFromGeoJSON(geom)::geography));
+                    CREATE INDEX IF NOT EXISTS atp_places_brand_wikidata_idx
+                        ON atp_places (brand_wikidata);
+                    CREATE INDEX IF NOT EXISTS atp_places_brand_lower_idx
+                        ON atp_places (LOWER(brand));
+                    CREATE INDEX IF NOT EXISTS atp_places_name_lower_idx
+                        ON atp_places (LOWER(name));
+                    CREATE INDEX IF NOT EXISTS atp_places_website_norm_idx
+                        ON atp_places (LOWER(REGEXP_REPLACE(website, '^https?://', '', 'i')));
+                    CREATE INDEX IF NOT EXISTS atp_places_phone_norm_idx
+                        ON atp_places (normalize_phone(phone));
+                    CREATE INDEX IF NOT EXISTS atp_places_email_lower_idx
+                        ON atp_places (LOWER(email));
+                    CREATE INDEX IF NOT EXISTS atp_places_subdivision_code_idx
+                        ON atp_places (subdivision_code);
+                    CREATE INDEX IF NOT EXISTS atp_places_spider_idx
+                        ON atp_places (spider_id);
+                    CREATE INDEX IF NOT EXISTS atp_places_source_type_idx
+                        ON atp_places (source_type);
                 """)
             conn.commit()
 
@@ -339,7 +348,7 @@ def import_atp():
                 CREATE TABLE pg.atp_spiders AS
                 SELECT *
                 FROM read_json('{SPIDERS_PATH}')
-                WHERE spider IN (SELECT DISTINCT spider_id FROM pg.atp_fr)
+                WHERE spider IN (SELECT DISTINCT spider_id FROM pg.atp_places)
             """)
 
             record_import(conn, "atp", parquet_mtime, "success", version)

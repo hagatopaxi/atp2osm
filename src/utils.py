@@ -149,7 +149,7 @@ TODO_FILTERS = {
 # its whole point. ?show_in_atp=1 shows them again. Shared between the page and
 # its export, which must return the same rows.
 TODO_NOT_IN_ATP_SQL = """NOT EXISTS (
-    SELECT 1 FROM atp_fr a
+    SELECT 1 FROM atp_places a
     WHERE a.brand_wikidata = todo_brands.brand_wikidata
        OR LOWER(a.brand) = LOWER(todo_brands.brand_name)
 )"""

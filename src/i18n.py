@@ -30,8 +30,6 @@ ENVIRON_KEY = "atp2osm.locale"
 # page route may never start with one. The translated paths below are the guard.
 LANG_CODE = re.compile(r"[a-z]{2}(-[a-z]{2})?", re.IGNORECASE)
 
-babel = Babel()
-
 
 class LanguagePrefix:
     """Serve `/de/brands` as `/brands` in German, and send `/brands` to a language.
@@ -141,13 +139,19 @@ def static_url(filename, external=False):
     return f"{base}/static/{filename}"
 
 
-def init_app(app, locales, translated, timezone="UTC"):
+def init_app(app, locales, translated, timezone="UTC", extra_translations=""):
     """Wire the prefix middleware, Babel, the cookie and the Jinja globals."""
     app.wsgi_app = LanguagePrefix(app.wsgi_app, locales, translated)
     app.config["BABEL_DEFAULT_LOCALE"] = locales[0]
-    app.config["BABEL_TRANSLATION_DIRECTORIES"] = str(TRANSLATIONS_DIR)
+    # Flask-Babel merges the directories in order, so the deployment's own
+    # catalogs come last and win over the ones the image ships.
+    app.config["BABEL_TRANSLATION_DIRECTORIES"] = ";".join(
+        [str(TRANSLATIONS_DIR)] + ([extra_translations] if extra_translations else [])
+    )
     app.config["BABEL_DEFAULT_TIMEZONE"] = timezone
-    babel.init_app(
+    # One Babel per app, not one for the process: it carries the cache of
+    # merged catalogs, and two apps rarely read the same directories.
+    Babel().init_app(
         app, locale_selector=lambda: request.environ.get(ENVIRON_KEY) or locales[0]
     )
 

@@ -12,9 +12,15 @@ fi
 CONTAINER_NAME="${PROJECT_NAME//./-}"
 IMAGE_NAME="$CONTAINER_NAME"
 
-# Read PORT from .env for display (falls back to 8000)
-PORT=$(grep -E '^PORT=' "$PROJECT_DIR/.env" 2>/dev/null | cut -d'=' -f2 | tr -d '[:space:]' || true)
-PORT="${PORT:-8000}"
+# The units are written from the configuration file, which belongs to the
+# deployment and sits next to .env. Refusing to deploy without it beats writing
+# a timer that fires at a default hour in a default timezone.
+CONFIG="$PROJECT_DIR/config.json"
+if [ ! -f "$CONFIG" ]; then
+  echo "ERROR: no configuration file at $CONFIG" >&2
+  echo "       start from: jq '.examples[0]' config.schema.json" >&2
+  exit 1
+fi
 
 QUADLET_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/containers/systemd"
 SYSTEMD_USER_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
@@ -42,12 +48,37 @@ echo "    Tagged as ${IMAGE_NAME}:latest and ${IMAGE_NAME}:${GIT_SHORT}"
 
 # --- [3/3] Write unit files + reload + restart -----------------------------
 echo "--> [3/3] Writing unit files..."
+
+# Read the settings the units need through the image just built: it carries the
+# schema, applies the defaults, and refuses a configuration the app would refuse
+# to start on — so a bad file fails here rather than at the first restart.
+read -r PORT TIMEZONE REFRESH_SCHEDULE < <(podman run --rm \
+  -v "$CONFIG:/app/config.json:ro,Z" \
+  --env ATP2OSM_CONFIG=/app/config.json \
+  --env OSM_DB_PASSWORD=- --env OSM_OAUTH_CLIENT_ID=- \
+  --env OSM_OAUTH_CLIENT_SECRET=- --env SECRET_KEY=- \
+  "${IMAGE_NAME}:${GIT_SHORT}" \
+  uv run --no-sync python -c \
+  "from src.config import get_settings as s; c = s(); print(c.port, c.country.timezone, c.refresh_schedule)")
+
+if [ -z "${REFRESH_SCHEDULE:-}" ]; then
+  echo "ERROR: could not read $CONFIG — see the error above" >&2
+  exit 1
+fi
+echo "    port $PORT, refresh $REFRESH_SCHEDULE $TIMEZONE"
 mkdir -p "$QUADLET_DIR" "$SYSTEMD_USER_DIR" "$PROJECT_DIR/data" "$PROJECT_DIR/logs"
 
 export PROJECT_NAME PROJECT_DIR IMAGE_NAME CONTAINER_NAME GIT_SHORT
+export TIMEZONE REFRESH_SCHEDULE
 
-# Container Quadlet
+# Container Quadlet. A translations/ directory next to the configuration is
+# mounted when it exists: that is how a deployment ships a language of its own.
 envsubst < "$WORK_DIR/deploy/atp2osm.container" > "$QUADLET_DIR/${CONTAINER_NAME}.container"
+if [ -d "$PROJECT_DIR/translations" ]; then
+  echo "Volume=${PROJECT_DIR}/translations:/app/translations:ro,Z" \
+    >> "$QUADLET_DIR/${CONTAINER_NAME}.container"
+  echo "    Mounting $PROJECT_DIR/translations"
+fi
 
 # Refresh timer units
 envsubst < "$WORK_DIR/deploy/refresh.service" > "$SYSTEMD_USER_DIR/${CONTAINER_NAME}-refresh.service"

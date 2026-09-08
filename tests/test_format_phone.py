@@ -11,7 +11,7 @@ from src.phone import format_phone
 
 
 REWRITTEN = [
-    # International, as ATP actually writes them (see atp_fr).
+    # International, as ATP actually writes them (see atp_places).
     "+33 820 33 22 11",
     "+33820332211",
     "+33 8 20 33 22 11",
