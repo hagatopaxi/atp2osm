@@ -8,6 +8,8 @@ ContainerName=${CONTAINER_NAME}
 Network=host
 EnvironmentFile=${PROJECT_DIR}/.env
 Environment=ATP2OSM_CONFIG=/app/config.json
+# The port the configuration asks for: the image default would otherwise win.
+Environment=PORT=${PORT}
 # Authoritative version: the image ENV can be stale when the build hits the cache.
 Environment=GIT_COMMIT=${GIT_SHORT}
 Volume=${PROJECT_DIR}/config.json:/app/config.json:ro,Z

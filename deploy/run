@@ -69,7 +69,7 @@ echo "    port $PORT, refresh $REFRESH_SCHEDULE $TIMEZONE"
 mkdir -p "$QUADLET_DIR" "$SYSTEMD_USER_DIR" "$PROJECT_DIR/data" "$PROJECT_DIR/logs"
 
 export PROJECT_NAME PROJECT_DIR IMAGE_NAME CONTAINER_NAME GIT_SHORT
-export TIMEZONE REFRESH_SCHEDULE
+export PORT TIMEZONE REFRESH_SCHEDULE
 
 # Container Quadlet. A translations/ directory next to the configuration is
 # mounted when it exists: that is how a deployment ships a language of its own.
