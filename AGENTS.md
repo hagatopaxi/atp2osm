@@ -159,3 +159,16 @@ In development, `config.json` sits in the main checkout, gitignored, and
 ## Testing
 
 Tests use pytest with `--import-mode=importlib` and pythonpath set to `.` (see `pyproject.toml`). The test file currently imports from `src.compute_diff` which corresponds to functions now in `src.matching`.
+
+A test never reads the development database: its content is nobody's
+guarantee — an interrupted pipeline leaves rows behind, and a test reading
+them fails for reasons of its own. `conftest.py` builds a throwaway
+`atp2osm_test` database instead, dropped when the session ends, and the tests
+take one of its two fixtures: `migrated_conn` for the real schema (migrations
+applied, tables emptied before each test), `db_kwargs` for a test that builds
+a schema of its own — a partial migration history, a table shaped like
+osm2pgsql's.
+
+A database it cannot build is an **error**, never a skip: a test that does not
+run controls nothing, and a suite reporting green on a third of its tests is
+worse than a red one. `podman-compose up -d` is a prerequisite of `pytest`.

@@ -24,20 +24,8 @@ LEGACY_SQL = MIGRATIONS / "012_normalize_phone_fn.sql"
 
 
 @pytest.fixture(scope="module")
-def conn():
-    from src.config import ConfigError, get_database
-
-    try:
-        kwargs = get_database().connect_kwargs
-    except ConfigError as exc:
-        pytest.skip(f"no database configured: {exc}")
-
-    try:
-        c = psycopg.connect(**kwargs)
-    except psycopg.OperationalError as exc:
-        pytest.skip(f"no database available: {exc}")
-
-    with c:
+def conn(db_kwargs):
+    with psycopg.connect(**db_kwargs) as c:
         c.execute(f"DROP SCHEMA IF EXISTS {SCHEMA} CASCADE")
         c.execute(f"CREATE SCHEMA {SCHEMA}")
         c.execute(f"SET search_path TO {SCHEMA}")
@@ -514,11 +502,9 @@ def test_a_longer_calling_code_wins_over_a_shorter_one(conn):
     assert norm(conn, "+262 262 30 03 00") == norm(conn, "0262 30 03 00")
 
 
-def test_two_installs_at_once_do_the_work_once(conn, install_schema):
+def test_two_installs_at_once_do_the_work_once(conn, install_schema, db_kwargs):
     """Gunicorn starts several workers; only one may rebuild the indexes."""
-    from src.config import get_database
-
-    other = psycopg.connect(**get_database().connect_kwargs)
+    other = psycopg.connect(**db_kwargs)
     with other:
         other.execute("SET search_path TO install_check")
         assert ensure_normalize_phone(conn) is True

@@ -7,28 +7,14 @@ QID = "Q-test-nsi-match"
 
 
 @pytest.fixture
-def conn():
-    from src.config import ConfigError, get_database
-
-    try:
-        kwargs = get_database().connect_kwargs
-    except ConfigError as exc:
-        pytest.skip(f"no database configured: {exc}")
-    try:
-        c = psycopg.connect(**kwargs)
-    except psycopg.OperationalError as exc:
-        pytest.skip(f"no database available: {exc}")
-
-    with c:
-        c.execute(
-            "INSERT INTO nsi_brands"
-            " (brand_wikidata, brand, name, primary_key, primary_value, tags)"
-            " VALUES (%s, 'Test', 'Test', 'amenity', 'fuel', %s)",
-            (QID, '{"amenity": "fuel", "operator:wikidata": "Q-op"}'),
-        )
-        yield c
-        c.rollback()  # nsi_brands is pipeline-owned, leave it untouched
-    c.close()
+def conn(migrated_conn):
+    migrated_conn.execute(
+        "INSERT INTO nsi_brands"
+        " (brand_wikidata, brand, name, primary_key, primary_value, tags)"
+        " VALUES (%s, 'Test', 'Test', 'amenity', 'fuel', %s)",
+        (QID, '{"amenity": "fuel", "operator:wikidata": "Q-op"}'),
+    )
+    return migrated_conn
 
 
 def match(conn, tags):

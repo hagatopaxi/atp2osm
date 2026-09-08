@@ -54,19 +54,8 @@ def _bbox(x0, y0, x1, y1):
 
 
 @pytest.fixture
-def conn():
-    from src.config import ConfigError, get_database
-
-    try:
-        kwargs = get_database().connect_kwargs
-    except ConfigError as exc:
-        pytest.skip(f"no database configured: {exc}")
-    try:
-        c = psycopg.connect(row_factory=dict_row, **kwargs)
-    except psycopg.OperationalError as exc:
-        pytest.skip(f"no database available: {exc}")
-
-    with c:
+def conn(db_kwargs):
+    with psycopg.connect(row_factory=dict_row, **db_kwargs) as c:
         c.execute(f"DROP SCHEMA IF EXISTS {SCHEMA} CASCADE")
         c.execute(f"CREATE SCHEMA {SCHEMA}")
         c.execute(f"SET search_path TO {SCHEMA}, public")

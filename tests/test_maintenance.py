@@ -1,32 +1,26 @@
-"""Needs the local PostGIS (podman-compose up -d); skipped otherwise."""
-import pathlib
+"""Runs on the throwaway database of conftest; skipped without PostGIS.
 
+The development database is not an acceptable substrate: maintenance_since()
+reads the latest row of *every* datasource, so a crashed local pipeline that
+left 'osm' pending would fail these tests for reasons of its own.
+"""
 import psycopg
 import pytest
 
-from src.config import ConfigError, get_database
 from src.db import maintenance_since
+from src.pipeline import dag
 from src.pipeline._db import record_import, start_import
 from src.pipeline.dag import record_failure
 
-MIGRATION = pathlib.Path(__file__).parent.parent / "migrations" / "018_data_imports_pending.sql"
-
 
 @pytest.fixture
-def conn():
-    try:
-        with psycopg.connect(**get_database().connect_kwargs) as c:
-            c.execute(MIGRATION.read_text())
-            c.execute("DELETE FROM data_imports WHERE type = 'pipeline'")
-            c.commit()
-            yield c
-            c.execute("DELETE FROM data_imports WHERE type = 'pipeline'")
-            c.commit()
-    except (psycopg.OperationalError, ConfigError) as exc:
-        pytest.skip(f"no database available: {exc}")
+def conn(migrated_conn, db_kwargs, monkeypatch):
+    """The pipeline opens connections of its own: point them here too."""
+    monkeypatch.setattr(dag, "connect", lambda: psycopg.connect(**db_kwargs))
+    return migrated_conn
 
 
-def test_pending_row_holds_maintenance_until_resolved(conn):
+def test_pending_row_holds_maintenance_until_resolved(conn, db_kwargs):
     assert maintenance_since(conn) is None
 
     start_import(conn, "pipeline")
@@ -34,7 +28,7 @@ def test_pending_row_holds_maintenance_until_resolved(conn):
     assert started is not None
 
     # A new process (crashed run, restarted app) still sees the pending row.
-    with psycopg.connect(**get_database().connect_kwargs) as other:
+    with psycopg.connect(**db_kwargs) as other:
         assert maintenance_since(other) == started
 
     # record_import resolves the pending row instead of stacking a new one.
@@ -68,7 +62,7 @@ def test_a_relaunch_supersedes_the_row_a_crashed_run_left_behind(conn):
     assert maintenance_since(conn) is None
 
 
-def test_a_clean_run_lifts_the_maintenance_a_failed_one_left(conn, monkeypatch):
+def test_a_clean_run_lifts_the_maintenance_a_failed_one_left(conn):
     """The 'pipeline' row has no owner to supersede it.
 
     osm, atp and nsi each open a row when they start and close it when they
@@ -77,11 +71,6 @@ def test_a_clean_run_lifts_the_maintenance_a_failed_one_left(conn, monkeypatch):
     cleanup — and nothing wrote one on success: a single failed run kept the
     site in maintenance for good, however many clean runs followed.
     """
-    from src.pipeline import dag
-
-    monkeypatch.setattr(dag, "connect", lambda: conn)
-    monkeypatch.setattr(conn, "close", lambda: None, raising=False)
-
     conn.execute(
         "INSERT INTO data_imports (type, date, status, comment)"
         " VALUES ('pipeline', NULL, 'pending', 'step ''mv-brand'' failed')"
