@@ -192,3 +192,14 @@ def test_stamp_carries_the_published_version(monkeypatch):
     from src.pipeline import nsi
 
     assert nsi._stamp("8.0.20260729").startswith("8.0.20260729+")
+
+
+def test_a_containing_code_counts_on_both_sides():
+    """An item scoped to the world applies here; the world minus Europe does not."""
+    from src.pipeline.nsi import _is_country
+
+    assert _is_country({"include": ["001"]})
+    assert _is_country({"include": ["150"], "exclude": ["de"]})
+    assert not _is_country({"include": ["001"], "exclude": ["150"]})
+    assert not _is_country({"include": ["001"], "exclude": ["fr"]})
+    assert not _is_country({"include": ["de", "be"]})

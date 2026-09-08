@@ -29,7 +29,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 from src.config import get_database  # noqa: E402
 from src.pipeline.constants import NSI_CDN_URL, NSI_DIR, NSI_PATH  # noqa: E402
-from src.pipeline.nsi import _candidates, _is_french, _latest_version  # noqa: E402
+from src.pipeline.nsi import _candidates, _is_country, _latest_version  # noqa: E402
 from src.utils import download_large_file  # noqa: E402
 
 SCHEMA = "nsi_calibration"
@@ -72,7 +72,7 @@ def calibration_rows(nsi_json: dict) -> list[tuple]:
 def regional_location_share(nsi_json: dict) -> tuple[int, int]:
     """Items the country keeps whose scope is a region, not the country.
 
-    _is_french matches fr-ara.geojson and fr-75 by prefix, so a regionally
+    _is_country matches fr-ara.geojson and fr-75 by prefix, so a regionally
     scoped item is not dropped — it is applied to the whole country. Harmless
     when the region is a slice of a large country, wrong when regional scoping
     is most of what NSI carries there. Above 10%, the shortcut needs revisiting
@@ -80,7 +80,7 @@ def regional_location_share(nsi_json: dict) -> tuple[int, int]:
     """
     def regional(code: str) -> bool:
         code = str(code)
-        return ("-" in code or code.endswith(".geojson")) and _is_french(
+        return ("-" in code or code.endswith(".geojson")) and _is_country(
             {"include": [code]}
         )
 
@@ -88,7 +88,7 @@ def regional_location_share(nsi_json: dict) -> tuple[int, int]:
     for category in nsi_json["nsi"].values():
         for item in category.get("items", []):
             location_set = item.get("locationSet") or {}
-            if not _is_french(location_set):
+            if not _is_country(location_set):
                 continue
             kept += 1
             regionally_scoped += any(
@@ -191,7 +191,7 @@ def main() -> None:
               f" {measure['rate']:>6.2f}%  {'yes' if key in writable else ''}")
     print(f"\nItems scoped to a region rather than the country: {regional}/{total}"
           f" ({100 * regional / total:.1f}%)"
-          f"{'  -- above 10%: the _is_french shortcut no longer holds' if regional > total / 10 else ''}")
+          f"{'  -- above 10%: the _is_country shortcut no longer holds' if regional > total / 10 else ''}")
 
     if args.dry_run:
         return

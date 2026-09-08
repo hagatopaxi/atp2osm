@@ -18,7 +18,8 @@
         "locales",
         "geofabrik",
         "admin_level",
-        "nsi_locations"
+        "nsi_locations",
+        "calling_codes"
       ],
       "additionalProperties": false,
       "properties": {
@@ -96,14 +97,73 @@
           "minimum": 1,
           "default": 500
         },
+        "calling_codes": {
+          "description": "Telephone calling codes the country answers to, without the +. A country often has several: metropolitan France is 33, but Réunion and Mayotte are 262, Guadeloupe 590, Martinique 596, New Caledonia 687. OSM holds the same number in its international and its national writing, and the codes are what lets the two meet — listing only the mainland one would stop an overseas number from ever matching itself.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9]{1,3}$"
+          },
+          "minItems": 1,
+          "examples": [
+            [
+              "33",
+              "262",
+              "508",
+              "590",
+              "594",
+              "596",
+              "681",
+              "687",
+              "689"
+            ],
+            [
+              "49"
+            ]
+          ]
+        },
+        "trunk_prefix": {
+          "description": "Digits a national number carries in front of it and an international one does not — 0 across most of Europe. Empty where the numbering plan has none.",
+          "type": "string",
+          "pattern": "^[0-9]{0,2}$",
+          "default": "0"
+        },
         "nsi_locations": {
-          "description": "Location codes whose name-suggestion-index brands apply here: the country code, its dependent territories, and the codes that contain it (150 Europe, eu, 001 world). An NSI item is kept when its locationSet includes one of these.",
+          "description": "Location codes whose name-suggestion-index items apply here: the country, the code for its mainland when it has a separate one (fx for metropolitan France, which a thousand NSI items use), its dependent territories, and the codes that contain it without naming it — the world (001), the continent or sub-region (150 for Europe), a union it belongs to (eu). An item applies when its locationSet includes one of these and excludes none.",
           "type": "array",
           "items": {
             "type": "string",
             "minLength": 2
           },
-          "minItems": 1
+          "minItems": 1,
+          "examples": [
+            [
+              "fr",
+              "fx",
+              "gp",
+              "mq",
+              "gf",
+              "re",
+              "yt",
+              "pm",
+              "bl",
+              "mf",
+              "nc",
+              "pf",
+              "wf",
+              "tf",
+              "001",
+              "150",
+              "europe",
+              "eu"
+            ],
+            [
+              "de",
+              "001",
+              "150",
+              "eu"
+            ]
+          ]
         },
         "nsi_writable_tags": {
           "description": "Tags NSI is allowed to write. NOT copied from another country: the list is produced by measuring, tag by tag, how often NSI agrees with the OSM objects of this country — run scripts/calibrate_nsi_tags.py, which writes this key and nsi_calibration together. A tag wrongly listed here raises no error, it just mistags thousands of objects. Default: the one tag whose correctness does not depend on the language.",
@@ -289,6 +349,18 @@
         "admin_level": 6,
         "admin_level_max": 8,
         "match_radius_m": 500,
+        "calling_codes": [
+          "33",
+          "262",
+          "508",
+          "590",
+          "594",
+          "596",
+          "681",
+          "687",
+          "689"
+        ],
+        "trunk_prefix": "0",
         "nsi_locations": [
           "fr",
           "fx",

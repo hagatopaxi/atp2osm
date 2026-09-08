@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 
 import requests
 
+from src.config import get_country
 from src.pipeline._version import app_version
 from src.pipeline.errors import unavailable_if_unreachable
 from src.pipeline._db import (
@@ -31,55 +32,28 @@ from src.utils import download_large_file
 logger = logging.getLogger(__name__)
 
 
-# The only tags ever written to OSM. Every other NSI key is dropped on import,
-# which makes this set the single place where the scope is defined.
+# The only tags ever written to OSM live in the country configuration
+# (`nsi_writable_tags`); every other NSI key is dropped on import, which makes
+# that list the single place where the scope is defined.
 #
-# Not a universal constant: produced by scripts/calibrate_nsi_tags.py, which
-# measures for each NSI tag how often it agrees with what French OSM objects of
-# the same brand already carry. Kept here: at least 98% agreement over at least
-# 50 objects. Rerun the script to re-establish it — never edit it by hand, and
-# never copy it to another country.
+# It is not a universal constant, and that is why it is configuration rather
+# than code: it is produced by scripts/calibrate_nsi_tags.py, which measures for
+# each NSI tag how often it agrees with what the country's own OSM objects of
+# the same brand already carry. The French list keeps what reaches at least 98%
+# agreement over at least 50 objects — rerun the script to re-establish it for
+# another country, never copy it across.
 #
-# Deliberately out, all three well under the threshold and for the same reason:
-# name (86.2%), brand (97.0%) and operator (96.7%). Their disagreements are
-# systematic, not noise — NSI carries the national umbrella where the ground
-# carries the real, more precise entity (Crédit Mutuel de Bretagne, Banque
-# Populaire Alsace Lorraine Champagne), and NSI leads or trails rebrandings
-# (SG / Société Générale, TotalEnergies / Total). Writing them would destroy
-# better information than ours.
+# Deliberately out of the French one, all three well under the threshold and for
+# the same reason: name (86.2%), brand (97.0%) and operator (96.7%). Their
+# disagreements are systematic, not noise — NSI carries the national umbrella
+# where the ground carries the real, more precise entity (Crédit Mutuel de
+# Bretagne, Banque Populaire Alsace Lorraine Champagne), and NSI leads or trails
+# rebrandings (SG / Société Générale, TotalEnergies / Total). Writing them would
+# destroy better information than ours.
 #
-# The primary keys below (shop, amenity, office, tourism, leisure, healthcare,
-# craft) measure 100% by construction: nsi_match already drops a primary key
-# the object disagrees with, see migration 021.
-NSI_WRITABLE_TAGS = frozenset({
-    "brand:wikidata",
-    "shop",
-    "amenity",
-    "office",
-    "tourism",
-    "leisure",
-    "healthcare",
-    "craft",
-    "network:wikidata",
-    "operator:wikidata",
-    "official_name",
-    "alt_name",
-    "brand:short",
-    "name:en",
-    "brand:en",
-    "name:fr",
-    "brand:fr",
-    "government",
-    "drive_through",
-    "healthcare:speciality",
-    "service:vehicle:glass",
-    "delivery",
-    "access",
-    "self_service",
-    "clothes",
-    "takeaway",
-    "operator:type",
-})
+# The primary keys (shop, amenity, office, tourism, leisure, healthcare, craft)
+# measure 100% by construction: nsi_match already drops a primary key the object
+# disagrees with, see migration 021.
 
 # NSI groups items in four trees. transit (routes, networks) and flags describe
 # things generic.lua already drops from the OSM side via is_definitely_not_a_place,
@@ -112,28 +86,14 @@ def _reaches_mv_places(primary_key: str, primary_value: str) -> bool:
     return not (primary_key == "landuse" and primary_value in _UNREACHABLE_LANDUSE)
 
 
-# locationSet entries covering France without naming it.
-_WORLDWIDE = frozenset({"001", "150", "europe", "eu"})
-
-# fr covers the whole country and fx metropolitan France only — NSI uses fx for
-# a thousand items, so reading fr alone loses them. The overseas codes matter
-# too: the pipeline downloads Guadeloupe, Martinique, Guyane, Réunion, Mayotte,
-# Nouvelle-Calédonie, Polynésie and Wallis-et-Futuna from Geofabrik, so their
-# objects reach mv_places and deserve a brand.
-_FRENCH = frozenset({
-    "fr", "fx",
-    "gp", "mq", "gf", "re", "yt",      # DROM
-    "pm", "bl", "mf", "nc", "pf", "wf", "tf",  # COM
-})
-
-
-def _is_french(location_set: dict) -> bool:
-    """True when the item applies to France, overseas included.
+def _is_country(location_set: dict) -> bool:
+    """True when the item applies to the country this instance serves.
 
     NSI locationSets are ISO codes 95% of the time; the remaining *.geojson
     region files are handled by prefix. Resolving them properly would mean
     pulling in location-conflation, a whole JS dependency, to refine a filter
-    that already works.
+    that already works. Worth re-measuring for a small country: the shortcut
+    holds while regional locationSets stay a small share of the items.
 
     This filter is not optional: eight of McDonald's eleven items are
     amenity=fast_food and differ only by locationSet. Skipping it would give a
@@ -142,18 +102,21 @@ def _is_french(location_set: dict) -> bool:
     It stays a per-brand filter, not a per-object one: an fx-scoped brand can
     in theory be applied to a Réunion object. Telling them apart would mean
     evaluating geography per POI, for a handful of brands that do not overlap.
+
+    One list holds both the country's own codes and the ones that contain it,
+    because both are read the same way: an item scoped to the world applies
+    here, and an item excluding the world — or Europe — does not.
     """
+    codes = get_country().nsi_locations
     include = [str(x).lower() for x in (location_set.get("include") or [])]
     exclude = [str(x).lower() for x in (location_set.get("exclude") or [])]
 
-    def french(code):
-        return code in _FRENCH or code.startswith(tuple(f"{c}-" for c in _FRENCH))
+    def here(code):
+        return code in codes or code.startswith(tuple(f"{c}-" for c in codes))
 
-    if any(french(code) for code in exclude):
-        return False
-    if any(french(code) for code in include):
-        return True
-    return any(code in _WORLDWIDE for code in include)
+    return not any(here(code) for code in exclude) and any(
+        here(code) for code in include
+    )
 
 
 def _candidates(nsi_json: dict):
@@ -175,7 +138,7 @@ def _candidates(nsi_json: dict):
             brand_wikidata = tags.get("brand:wikidata")
             if not brand_wikidata:
                 continue
-            if not _is_french(item.get("locationSet") or {}):
+            if not _is_country(item.get("locationSet") or {}):
                 continue
 
             yield (
@@ -194,8 +157,9 @@ def select_items(nsi_json: dict) -> list[tuple]:
     Pure function, no I/O: this is where every selection rule lives, and the
     only thing the tests need.
     """
+    writable = get_country().nsi_writable_tags
     candidates = [
-        row[:5] + ({k: v for k, v in row[5].items() if k in NSI_WRITABLE_TAGS},)
+        row[:5] + ({k: v for k, v in row[5].items() if k in writable},)
         for row in _candidates(nsi_json)
     ]
 

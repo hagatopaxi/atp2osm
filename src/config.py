@@ -77,6 +77,8 @@ class Country:
     admin_level: int
     admin_level_max: int
     match_radius_m: int
+    calling_codes: tuple[str, ...]
+    trunk_prefix: str
     nsi_locations: frozenset[str]
     nsi_writable_tags: frozenset[str]
     nsi_calibration: dict = field(default_factory=dict, compare=False)
@@ -197,6 +199,8 @@ def _parse_country(raw: dict) -> Country:
         admin_level=admin_level,
         admin_level_max=admin_level_max,
         match_radius_m=raw.get("match_radius_m", _default("country", "match_radius_m")),
+        calling_codes=tuple(raw["calling_codes"]),
+        trunk_prefix=raw.get("trunk_prefix", _default("country", "trunk_prefix")),
         nsi_locations=frozenset(raw["nsi_locations"]),
         nsi_writable_tags=frozenset(writable),
         nsi_calibration=calibration,
