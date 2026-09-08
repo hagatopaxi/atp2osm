@@ -32,55 +32,28 @@ from src.utils import download_large_file
 logger = logging.getLogger(__name__)
 
 
-# The only tags ever written to OSM. Every other NSI key is dropped on import,
-# which makes this set the single place where the scope is defined.
+# The only tags ever written to OSM live in the country configuration
+# (`nsi_writable_tags`); every other NSI key is dropped on import, which makes
+# that list the single place where the scope is defined.
 #
-# Not a universal constant: produced by scripts/calibrate_nsi_tags.py, which
-# measures for each NSI tag how often it agrees with what French OSM objects of
-# the same brand already carry. Kept here: at least 98% agreement over at least
-# 50 objects. Rerun the script to re-establish it — never edit it by hand, and
-# never copy it to another country.
+# It is not a universal constant, and that is why it is configuration rather
+# than code: it is produced by scripts/calibrate_nsi_tags.py, which measures for
+# each NSI tag how often it agrees with what the country's own OSM objects of
+# the same brand already carry. The French list keeps what reaches at least 98%
+# agreement over at least 50 objects — rerun the script to re-establish it for
+# another country, never copy it across.
 #
-# Deliberately out, all three well under the threshold and for the same reason:
-# name (86.2%), brand (97.0%) and operator (96.7%). Their disagreements are
-# systematic, not noise — NSI carries the national umbrella where the ground
-# carries the real, more precise entity (Crédit Mutuel de Bretagne, Banque
-# Populaire Alsace Lorraine Champagne), and NSI leads or trails rebrandings
-# (SG / Société Générale, TotalEnergies / Total). Writing them would destroy
-# better information than ours.
+# Deliberately out of the French one, all three well under the threshold and for
+# the same reason: name (86.2%), brand (97.0%) and operator (96.7%). Their
+# disagreements are systematic, not noise — NSI carries the national umbrella
+# where the ground carries the real, more precise entity (Crédit Mutuel de
+# Bretagne, Banque Populaire Alsace Lorraine Champagne), and NSI leads or trails
+# rebrandings (SG / Société Générale, TotalEnergies / Total). Writing them would
+# destroy better information than ours.
 #
-# The primary keys below (shop, amenity, office, tourism, leisure, healthcare,
-# craft) measure 100% by construction: nsi_match already drops a primary key
-# the object disagrees with, see migration 021.
-NSI_WRITABLE_TAGS = frozenset({
-    "brand:wikidata",
-    "shop",
-    "amenity",
-    "office",
-    "tourism",
-    "leisure",
-    "healthcare",
-    "craft",
-    "network:wikidata",
-    "operator:wikidata",
-    "official_name",
-    "alt_name",
-    "brand:short",
-    "name:en",
-    "brand:en",
-    "name:fr",
-    "brand:fr",
-    "government",
-    "drive_through",
-    "healthcare:speciality",
-    "service:vehicle:glass",
-    "delivery",
-    "access",
-    "self_service",
-    "clothes",
-    "takeaway",
-    "operator:type",
-})
+# The primary keys (shop, amenity, office, tourism, leisure, healthcare, craft)
+# measure 100% by construction: nsi_match already drops a primary key the object
+# disagrees with, see migration 021.
 
 # NSI groups items in four trees. transit (routes, networks) and flags describe
 # things generic.lua already drops from the OSM side via is_definitely_not_a_place,
@@ -184,8 +157,9 @@ def select_items(nsi_json: dict) -> list[tuple]:
     Pure function, no I/O: this is where every selection rule lives, and the
     only thing the tests need.
     """
+    writable = get_country().nsi_writable_tags
     candidates = [
-        row[:5] + ({k: v for k, v in row[5].items() if k in NSI_WRITABLE_TAGS},)
+        row[:5] + ({k: v for k, v in row[5].items() if k in writable},)
         for row in _candidates(nsi_json)
     ]
 

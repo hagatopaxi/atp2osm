@@ -14,24 +14,21 @@ move, and the indexes built on it are rebuilt with it.
 """
 
 import logging
+from functools import lru_cache
 import re
 
 from psycopg import sql
 
+from src.config import get_country
 from src.pipeline._matview import signature
 
 logger = logging.getLogger(__name__)
 
-# TODO(phase D): read these from the country configuration.
-#
-# A country can answer to several calling codes: metropolitan France is +33,
-# but Réunion and Mayotte are +262, Guadeloupe +590, Guyane +594, Martinique
-# +596, Wallis +681, New Caledonia +687, Polynesia +689, Saint-Pierre +508 —
-# and OSM holds those numbers in both their international and their national
-# writing. Listing only +33 would stop the two writings from ever meeting
-# overseas, which is a regression the previous function did not have.
-CALLING_CODES = ("33", "262", "508", "590", "594", "596", "681", "687", "689")
-TRUNK_PREFIX = "0"
+# The calling codes and the trunk prefix come from the country configuration:
+# a country answers to several codes — metropolitan France is +33, but Réunion
+# is +262, Guadeloupe +590, New Caledonia +687 — and OSM holds those numbers in
+# both their international and their national writing. Reading one code only
+# would stop the two writings from ever meeting overseas.
 
 # Short numbers (3BPQ "3631", 10XY "1014"). They are outside E.164: no
 # international form exists, and they carry no trunk prefix either. A source
@@ -48,8 +45,8 @@ PHONE_INDEXES = ("atp_places_phone_norm_idx", "mv_places_phone_norm_idx")
 _LOCK_KEY = 8_314_020_251
 
 
-def normalize_phone_sql(calling_codes: tuple[str, ...] = CALLING_CODES,
-                        trunk_prefix: str = TRUNK_PREFIX) -> str:
+def normalize_phone_sql(calling_codes: tuple[str, ...] | None = None,
+                        trunk_prefix: str | None = None) -> str:
     """The CREATE OR REPLACE for this country's phone key.
 
     The two values are spliced into the SQL, and they come from a
@@ -57,6 +54,9 @@ def normalize_phone_sql(calling_codes: tuple[str, ...] = CALLING_CODES,
     rather than escaped, because anything that is not a run of digits is not a
     calling code in the first place.
     """
+    country = get_country()
+    calling_codes = country.calling_codes if calling_codes is None else calling_codes
+    trunk_prefix = country.trunk_prefix if trunk_prefix is None else trunk_prefix
     if not calling_codes:
         raise ValueError("at least one calling code is required")
     for code in calling_codes:
@@ -133,8 +133,8 @@ $fn$;
 """
 
 
-def ensure_normalize_phone(conn, calling_codes: tuple[str, ...] = CALLING_CODES,
-                           trunk_prefix: str = TRUNK_PREFIX) -> bool:
+def ensure_normalize_phone(conn, calling_codes: tuple[str, ...] | None = None,
+                           trunk_prefix: str | None = None) -> bool:
     """Install the function for this country; rebuild its indexes if it moved.
 
     Returns whether anything changed. Cheap enough to call on every startup:
@@ -146,6 +146,7 @@ def ensure_normalize_phone(conn, calling_codes: tuple[str, ...] = CALLING_CODES,
     is not a bare execute() at the call site.
     """
     body = normalize_phone_sql(calling_codes, trunk_prefix)
+    calling_codes = calling_codes or get_country().calling_codes
     sig = signature(body)
 
     with conn.cursor() as cur:
@@ -183,31 +184,40 @@ def ensure_normalize_phone(conn, calling_codes: tuple[str, ...] = CALLING_CODES,
     return True
 
 
-# Metropolitan special-rate numbers (08) are not reachable from abroad, so the
-# international writing OSM would otherwise get is misleading. The wiki asks
-# for the national writing in that case. Everything else is left untouched:
-# reformatting numbers we have no complaint about is not our job here.
-# The calling code and the trunk prefix are both optional and can be written
-# together: "+33 (0)8 20 33 22 11" carries the two.
-_FR_08 = re.compile(r"^(?:\+33|0033|33)?0?(8\d{8})$")
-
-
-# Short numbers have no international form at all (see SHORT_NUMBER): a
-# calling code in front of one is a formatting accident, and OSM wants the
-# four digits bare.
-_FR_SHORT = re.compile(rf"^(?:\+33|0033|33)({SHORT_NUMBER})$")
+# Special-rate numbers (08 in France) are not reachable from abroad, so the
+# international writing OSM would otherwise get is misleading, and the wiki asks
+# for the national one. Short numbers have no international form at all (see
+# SHORT_NUMBER): a calling code in front of one is a formatting accident.
+#
+# The shapes below are the French numbering plan; the calling code they strip
+# comes from the configuration. It is the first one — the mainland's: a special
+# rate or a short number belongs to the mainland plan, and an overseas code in
+# front of four digits is not a writing anyone produces (a 262 number of that
+# length is a real number, not a short one). A second country with rules of its
+# own turns the shapes into configuration too; until then, generalising them
+# would mean inventing a syntax for a case nobody has.
+@lru_cache(maxsize=4)
+def _national_patterns(mainland_code: str):
+    codes = rf"\+{mainland_code}|00{mainland_code}|{mainland_code}"
+    return (
+        # The calling code and the trunk prefix are both optional and can be
+        # written together: "+33 (0)8 20 33 22 11" carries the two.
+        re.compile(rf"^(?:{codes})?0?(8\d{{8}})$"),
+        re.compile(rf"^(?:{codes})({SHORT_NUMBER})$"),
+    )
 
 
 def format_phone(value: str | None) -> str | None:
-    """Rewrite French 08 and short numbers the national way, pass the rest on."""
+    """Rewrite special-rate and short numbers the national way, pass the rest on."""
     if not value:
         return value
-    digits = re.sub(r"[\s.()  -]|^tel:", "", value, flags=re.I)
-    match = _FR_08.match(digits)
+    special, short = _national_patterns(get_country().calling_codes[0])
+    digits = re.sub(r"[\s.()\u00a0\u202f-]|^tel:", "", value, flags=re.I)
+    match = special.match(digits)
     if match:
         n = "0" + match.group(1)
         return " ".join(n[i:i + 2] for i in range(0, 10, 2))
-    match = _FR_SHORT.match(digits)
+    match = short.match(digits)
     if match:
         return match.group(1)
     return value

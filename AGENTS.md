@@ -137,9 +137,15 @@ product, not even the French one.
 The name-suggestion-index scope follows from it too: `nsi_locations` holds the
 country, its mainland code, its territories and the codes that contain it
 (001, 150, eu). An NSI item applies when its locationSet includes one of them
-and excludes none. `nsi_writable_tags` is still read from
-`src/pipeline/nsi.py`, not from the file — the list is measured per country,
-and measuring it is what remains to be done.
+and excludes none. `nsi_writable_tags` is configuration for the same reason: the list is produced
+by measuring, tag by tag, how often NSI agrees with the country's own OSM
+objects — `scripts/calibrate_nsi_tags.py` writes it, nobody edits it by hand,
+and it is never copied from another country.
+
+`calling_codes` and `trunk_prefix` are what lets the international and the
+national writing of a number meet: a country answers to several codes, and the
+first one is its mainland's — the special-rate and short-number rules key on
+that one, since those numbering plans are the mainland's.
 
 **`config.schema.json` is the documentation**: every setting is described where
 it is declared, and the file is validated against it at startup. Read it before
