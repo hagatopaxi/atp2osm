@@ -19,7 +19,8 @@ CONFIG = {
         "admin_level": 6,
         "admin_level_max": 8,
         "match_radius_m": 500,
-        "nsi_locations": ["fr", "150", "eu", "001"],
+        "nsi_locations": ["fr", "fx", "gp", "mq", "gf", "re", "yt", "pm", "bl",
+                          "mf", "nc", "pf", "wf", "tf", "001", "150", "europe", "eu"],
         "nsi_writable_tags": ["brand:wikidata"],
     },
     "app": {

@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 
 import requests
 
+from src.config import get_country
 from src.pipeline._version import app_version
 from src.pipeline.errors import unavailable_if_unreachable
 from src.pipeline._db import (
@@ -112,28 +113,14 @@ def _reaches_mv_places(primary_key: str, primary_value: str) -> bool:
     return not (primary_key == "landuse" and primary_value in _UNREACHABLE_LANDUSE)
 
 
-# locationSet entries covering France without naming it.
-_WORLDWIDE = frozenset({"001", "150", "europe", "eu"})
-
-# fr covers the whole country and fx metropolitan France only — NSI uses fx for
-# a thousand items, so reading fr alone loses them. The overseas codes matter
-# too: the pipeline downloads Guadeloupe, Martinique, Guyane, Réunion, Mayotte,
-# Nouvelle-Calédonie, Polynésie and Wallis-et-Futuna from Geofabrik, so their
-# objects reach mv_places and deserve a brand.
-_FRENCH = frozenset({
-    "fr", "fx",
-    "gp", "mq", "gf", "re", "yt",      # DROM
-    "pm", "bl", "mf", "nc", "pf", "wf", "tf",  # COM
-})
-
-
-def _is_french(location_set: dict) -> bool:
-    """True when the item applies to France, overseas included.
+def _is_country(location_set: dict) -> bool:
+    """True when the item applies to the country this instance serves.
 
     NSI locationSets are ISO codes 95% of the time; the remaining *.geojson
     region files are handled by prefix. Resolving them properly would mean
     pulling in location-conflation, a whole JS dependency, to refine a filter
-    that already works.
+    that already works. Worth re-measuring for a small country: the shortcut
+    holds while regional locationSets stay a small share of the items.
 
     This filter is not optional: eight of McDonald's eleven items are
     amenity=fast_food and differ only by locationSet. Skipping it would give a
@@ -142,18 +129,21 @@ def _is_french(location_set: dict) -> bool:
     It stays a per-brand filter, not a per-object one: an fx-scoped brand can
     in theory be applied to a Réunion object. Telling them apart would mean
     evaluating geography per POI, for a handful of brands that do not overlap.
+
+    One list holds both the country's own codes and the ones that contain it,
+    because both are read the same way: an item scoped to the world applies
+    here, and an item excluding the world — or Europe — does not.
     """
+    codes = get_country().nsi_locations
     include = [str(x).lower() for x in (location_set.get("include") or [])]
     exclude = [str(x).lower() for x in (location_set.get("exclude") or [])]
 
-    def french(code):
-        return code in _FRENCH or code.startswith(tuple(f"{c}-" for c in _FRENCH))
+    def here(code):
+        return code in codes or code.startswith(tuple(f"{c}-" for c in codes))
 
-    if any(french(code) for code in exclude):
-        return False
-    if any(french(code) for code in include):
-        return True
-    return any(code in _WORLDWIDE for code in include)
+    return not any(here(code) for code in exclude) and any(
+        here(code) for code in include
+    )
 
 
 def _candidates(nsi_json: dict):
@@ -175,7 +165,7 @@ def _candidates(nsi_json: dict):
             brand_wikidata = tags.get("brand:wikidata")
             if not brand_wikidata:
                 continue
-            if not _is_french(item.get("locationSet") or {}):
+            if not _is_country(item.get("locationSet") or {}):
                 continue
 
             yield (

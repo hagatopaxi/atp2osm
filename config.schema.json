@@ -97,13 +97,41 @@
           "default": 500
         },
         "nsi_locations": {
-          "description": "Location codes whose name-suggestion-index brands apply here: the country code, its dependent territories, and the codes that contain it (150 Europe, eu, 001 world). An NSI item is kept when its locationSet includes one of these.",
+          "description": "Location codes whose name-suggestion-index items apply here: the country, the code for its mainland when it has a separate one (fx for metropolitan France, which a thousand NSI items use), its dependent territories, and the codes that contain it without naming it — the world (001), the continent or sub-region (150 for Europe), a union it belongs to (eu). An item applies when its locationSet includes one of these and excludes none.",
           "type": "array",
           "items": {
             "type": "string",
             "minLength": 2
           },
-          "minItems": 1
+          "minItems": 1,
+          "examples": [
+            [
+              "fr",
+              "fx",
+              "gp",
+              "mq",
+              "gf",
+              "re",
+              "yt",
+              "pm",
+              "bl",
+              "mf",
+              "nc",
+              "pf",
+              "wf",
+              "tf",
+              "001",
+              "150",
+              "europe",
+              "eu"
+            ],
+            [
+              "de",
+              "001",
+              "150",
+              "eu"
+            ]
+          ]
         },
         "nsi_writable_tags": {
           "description": "Tags NSI is allowed to write. NOT copied from another country: the list is produced by measuring, tag by tag, how often NSI agrees with the OSM objects of this country — run scripts/calibrate_nsi_tags.py, which writes this key and nsi_calibration together. A tag wrongly listed here raises no error, it just mistags thousands of objects. Default: the one tag whose correctness does not depend on the language.",

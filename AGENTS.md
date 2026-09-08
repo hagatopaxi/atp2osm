@@ -134,6 +134,13 @@ Everything that is not a secret lives in one JSON file, named by
 start rather than quietly serving France. No country file ships with the
 product, not even the French one.
 
+The name-suggestion-index scope follows from it too: `nsi_locations` holds the
+country, its mainland code, its territories and the codes that contain it
+(001, 150, eu). An NSI item applies when its locationSet includes one of them
+and excludes none. `nsi_writable_tags` is still read from
+`src/pipeline/nsi.py`, not from the file — the list is measured per country,
+and measuring it is what remains to be done.
+
 **`config.schema.json` is the documentation**: every setting is described where
 it is declared, and the file is validated against it at startup. Read it before
 asking what a key does, and add a `description` when you add a key. Only what a
