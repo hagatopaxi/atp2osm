@@ -1,6 +1,6 @@
 import logging
 
-from src.matching import matched_poi_sql
+from src.matching import matched_poi_sql, waves_lateral_sql
 from src.pipeline import _matview
 from src.pipeline._version import app_version
 from src.pipeline._db import connect, last_import_comment, last_import_date
@@ -9,20 +9,24 @@ logger = logging.getLogger(__name__)
 
 
 def _mv_places_brand_sql(name: str = "mv_places_brand") -> str:
-    # is_importable is filtered AFTER deduplication, like apply_on_node() does
-    # on the /validate side, otherwise the two counts diverge.
-    # One row per (brand, subdivision): get_all() sums the unblocked
-    # ones to announce what is still left to integrate.
+    # The wave flags are filtered AFTER deduplication, like apply_on_node()
+    # does on the /validate side, otherwise the two counts diverge.
+    # One row per (brand, subdivision, wave): get_all() sums the unblocked ones
+    # of the brand's current wave to announce what is still left to integrate.
+    # A POI counts on every wave it qualifies for — a missing phone and a stale
+    # website are two integrations, done one after the other.
     return f"""
         CREATE MATERIALIZED VIEW {name} AS
         SELECT
             STRING_AGG(DISTINCT atp_brand, ' / ' ORDER BY atp_brand) AS brand,
             atp_brand_wikidata AS brand_wikidata,
             subdivision_code,
+            w.wave             AS wave,
             COUNT(*)           AS total
         FROM ({matched_poi_sql("TRUE")}) matched
-        WHERE is_importable
-        GROUP BY atp_brand_wikidata, subdivision_code
+        CROSS JOIN LATERAL (VALUES {waves_lateral_sql()}) AS w(wave, matches)
+        WHERE w.matches
+        GROUP BY atp_brand_wikidata, subdivision_code, w.wave
     """
 
 

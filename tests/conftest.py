@@ -154,7 +154,11 @@ def migrated_conn(_migrated, db_kwargs):
     with psycopg.connect(**db_kwargs) as c:
         tables = c.execute(
             "SELECT string_agg(quote_ident(tablename), ', ') FROM pg_tables"
-            " WHERE schemaname = 'public' AND tablename <> 'schema_migrations'"
+            " WHERE schemaname = 'public'"
+            # schema_migrations is the record of what has been applied, and
+            # spatial_ref_sys is PostGIS's own catalogue: emptying it leaves a
+            # database where no geometry can be given an SRID.
+            " AND tablename NOT IN ('schema_migrations', 'spatial_ref_sys')"
         ).fetchone()[0]
         if tables:
             c.execute(f"TRUNCATE {tables} CASCADE")

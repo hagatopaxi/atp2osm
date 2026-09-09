@@ -16,8 +16,8 @@ from requests_oauthlib import OAuth2Session
 from src.db import get_osmdb
 from src.extensions import cache
 from src.matching import (
-    BATCH_MAX_SIZE,
     BLOCKED_BRANDS_SQL,
+    current_wave,
     get_all,
     get_blocked_subdivisions,
     get_changes,
@@ -110,26 +110,30 @@ MATCHES_TIMEOUT = 30 * 60
 
 
 @cache.memoize(timeout=MATCHES_TIMEOUT)
-def brand_matches(brand_wikidata):
-    """Every match of a brand, whatever its subdivision — the expensive part."""
+def brand_matches(brand_wikidata, wave):
+    """Every match of a brand on a wave, whatever its subdivision — the
+    expensive part. Keyed on the wave too: the two waves read the same rows but
+    produce different proposals."""
     osmdb = get_osmdb()
     with osmdb.cursor(row_factory=dict_row) as cursor:
         get_filtered(cursor, brand=brand_wikidata)
-        return get_changes(cursor)
+        return get_changes(cursor, wave)
 
 
 def get_batch(brand_wikidata):
-    """Matches of the next batch, and its scope per subdivision.
+    """Matches of the next batch, its scope per subdivision, and its wave.
 
     Recomposed on every call from the current state: two calls with no import in
-    between give the same batch.
+    between give the same batch. Each wave brings its own batch size.
     """
-    changes = brand_matches(brand_wikidata)
     osmdb = get_osmdb()
     with osmdb.cursor(row_factory=dict_row) as cursor:
-        blocked = get_blocked_subdivisions(cursor, brand_wikidata)
+        wave = current_wave(cursor, brand_wikidata)
+        blocked = get_blocked_subdivisions(cursor, brand_wikidata, wave.number)
 
-    return select_batch(changes, blocked)
+    changes = brand_matches(brand_wikidata, wave.number)
+    batch = select_batch(changes, blocked, wave.batch_size)
+    return batch.changes, batch.scope, wave
 
 
 @brands_bp.route("/brands")
@@ -167,7 +171,7 @@ def brands():
 @auth_required
 # @cache.cached(query_string=True, key_prefix="brands/")
 def brands_validate(brand_wikidata):
-    changes, scope = get_batch(brand_wikidata)
+    changes, scope, wave = get_batch(brand_wikidata)
 
     if len(changes) == 0:
         osmdb = get_osmdb()
@@ -178,9 +182,9 @@ def brands_validate(brand_wikidata):
             ).fetchone()
             brand_name = brand_name[0] if brand_name else None
             cursor.execute(
-                """INSERT INTO import_history (brand_wikidata, osm_user_id, status, items_count, brand_name)
-                   VALUES (%s, %s, 'success', 0, %s)""",
-                (brand_wikidata, session["user"]["osm_id"], brand_name),
+                """INSERT INTO import_history (brand_wikidata, osm_user_id, status, items_count, brand_name, wave)
+                   VALUES (%s, %s, 'success', 0, %s, %s)""",
+                (brand_wikidata, session["user"]["osm_id"], brand_name, wave.number),
             )
             osmdb.commit()
         return render_template("brands/:brand_wikidata/empty.html")
@@ -217,7 +221,7 @@ def brands_validate(brand_wikidata):
 @brands_bp.route("/brands/<brand_wikidata>/confirm")
 @auth_required
 def brands_confirm(brand_wikidata):
-    changes, _ = get_batch(brand_wikidata)
+    changes, _, wave = get_batch(brand_wikidata)
 
     if len(changes) == 0:
         return redirect(
@@ -242,15 +246,16 @@ def brands_rejected(brand_wikidata):
 @brands_bp.route("/brands/<brand_wikidata>/report-error", methods=["POST"])
 @auth_required
 def report_error(brand_wikidata):
+    _, _, wave = get_batch(brand_wikidata)
     data = request.get_json()
     comment = data.get("comment", "")
     brand_name = data.get("brand_name", "")
     osmdb = get_osmdb()
     with osmdb.cursor() as cursor:
         cursor.execute(
-            """INSERT INTO import_history (brand_wikidata, osm_user_id, status, comment, brand_name)
-               VALUES (%s, %s, 'cancelled', %s, %s) RETURNING id""",
-            (brand_wikidata, session["user"]["osm_id"], comment, brand_name),
+            """INSERT INTO import_history (brand_wikidata, osm_user_id, status, comment, brand_name, wave)
+               VALUES (%s, %s, 'cancelled', %s, %s, %s) RETURNING id""",
+            (brand_wikidata, session["user"]["osm_id"], comment, brand_name, wave.number),
         )
         entry_id = cursor.fetchone()[0]
         osmdb.commit()
@@ -267,10 +272,10 @@ def upload_changes(brand_wikidata):
             mimetype="application/json",
         )
 
-    changes, _ = get_batch(brand_wikidata)
+    changes, _, wave = get_batch(brand_wikidata)
     # What select_batch truncates, upload must never exceed: last check before an
-    # irreversible send.
-    if len(changes) > BATCH_MAX_SIZE:
+    # irreversible send. The size is the wave's — wave 2 sends one POI at a time.
+    if len(changes) > wave.batch_size:
         return Response(
             json.dumps({"error": "Import too large"}),
             status=403,
@@ -278,12 +283,12 @@ def upload_changes(brand_wikidata):
         )
 
     osm_session = OAuth2Session(token=session["token"])
-    bulk_upload = BulkUpload(changes, session=osm_session)
+    bulk_upload = BulkUpload(changes, session=osm_session, max_size=wave.batch_size)
     errors = bulk_upload.upload()
     bulk_upload.save_log_file()
     # The uploaded POIs now carry their tags: the next batch must be composed on
     # freshly read matches, not on what we had before sending.
-    cache.delete_memoized(brand_matches, brand_wikidata)
+    cache.delete_memoized(brand_matches, brand_wikidata, wave.number)
 
     error_messages = [msg for _, msg in errors]
     status = _determine_import_status(bulk_upload.results)
@@ -294,8 +299,8 @@ def upload_changes(brand_wikidata):
         # changeset_ids is no longer filled: the per-subdivision detail now
         # lives in import_subdivisions.
         cursor.execute(
-            """INSERT INTO import_history (brand_wikidata, osm_user_id, status, comment, items_count, brand_name, tags_count)
-               VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+            """INSERT INTO import_history (brand_wikidata, osm_user_id, status, comment, items_count, brand_name, tags_count, wave)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
             (
                 brand_wikidata,
                 session["user"]["osm_id"],
@@ -304,14 +309,15 @@ def upload_changes(brand_wikidata):
                 len(bulk_upload.uploaded_changes),
                 bulk_upload.brand_name,
                 json.dumps(stats["by_tag"]),
+                wave.number,
             ),
         )
         entry_id = cursor.fetchone()[0]
         cursor.executemany(
             """INSERT INTO import_subdivisions
                    (import_id, subdivision_code, subdivision_name, items_count,
-                    osm_changeset_id, status, comment)
-               VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+                    osm_changeset_id, status, comment, tag_counts)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
             [
                 (
                     entry_id,
@@ -321,6 +327,7 @@ def upload_changes(brand_wikidata):
                     r["osm_changeset_id"],
                     r["status"],
                     r["comment"],
+                    json.dumps(r["tag_counts"]),
                 )
                 for r in bulk_upload.results
             ],

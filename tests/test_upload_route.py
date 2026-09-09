@@ -19,6 +19,7 @@ from psycopg.rows import dict_row
 
 import src.routes.brands as brands
 from src.extensions import cache
+from src.matching import WAVES_BY_NUMBER
 from src.upload import BulkUpload
 
 
@@ -58,8 +59,8 @@ def change(id, sub="75", name="Paris"):
     }
 
 
-def batch(monkeypatch, changes):
-    monkeypatch.setattr(brands, "get_batch", lambda wikidata: (changes, {}))
+def batch(monkeypatch, changes, wave=WAVES_BY_NUMBER[1]):
+    monkeypatch.setattr(brands, "get_batch", lambda wikidata: (changes, {}, wave))
 
 
 def history(conn):
@@ -168,7 +169,7 @@ def test_a_brand_under_cooldown_is_refused_and_nothing_is_sent(
 def test_a_batch_over_the_limit_is_refused_and_nothing_is_sent(
     client, migrated_conn, monkeypatch
 ):
-    batch(monkeypatch, [change(i) for i in range(brands.BATCH_MAX_SIZE + 1)])
+    batch(monkeypatch, [change(i) for i in range(WAVES_BY_NUMBER[1].batch_size + 1)])
     monkeypatch.setattr(brands, "BulkUpload", _never_called)
 
     res = client.post("/brands/Q123/upload")
