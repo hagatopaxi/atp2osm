@@ -60,10 +60,11 @@ ATP2OSM_CONFIG=./config.json uv run --env-file .env flask --app ./src/app.py run
 # Production: app runs via gunicorn inside a container (see Containerfile)
 # Deploy is triggered by git push to the server (deploy/run hook)
 
-# Run tests
-uv run pytest
-uv run pytest tests/test_compute_diff.py            # single file
-uv run pytest tests/test_compute_diff.py::test_apply_on_node_default  # single test
+# Run tests — --env-file is what gives them OSM_DB_PASSWORD, without which the
+# throwaway test database cannot be created and every database test errors out
+uv run --env-file .env pytest
+uv run --env-file .env pytest tests/test_compute_diff.py            # single file
+uv run --env-file .env pytest tests/test_compute_diff.py::test_apply_on_node_default  # single test
 
 # Start infrastructure (PostGIS database)
 podman-compose up -d
@@ -184,4 +185,13 @@ osm2pgsql's.
 
 A database it cannot build is an **error**, never a skip: a test that does not
 run controls nothing, and a suite reporting green on a third of its tests is
-worse than a red one. `podman-compose up -d` is a prerequisite of `pytest`.
+worse than a red one. `podman-compose up -d` is a prerequisite of `pytest`,
+and so is `--env-file .env`: the database password is a secret, and the suite
+has none of its own.
+
+The OSM API is never called: in development `BulkUpload` drives
+`_FakeOsmApi`, which records the calls and writes their OSC instead of
+sending them. So the upload tests exercise the very code path production
+takes — there is no branch that only fires under test. A test that wants a
+failure stages it on that fake, and turns the OSC writing off so it litters
+no checkout.

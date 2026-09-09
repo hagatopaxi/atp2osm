@@ -16,6 +16,53 @@ from requests_oauthlib import OAuth2Session
 logger = logging.getLogger(__name__)
 
 
+class _FakeOsmApi:
+    """Stands in for the OSM API in development.
+
+    The dev instance does not mirror production data, so node, way and
+    relation lookups answer 404 and no upload can succeed against it. This
+    records the calls instead of sending them, and writes the OSC of each one
+    so the generated content can be read. It is also what the tests drive:
+    the single code path of `upload` is then the one production runs.
+    """
+
+    def __init__(self, osc_writer=None):
+        self.calls = []
+        self.osc_writer = osc_writer
+        self._current_changeset_id = 0
+        self._next_id = 0
+
+    def changeset_create(self, tags):
+        self._next_id += 1
+        self._current_changeset_id = self._next_id
+        self.calls.append(("changeset_create", tags))
+        return self._current_changeset_id
+
+    def changeset_upload(self, changes):
+        self.calls.append(("changeset_upload", changes))
+        for block in changes:
+            for data in block["data"]:
+                self._osc(block["type"], data["id"], block["action"], data)
+
+    def way_update(self, data):
+        self.calls.append(("way_update", data))
+        self._osc("way", data["id"], "modify", data)
+
+    def relation_update(self, data):
+        self.calls.append(("relation_update", data))
+        self._osc("relation", data["id"], "modify", data)
+
+    def changeset_close(self):
+        self.calls.append(("changeset_close", self._current_changeset_id))
+        self._current_changeset_id = 0
+
+    def _osc(self, element_type, element_id, action, data):
+        if self.osc_writer:
+            self.osc_writer(
+                self._current_changeset_id, element_type, element_id, action, data
+            )
+
+
 class BulkUpload:
     """
     Bulk uploads a changeset to the OSM server.
@@ -33,22 +80,27 @@ class BulkUpload:
             )
 
         self.changes = changes
-        self.brand_name = changes[0]["atp_brand"]
-        self.brand_wikidata = changes[0]["tag"].get("brand:wikidata") or "unknown"
+        # An empty batch is a no-op rather than a crash: `upload` and
+        # `save_log_file` already return early on one.
+        self.brand_name = changes[0]["atp_brand"] if changes else ""
+        self.brand_wikidata = (
+            changes[0]["tag"].get("brand:wikidata") if changes else None
+        ) or "unknown"
         self.changesets = []
         self.uploaded_changes = []  # POIs whose subdivision changeset succeeded
         self.results = []  # one entry per subdivision, mirrors import_subdivisions
 
         settings = get_settings()
-        self.is_dev = settings.is_dev
-        self.api = osmapi.OsmApi(
-            api=settings.api_url,
-            session=session,
+        self.api = (
+            _FakeOsmApi(osc_writer=self._write_osc)
+            if settings.is_dev
+            else osmapi.OsmApi(api=settings.api_url, session=session)
         )
 
-    def save_log_file(self) -> Path:
+    def save_log_file(self) -> Path | None:
         if len(self.changes) == 0:
-            logger.ingo("There is no changes in this run. No logse saved.")
+            logger.info("No change in this run, no log saved.")
+            return None
 
         save_path = Path(
             f"./logs/{self.brand_wikidata}/{datetime.datetime.now().strftime('%Y-%m-%d')}.json"
@@ -58,8 +110,12 @@ class BulkUpload:
         os.makedirs(save_path.parent, exist_ok=True)
 
         with open(save_path, "w") as file:
-            file.write(json.dumps(self.changes, indent=4, ensure_ascii=False))
-            file.write(json.dumps(self.changesets, indent=4, ensure_ascii=False))
+            json.dump(
+                {"changes": self.changes, "changesets": self.changesets},
+                file,
+                indent=4,
+                ensure_ascii=False,
+            )
 
         logger.debug(f"Logs for the run saved into {save_path}")
         return save_path
@@ -107,22 +163,13 @@ class BulkUpload:
                     if poi["node_type"] == "node":
                         changingNodes.append(poi)
                     elif poi["node_type"] == "way":
-                        # DEV: the dev OSM instance returns 404 on node/way lookups
-                        # because it does not mirror production data, so uploads are skipped.
-                        # Uncomment the _write_osc call below to inspect generated OSC files.
-                        if not self.is_dev:
-                            self.api.way_update({
-                                "id": poi["id"],
-                                "version": poi["version"],
-                                "changeset": changeset,
-                                "tag": poi["tag"],
-                                "nd": poi["members"],
-                            })
-                        # if self.is_dev:
-                        #     self._write_osc(changeset, "way", poi["id"], "modify", {
-                        #         "id": poi["id"], "version": poi["version"],
-                        #         "changeset": changeset, "tag": poi["tag"], "nd": poi["members"],
-                        #     })
+                        self.api.way_update({
+                            "id": poi["id"],
+                            "version": poi["version"],
+                            "changeset": changeset,
+                            "tag": poi["tag"],
+                            "nd": poi["members"],
+                        })
                     elif poi["node_type"] == "relation":
                         type_map = {"n": "node", "w": "way", "r": "relation"}
                         relation_data = {
@@ -139,22 +186,12 @@ class BulkUpload:
                                 for m in (poi["members"] or [])
                             ],
                         }
-                        if not self.is_dev:
-                            self.api.relation_update(relation_data)
-                        # Uncomment to inspect relation OSC output in dev:
-                        # if self.is_dev:
-                        #     self._write_osc(changeset, "relation", poi["id"], "modify", relation_data)
+                        self.api.relation_update(relation_data)
 
-                # DEV: the dev OSM instance returns 404 on node lookups because it does
-                # not mirror production data, so node uploads are skipped.
-                # Uncomment the _write_osc loop below to inspect generated OSC files.
-                if changingNodes and not self.is_dev:
+                if changingNodes:
                     self.api.changeset_upload(
                         [{"type": "node", "action": "modify", "data": changingNodes}]
                     )
-                # if self.is_dev:
-                #     for node in changingNodes:
-                #         self._write_osc(changeset, "node", node["id"], "modify", node)
 
                 self.api.changeset_close()
                 self.changesets.append(changeset)
