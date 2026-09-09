@@ -136,6 +136,7 @@ class Settings:
     source_repo_url: str
     translations_dir: str
     refresh_schedule: str
+    recent_edit_weeks: int
     secret_key: str
     port: int
     app_version: str
@@ -221,6 +222,7 @@ def _parse_app(raw: dict, country: Country) -> Settings:
         or _default("app", "source_repo_url"),
         translations_dir=raw.get("translations_dir", _default("app", "translations_dir")),
         refresh_schedule=raw.get("refresh_schedule", _default("app", "refresh_schedule")),
+        recent_edit_weeks=raw.get("recent_edit_weeks", _default("app", "recent_edit_weeks")),
         port=raw.get("port", _default("app", "port")),
         db=Database(
             name=db["name"],
