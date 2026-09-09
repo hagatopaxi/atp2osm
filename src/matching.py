@@ -332,19 +332,6 @@ def apply_tag(tags: dict, key: str, value: Any) -> None:
         tags[key] = value
 
 
-def replace_tag(tags: dict, key: str, value: Any) -> None:
-    """Wave 2: overwrite a value the object already carries, never create one.
-
-    Every writing present is rewritten — `phone` and `contact:phone` alike. An
-    object tagged only `contact:phone` keeps its own spelling rather than
-    growing a second phone; one tagged both must not come out of the
-    integration holding two contradictory numbers.
-    """
-    for written in (key, f"contact:{key}"):
-        if written in tags:
-            tags[written] = value
-
-
 def apply_on_node(atp_osm_match: dict, wave: int = 1) -> dict:
     new_tags = dict(atp_osm_match["tags"])
 
@@ -353,8 +340,16 @@ def apply_on_node(atp_osm_match: dict, wave: int = 1) -> dict:
         # announced them (see modifiable_tags in MATCHED_POI_SQL). Nothing is
         # added here: filling a hole is wave 1's business, and a brand is only
         # ever on one wave.
+        #
+        # Every writing present is rewritten — `phone` and `contact:phone`
+        # alike, never created: an object tagged only `contact:phone` keeps
+        # its spelling, one tagged both must not come out holding two
+        # contradictory numbers.
         for key, value in (atp_osm_match.get("modifiable_tags") or {}).items():
-            replace_tag(new_tags, key, format_phone(value) if key == "phone" else value)
+            value = format_phone(value) if key == "phone" else value
+            for written in (key, f"contact:{key}"):
+                if written in new_tags:
+                    new_tags[written] = value
         return _change(atp_osm_match, new_tags)
 
     apply_tag(new_tags, "opening_hours", atp_osm_match["atp_opening_hours"])
@@ -579,14 +574,9 @@ def compose_batch(
     return batches[0] if batches else []
 
 
-class Batch(NamedTuple):
-    changes: list[dict]  # what will be integrated
-    scope: list[dict]    # its subdivisions, for display: number, name, count
-
-
 def select_batch(
     changes: list[dict], blocked: set[str], max_size: int = BATCH_MAX_SIZE
-) -> Batch:
+) -> list[dict]:
     """Narrow matches down to the next batch.
 
     A batch is made of whole subdivisions: one that does not fit in the room left
@@ -604,16 +594,18 @@ def select_batch(
     # A no-op on a multi-subdivision batch, which fits in max_size by
     # construction. Truncating before the sample is drawn keeps the review on
     # POIs that will actually be integrated.
-    changes = changes[:max_size]
+    return changes[:max_size]
 
+
+def batch_scope(changes: list[dict]) -> list[dict]:
+    """The subdivisions a batch covers, biggest first — what /validate announces."""
     names = subdivision_names(changes)
-    scope = [
+    return [
         {"number": sub, "name": names[sub], "count": count}
         for sub, count in sorted(
             count_by_subdivision(changes).items(), key=lambda kv: (-kv[1], kv[0])
         )
     ]
-    return Batch(changes, scope)
 
 
 def get_stats(changes: list) -> dict:

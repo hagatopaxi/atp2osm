@@ -17,6 +17,7 @@ from src.db import get_osmdb
 from src.extensions import cache
 from src.matching import (
     BLOCKED_BRANDS_SQL,
+    batch_scope,
     current_wave,
     get_all,
     get_blocked_subdivisions,
@@ -26,6 +27,7 @@ from src.matching import (
     sample_for_review,
     select_batch,
 )
+from src.osm_history import protect_recent_edits
 from src.routes.auth import auth_required
 from src.upload import BulkUpload
 from src.utils import (
@@ -132,8 +134,13 @@ def get_batch(brand_wikidata):
         blocked = get_blocked_subdivisions(cursor, brand_wikidata, wave.number)
 
     changes = brand_matches(brand_wikidata, wave.number)
-    batch = select_batch(changes, blocked, wave.batch_size)
-    return batch.changes, batch.scope, wave
+    changes = select_batch(changes, blocked, wave.batch_size)
+    # A value a human posted recently is theirs, not ours. Costs no request on
+    # a wave that only adds tags, and one batch's worth on wave 2.
+    # ponytail: replayed on /validate, /confirm and /upload rather than cached
+    # — a batch is one POI in alpha. Memoize it if the batch size is raised.
+    changes = protect_recent_edits(changes)
+    return changes, batch_scope(changes), wave
 
 
 @brands_bp.route("/brands")
