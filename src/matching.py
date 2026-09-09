@@ -612,12 +612,22 @@ def get_stats(changes: list) -> dict:
     tag_updates = {}
     total_tag_updates = 0
     sub_changes = {}
+    # One real case per tag, OSM value beside the ATP one: a tag name and a
+    # count say nothing about whether a replacement is any good.
+    examples = {}
 
     for change in changes:
         # Count tag updates
         for t in changed_tags(change):
             tag_updates[t] = tag_updates.get(t, 0) + 1
             total_tag_updates += 1
+            examples.setdefault(
+                t,
+                {
+                    "old": (change.get("old_tag") or {}).get(t),
+                    "new": (change.get("tag") or {}).get(t),
+                },
+            )
 
         # Count changes by department
         sub = change.get("subdivision_code")
@@ -632,6 +642,7 @@ def get_stats(changes: list) -> dict:
 
     return {
         "by_tag": tag_updates,
+        "examples": examples,
         "size": len(changes),
         "total_tag_updates": total_tag_updates,
         "by_subdivision": by_subdivision,

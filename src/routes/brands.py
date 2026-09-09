@@ -202,9 +202,17 @@ def brands_validate(brand_wikidata):
         item["title"] = (
             f"{item['tag'].get('name') or item['atp_brand']} - {item['postcode']}"
         )
+        # Added, replaced, and the two together — what the review colours in
+        # green, and what it shows struck through beside its replacement.
         item["new_tags_keys"] = [
             key for key in item["tag"] if key not in item["old_tag"]
         ]
+        item["replaced_tags_keys"] = [
+            key
+            for key in item["tag"]
+            if key in item["old_tag"] and item["tag"][key] != item["old_tag"][key]
+        ]
+        item["written_tags_keys"] = item["new_tags_keys"] + item["replaced_tags_keys"]
         # Everything the template has no dedicated row for — the NSI tags today,
         # whatever gets added to the sources tomorrow. A tag the reviewer cannot
         # see is a tag they cannot invalidate.
@@ -221,6 +229,7 @@ def brands_validate(brand_wikidata):
         size=len(changes),
         scope=scope,
         items=items,
+        wave_number=wave.number,
         last_import=_get_last_import(brand_wikidata),
     )
 
@@ -240,6 +249,7 @@ def brands_confirm(brand_wikidata):
     return render_template(
         "brands/:brand_wikidata/confirm.html",
         stats=stats,
+        wave_number=wave.number,
         logs=json.dumps(changes, indent=4, ensure_ascii=False),
     )
 

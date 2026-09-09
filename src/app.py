@@ -14,6 +14,7 @@ from src.phone import ensure_normalize_phone
 from src.routes.auth import auth_bp
 from src.routes.brands import brands_bp
 from src.error_reasons import ERROR_REASONS
+from src.matching import WAVES_BY_NUMBER
 from src.routes.export import export_bp
 from src.routes.history import history_bp
 from src.routes.misc import misc_bp
@@ -91,6 +92,9 @@ def inject_globals():
         "country_code": settings.country.code.upper(),
         "source_repo_url": settings.source_repo_url,
         "error_reasons": ERROR_REASONS,
+        # The waves themselves — numbers and batch sizes are data; their
+        # labels are in _wave.html, where a locale exists to resolve them.
+        "waves": WAVES_BY_NUMBER,
     }
 
 

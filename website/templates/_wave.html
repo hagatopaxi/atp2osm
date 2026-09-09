@@ -1,0 +1,24 @@
+{# A brand is integrated one wave at a time — one typology of change, covering
+   every subdivision before the next begins. The numbers and batch sizes come
+   from `waves`; the labels and the colours live here, where a request has a
+   locale.
+
+   Each wave keeps a colour of its own, so a row is read before it is spelled
+   out: blue adds, amber replaces. The badges come out as `join-item`s without
+   a wrapper — the caller puts them in a `join`, alone or beside the status
+   badge of the same row. #}
+
+{% macro label(number) %}{% if number == 1 %}{{ _('Adding tags') }}{% elif number == 2 %}{{ _('Modifying tags') }}{% else %}{% trans number=number %}Wave {{ number }}{% endtrans %}{% endif %}{% endmacro %}
+
+{% macro icon(number) %}{{ 'iconoir-edit-pencil' if number == 2 else 'iconoir-plus-circle' }}{% endmacro %}
+
+{% macro color(number) %}{{ {1: 'badge-info', 2: 'badge-warning'}.get(number, 'badge-ghost') }}{% endmacro %}
+
+{% macro badge(number) %}
+<span class="badge badge-sm badge-soft join-item {{ color(number) | trim }} whitespace-nowrap">
+    <i class="{{ icon(number) | trim }}"></i> {{ label(number) | trim }}
+</span>
+{% if waves and waves.get(number) and waves[number].alpha %}
+<span class="badge badge-sm badge-soft join-item badge-error whitespace-nowrap" title="{{ _('This wave is in alpha: it goes out in very small batches while the community has its say.') }}">{{ _('alpha') }}</span>
+{% endif %}
+{% endmacro %}

@@ -1,6 +1,7 @@
 {% extends '_base.html' %}
 {% from '_export_menu.html' import export_menu %}
 {% from '_sort_th.html' import sort_th with context %}
+{% import '_wave.html' as wave with context %}
 {% from '_period_filter.html' import period_filter with context %}
 
 {% block meta_description %}{{ _('History of the AllThePlaces integrations into OpenStreetMap made through atp2osm: brands integrated, dates and statuses.') }}{% endblock %}
@@ -97,6 +98,7 @@
             {{ sort_th('history.history', 'date', _('Date')) }}
             {{ sort_th('history.history', 'brand', _('Brand (Wikidata)')) }}
             {{ sort_th('history.history', 'status', _('Status')) }}
+            <th>{{ _('Wave') }}</th>
             {{ sort_th('history.history', 'user', _('OSM user')) }}
             {{ sort_th('history.history', 'items', _('POIs integrated')) }}
             {{ sort_th('history.history', 'subdivisions', _('Changesets')) }}
@@ -135,6 +137,9 @@
                 <span class="badge {{ status_classes.get(entry.status, 'badge-info') }}">
                     {{ status_labels.get(entry.status, entry.status) }}
                 </span>
+            </td>
+            <td>
+                <div class="join">{{ wave.badge(entry.wave) }}</div>
             </td>
             <td>
                 {% set display_name = users.get(entry.osm_user_id) %}

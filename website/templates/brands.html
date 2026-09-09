@@ -1,5 +1,6 @@
 {% extends '_base.html' %}
 {% from '_sort_th.html' import sort_th with context %}
+{% import '_wave.html' as wave with context %}
 {% from '_period_filter.html' import period_filter with context %}
 
 {% block meta_description %}{% trans count=total_brands %}The {{ count }} brands available for integration into OpenStreetMap through atp2osm. Data from AllThePlaces, reviewed by OSM contributors.{% endtrans %}{% endblock %}
@@ -93,6 +94,7 @@
             {{ sort_th('brands.brands', 'wikidata', _('Wikidata code')) }}
             {{ sort_th('brands.brands', 'brand', _('Name')) }}
             {{ sort_th('brands.brands', 'total', _('POIs to integrate')) }}
+            <th>{{ _('Proposed wave') }}</th>
             {{ sort_th('brands.brands', 'status', _('Previous status')) }}
             {{ sort_th('brands.brands', 'last_import', _('Last integration')) }}
             <th>{{ _('Actions') }}</th>
@@ -112,6 +114,10 @@
 
             <td>
                 {{ row["total"] }}
+            </td>
+
+            <td>
+                <div class="join">{{ wave.badge(row["wave"]) }}</div>
             </td>
 
             <td>
