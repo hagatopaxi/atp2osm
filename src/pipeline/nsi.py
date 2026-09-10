@@ -210,7 +210,7 @@ def download_nsi():
     conn = connect()
     try:
         last_stamp = last_import_comment(conn, "nsi")
-        start_import(conn, "nsi")  # puts the site in maintenance mode
+        start_import(conn, "nsi")
 
         with unavailable_if_unreachable("NSI"):
             version = _latest_version()

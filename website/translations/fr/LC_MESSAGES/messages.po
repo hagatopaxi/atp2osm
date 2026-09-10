@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-07 06:09+0200\n"
+"POT-Creation-Date: 2026-09-10 20:02+0200\n"
 "PO-Revision-Date: 2026-09-06 17:06+0200\n"
 "Last-Translator: the atp2osm contributors\n"
 "Language: fr\n"
@@ -16,9 +16,9 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
-#: src/upload.py:89
+#: src/upload.py:145
 #, python-format
 msgid "ATP data integration (%(subdivision)s; %(brand)s)"
 msgstr "Intégration des données ATP (%(subdivision)s ; %(brand)s)"
@@ -1540,20 +1540,15 @@ msgstr "500 - Erreur interne"
 msgid "Internal error, sorry."
 msgstr "Erreur interne, désolé."
 
-#: website/templates/errors/503.html:3
-msgid "503 - Maintenance"
-msgstr "503 - Maintenance"
+#~ msgid "503 - Maintenance"
+#~ msgstr "503 - Maintenance"
 
-#: website/templates/errors/503.html:6
-msgid "Data refresh in progress"
-msgstr "Mise à jour des données en cours"
+#~ msgid "Data refresh in progress"
+#~ msgstr "Mise à jour des données en cours"
 
-#: website/templates/errors/503.html:8
-msgid "The OpenStreetMap and All The Places data is being refreshed. The site will be available again as soon as the refresh is over."
-msgstr "Les données OpenStreetMap et All The Places sont en cours de rafraîchissement. Le site sera de nouveau disponible dès que le rafraîchissement sera terminé."
+#~ msgid "The OpenStreetMap and All The Places data is being refreshed. The site will be available again as soon as the refresh is over."
+#~ msgstr "Les données OpenStreetMap et All The Places sont en cours de rafraîchissement. Le site sera de nouveau disponible dès que le rafraîchissement sera terminé."
 
-#: website/templates/errors/503.html:10
-#, python-format
-msgid "Started: %(date)s"
-msgstr "Début : %(date)s"
+#~ msgid "Started: %(date)s"
+#~ msgstr "Début : %(date)s"
 

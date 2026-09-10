@@ -125,7 +125,7 @@ def download_pbf():
     conn = connect()
     try:
         last_date = last_import_date(conn, "osm")
-        start_import(conn, "osm")  # puts the site in maintenance mode
+        start_import(conn, "osm")
 
         if (
             last_date
@@ -163,9 +163,9 @@ def download_pbf():
 def _require_free_space(path, needed_bytes):
     """Fast-fail if the filesystem holding `path` has less than `needed_bytes` free.
 
-    The import writes beside the live tables, so running out of disk halfway
-    costs nothing but the hours it took — still worth a clear message before
-    rather than an osm2pgsql exit code after.
+    The import writes beside the live tables, which stay for its duration, so
+    running out of disk halfway costs nothing but the hours it took — still
+    worth a clear message before rather than an osm2pgsql exit code after.
     """
     free = shutil.disk_usage(path).free
     if free < needed_bytes:

@@ -97,7 +97,7 @@ def download_atp():
     conn = connect()
     try:
         last_date = last_import_date(conn, "atp")
-        start_import(conn, "atp")  # puts the site in maintenance mode
+        start_import(conn, "atp")
 
         with unavailable_if_unreachable("ATP"):
             resp = requests.get(ATP_HISTORY_URL, timeout=30)

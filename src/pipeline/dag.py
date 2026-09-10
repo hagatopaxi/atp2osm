@@ -62,39 +62,20 @@ PIPELINE = {
 }
 
 
-def record_success():
-    """Resolve the 'pipeline' row a previous failure left pending.
-
-    The osm, atp and nsi rows resolve themselves: each branch opens one when it
-    starts and closes it when it ends, so a later run supersedes a stale one.
-    The 'pipeline' type has no such owner — record_failure posts it for the
-    steps that belong to no branch, mv-brand and cleanup — and nothing ever
-    wrote one on success. A single failed run therefore kept the site in
-    maintenance for good, however many clean runs followed.
-
-    Called on a complete run and on one a datasource outage cut short: in both
-    cases nothing is half-rebuilt, which is the only thing maintenance guards.
-    """
-    conn = connect()
-    try:
-        record_import(conn, "pipeline", None, "success")
-    finally:
-        conn.close()
-
-
 def record_failure(step_name, exc):
     """Failure hook for the runner: close the branch's open row on the failing
     step, keeping its full stack trace so a refresh can be diagnosed later.
 
-    Left 'pending', not 'error': it stays the datasource's latest row, so the
-    site stays in maintenance rather than exposing half-rebuilt tables until
-    the next run supersedes it.
+    Left 'pending', not 'error': the tables are the ones the last resolved row
+    describes — a rebuild swaps its object in at the end, so a failed one
+    changed nothing — and the guards read that row's comment, which an
+    'error' row carrying a stack trace would shadow. The next run supersedes
+    it.
 
-    A source that was merely unreachable is the opposite case: nothing was
-    rebuilt, its tables are intact, so the row is resolved 'skipped' — no
-    maintenance — keeping its previous date so the displayed source date does
-    not go backwards. The 4-hourly retry overwrites it with a real import if
-    the source comes back.
+    A source that was merely unreachable is resolved 'skipped' instead,
+    keeping its previous date so the displayed source date does not go
+    backwards. The 4-hourly retry overwrites it with a real import if the
+    source comes back.
 
     Opens its own connection (the step's own one may be in a broken
     transaction) and never raises — masking the original error would be worse.

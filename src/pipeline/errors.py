@@ -12,11 +12,11 @@ import requests
 class SourceUnavailable(Exception):
     """A remote datasource could not be reached.
 
-    The branch keeps running — its downstream steps no-op on unchanged inputs,
-    so the associated tables are never dropped — and the datasource is recorded
-    'skipped' in data_imports rather than 'pending', which keeps the site out
-    of maintenance. The run still exits non-zero so the systemd timer retries
-    it 4 hours later (3 times: 12h after the first run at the latest).
+    The branch keeps running — its downstream steps no-op on unchanged inputs
+    — and the datasource is recorded 'skipped' in data_imports rather than
+    left 'pending', so the home page shows it checked, not syncing. The run
+    still exits non-zero so the systemd timer retries it 4 hours later (3
+    times: 12h after the first run at the latest).
     """
 
 

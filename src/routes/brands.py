@@ -13,7 +13,7 @@ from flask import (
 from psycopg.rows import dict_row
 from requests_oauthlib import OAuth2Session
 
-from src.db import get_osmdb, maintenance_since
+from src.db import get_osmdb
 from src.extensions import cache
 from src.matching import (
     BATCH_MAX_SIZE,
@@ -59,16 +59,6 @@ SORT_COLUMNS = {
     "status": "last_status",
     "last_import": "last_import",
 }
-
-
-@brands_bp.before_request
-def maintenance_guard():
-    """Only these routes read the tables the pipeline rebuilds (mv_places,
-    mv_places_brand, atp_places) — the rest of the site stays available."""
-    since = maintenance_since(get_osmdb())
-    if since is not None:
-        return render_template("errors/503.html", since=since), 503, {"Retry-After": "900"}
-    return None
 
 
 def _get_blocking_import(brand_wikidata: str):

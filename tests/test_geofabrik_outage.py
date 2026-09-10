@@ -31,7 +31,7 @@ def test_uses_the_regions_that_did_answer(monkeypatch):
 def test_download_reports_the_source_as_unavailable(monkeypatch):
     """Not a pipeline failure: SourceUnavailable, and the DB is never touched."""
     monkeypatch.setattr(osm, "_newest_geofabrik_timestamp", lambda: None)
-    monkeypatch.setattr(osm, "connect", _boom)  # no pending row, no maintenance
+    monkeypatch.setattr(osm, "connect", _boom)  # no data_imports row opened
     try:
         osm.download_pbf()
     except SourceUnavailable:
