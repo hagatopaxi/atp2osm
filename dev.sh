@@ -6,6 +6,9 @@
 #   ./dev.sh down [nom]     # arrête ce serveur
 #   ./dev.sh logs [nom]     # affiche son log (-f pour suivre)
 #
+#   DEV_PORT=5000 ./dev.sh up -d [nom]   # sur le port du checkout principal,
+#                                        # le seul que le callback OSM connaît
+#
 # Le checkout principal garde :5000 ; le port d'un worktree est dérivé de son nom,
 # donc l'URL est stable et le port sert d'identité du process (down sans pidfile).
 # Chaque worktree écrit son propre $wt/.dev.log. Le .env et le config.json sont
@@ -41,9 +44,16 @@ fi
 port=$((5000 + offset))
 # 5060/5061 (SIP) font partie des ports que les navigateurs refusent d'ouvrir.
 while [ $port = 5060 ] || [ $port = 5061 ]; do port=$((port + 2)); done
+# DEV_PORT=5000 ./dev.sh up -d <nom> : servir un worktree là où le callback
+# OAuth est enregistré, le temps de tester ce qui demande d'être connecté.
+# `down` et `logs` veulent le même DEV_PORT — le port est l'identité du process.
+port="${DEV_PORT:-$port}"
 # Hostname propre à chaque worktree : les cookies de session ignorent le port,
-# sinon tous les localhost:50xx partageraient la même session OSM.
-host="localhost"; [ "$wt" = "$main" ] || host="$name.localhost"
+# sinon tous les localhost:50xx partageraient la même session OSM. Sur le port
+# du checkout principal c'est l'inverse qu'il faut : OSM renvoie sur
+# localhost:5000, et une session posée sur <nom>.localhost n'y survivrait pas.
+host="localhost"
+[ "$wt" = "$main" ] || [ "$port" = 5000 ] || host="$name.localhost"
 log="$wt/.dev.log"
 # Une seule définition : le motif a déjà divergé de la commande une fois, et
 # `down` annonçait alors un arrêt qui ne tuait rien.
@@ -83,7 +93,9 @@ echo "worktree : $name"
 echo "app      : http://$host:$port"
 
 if [ "$detach" ]; then
-  echo "logs     : ./dev.sh logs $name    stop : ./dev.sh down $name"
+  # Le port fait l'identité du process : sans le même DEV_PORT, `down` viserait
+  # le port dérivé du nom et n'arrêterait rien.
+  echo "logs     : ${DEV_PORT:+DEV_PORT=$DEV_PORT }./dev.sh logs $name    stop : ${DEV_PORT:+DEV_PORT=$DEV_PORT }./dev.sh down $name"
   exit 0
 fi
 
