@@ -308,7 +308,7 @@ def run_osm2pgsql():
     _build_subdivision_parts()
 
 
-def _mv_places_sql() -> str:
+def _mv_places_sql(name: str = "mv_places") -> str:
     # Only rows that can ever match are kept: the join in
     # MATCHED_POI_SQL requires an equality on one of brand:wikidata,
     # brand, name, email, website or phone, and NULL never equals
@@ -325,7 +325,7 @@ def _mv_places_sql() -> str:
     # lookup only ever runs on the 1.1M rows that survive it,
     # never on the 20.3M raw ones.
     return f"""
-        CREATE MATERIALIZED VIEW mv_places AS
+        CREATE MATERIALIZED VIEW {name} AS
         SELECT
             node_id                                              AS osm_id,
             'node'                                               AS node_type,
@@ -380,8 +380,20 @@ def _mv_places_sql() -> str:
     """
 
 
+# Canonical name to definition. Built under `<name>_new` on the new view and
+# renamed with it: PHONE_INDEXES in src/phone.py names the phone one.
+MV_PLACES_INDEXES = {
+    "mv_places_geog_idx": "USING GIST ((geom::geography))",
+    "mv_places_brand_wikidata_idx": "((brand_wikidata))",
+    "mv_places_brand_lower_idx": "(LOWER(brand))",
+    "mv_places_name_lower_idx": "(LOWER(name))",
+    "mv_places_website_norm_idx": "(LOWER(REGEXP_REPLACE(website, '^https?://', '', 'i')))",
+    "mv_places_phone_norm_idx": "(normalize_phone(phone))",
+    "mv_places_email_lower_idx": "(LOWER(email))",
+}
+
+
 def setup_mv_places():
-    view_sql = _mv_places_sql()
     newest_ts = _newest_geofabrik_timestamp()
     conn = connect()
     try:
@@ -415,31 +427,23 @@ def setup_mv_places():
             return
 
         try:
+            # Built beside the live view and swapped in at the end, in one
+            # transaction: the site reads the old rows for the minutes the
+            # build takes, and a failure leaves them exactly as they were.
+            # mv_places_brand is materialized on the old view, which
+            # therefore retires under another name instead of being dropped:
+            # it goes once mv-brand has swapped the brand view too.
             with conn.cursor() as cur:
-                cur.execute("DROP MATERIALIZED VIEW IF EXISTS mv_places CASCADE;")
+                cur.execute("DROP MATERIALIZED VIEW IF EXISTS mv_places_new;")
                 logger.info("Creating mv_places and indexes...")
-                cur.execute(view_sql)
-
-                cur.execute("""
-                    CREATE INDEX IF NOT EXISTS mv_places_geog_idx
-                        ON mv_places USING GIST ((geom::geography));
-                    CREATE INDEX IF NOT EXISTS mv_places_brand_wikidata_idx
-                        ON mv_places ((brand_wikidata));
-                    CREATE INDEX IF NOT EXISTS mv_places_brand_lower_idx
-                        ON mv_places (LOWER(brand));
-                    CREATE INDEX IF NOT EXISTS mv_places_name_lower_idx
-                        ON mv_places (LOWER(name));
-                    CREATE INDEX IF NOT EXISTS mv_places_website_norm_idx
-                        ON mv_places (LOWER(REGEXP_REPLACE(website, '^https?://', '', 'i')));
-                    CREATE INDEX IF NOT EXISTS mv_places_phone_norm_idx
-                        ON mv_places (normalize_phone(phone));
-                    CREATE INDEX IF NOT EXISTS mv_places_email_lower_idx
-                        ON mv_places (LOWER(email));
-                """)
-
-                _matview.stamp(cur, "mv_places", signature)
-
-            conn.commit()
+                cur.execute(_mv_places_sql("mv_places_new"))
+                _matview.create_indexes(cur, "mv_places_new", MV_PLACES_INDEXES)
+                _matview.stamp(cur, "mv_places_new", signature)
+                _matview.swap(
+                    cur, "MATERIALIZED VIEW", "mv_places", "mv_places_new",
+                    MV_PLACES_INDEXES,
+                )
+            # Commits the swap with it.
             record_import(conn, "osm", newest_ts, "success")
             logger.info("mv_places created (data date: %s)", newest_ts.date())
 
