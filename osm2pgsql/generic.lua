@@ -1,5 +1,10 @@
 local srid = 4326
 
+-- The pipeline points this at a schema of its own, beside the live tables:
+-- --create starts the tables from scratch, and the site reads the live ones
+-- for the hours the import takes. Unset, everything lands in public.
+local schema = os.getenv("ATP2OSM_IMPORT_SCHEMA")
+
 local tables = {}
 
 tables.points = osm2pgsql.define_node_table('points', {
@@ -9,7 +14,7 @@ tables.points = osm2pgsql.define_node_table('points', {
     -- Epoch seconds: the flex output has no timestamp column type. mv_places
     -- turns it back into a timestamptz with to_timestamp().
     { column = 'osm_timestamp', type = 'int8' },
-})
+}, { schema = schema })
 
 tables.polygons = osm2pgsql.define_area_table('polygons', {
     { column = 'osm_type', type = 'text',     not_null = true },
@@ -20,7 +25,7 @@ tables.polygons = osm2pgsql.define_area_table('polygons', {
     -- Epoch seconds: the flex output has no timestamp column type. mv_places
     -- turns it back into a timestamptz with to_timestamp().
     { column = 'osm_timestamp', type = 'int8' },
-})
+}, { schema = schema })
 
 -- Administrative boundaries, the source of the subdivision a POI is attached to.
 -- Imported down to ATP2OSM_ADMIN_LEVEL_MAX, which is deliberately deeper than
@@ -38,7 +43,7 @@ tables.subdivisions = osm2pgsql.define_area_table('subdivisions', {
     { column = 'name',        type = 'text', not_null = true },
     { column = 'admin_level', type = 'int',  not_null = true },
     { column = 'geom',        type = 'geometry', projection = srid, not_null = true },
-})
+}, { schema = schema })
 
 -- Insert the object as a subdivision and report it, so the caller stops there:
 -- a boundary is never a place, and the POI filters below would drop it anyway.

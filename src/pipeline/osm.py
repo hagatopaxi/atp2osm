@@ -15,6 +15,7 @@ from src.pipeline.constants import (
 )
 
 import requests
+from psycopg import sql
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
@@ -162,10 +163,9 @@ def download_pbf():
 def _require_free_space(path, needed_bytes):
     """Fast-fail if the filesystem holding `path` has less than `needed_bytes` free.
 
-    osm2pgsql --create drops and recreates points/polygons with CASCADE, which
-    also drops mv_places and mv_places_brand. If it then runs out of disk it
-    exits non-zero with the views already gone — leaving the site broken. Bail
-    out *before* that happens, with a clear message.
+    The import writes beside the live tables, so running out of disk halfway
+    costs nothing but the hours it took — still worth a clear message before
+    rather than an osm2pgsql exit code after.
     """
     free = shutil.disk_usage(path).free
     if free < needed_bytes:
@@ -194,9 +194,9 @@ def _build_subdivision_parts():
     """
     conn = connect()
     try:
-        # osm2pgsql runs with --create, so a reimport gives subdivisions a new
-        # oid: it identifies the data these pieces were cut from, with nothing
-        # to record on the side. Cutting takes about a minute, too much to
+        # A reimport swaps a new subdivisions table in, so its oid identifies
+        # the data these pieces were cut from, with nothing to record on the
+        # side. Cutting takes about a minute, too much to
         # repeat nightly for a table that has not moved.
         with conn.cursor() as cur:
             oid = cur.execute("SELECT to_regclass('subdivisions')::oid").fetchone()[0]
@@ -236,9 +236,16 @@ def _build_subdivision_parts():
         conn.close()
 
 
+# Where osm2pgsql writes: a schema of its own, beside the live tables, since
+# --create drops and recreates whatever it finds under the names it is given.
+# The tables move to public once the import is complete.
+IMPORT_SCHEMA = "osm_import"
+OSM_TABLES = ("points", "polygons", "subdivisions")
+
+
 def _import_pbfs():
-    # All-or-nothing: osm2pgsql runs with --create, which drops and recreates
-    # points/polygons. Importing a subset would silently replace the whole
+    # All-or-nothing: osm2pgsql runs with --create, which starts the tables
+    # from scratch. Importing a subset would silently replace the whole
     # planet extract with whatever leftovers a previous failed run left behind.
     pbf_paths = [r["pbf_path"] for r in GEOFABRIK_REGIONS.values()]
     missing = [p for p in pbf_paths if not p.exists()]
@@ -251,7 +258,7 @@ def _import_pbfs():
             + ", ".join(p.name for p in missing)
         )
 
-    # Fast-fail on low disk before the destructive CASCADE-dropping import.
+    # Fast-fail on low disk before hours of import.
     # Heuristic: need ~3x total PBF size (tables + indexes + temp), floor 15 GB.
     # Override the floor with OSM2PGSQL_MIN_FREE_GB.
     total_pbf = sum(p.stat().st_size for p in pbf_paths)
@@ -260,11 +267,27 @@ def _import_pbfs():
     _require_free_space(pbf_paths[0].parent, needed)
 
     db = get_database()
+    conn = connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                sql.SQL("DROP SCHEMA IF EXISTS {} CASCADE").format(
+                    sql.Identifier(IMPORT_SCHEMA)
+                )
+            )
+            cur.execute(
+                sql.SQL("CREATE SCHEMA {}").format(sql.Identifier(IMPORT_SCHEMA))
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
     logger.info("Importing %d PBF file(s) into PostGIS...", len(pbf_paths))
     env = os.environ.copy()
     env["PGPASSWORD"] = db.password
-    # generic.lua reads it: the Lua style has no access to the configuration.
+    # generic.lua reads them: the Lua style has no access to the configuration.
     env["ATP2OSM_ADMIN_LEVEL_MAX"] = str(ADMIN_LEVEL_MAX)
+    env["ATP2OSM_IMPORT_SCHEMA"] = IMPORT_SCHEMA
     subprocess.run(
         [
             "osm2pgsql",
@@ -284,16 +307,27 @@ def _import_pbfs():
         env=env,
     )
 
-    for p in pbf_paths:
-        p.unlink()
-
+    # One transaction: the three tables move together, and the live ones
+    # retire under another name rather than being dropped — mv_places is
+    # materialized on them, and goes on serving until osm-views swaps it. The
+    # retired tables go once mv-brand has swapped the brand view too.
     conn = connect()
     try:
         with conn.cursor() as cur:
+            for table in OSM_TABLES:
+                _matview.swap(cur, "TABLE", table, f"{IMPORT_SCHEMA}.{table}")
             _matview.stamp(cur, "points", app_version(), "TABLE")
+            cur.execute(
+                sql.SQL("DROP SCHEMA {}").format(sql.Identifier(IMPORT_SCHEMA))
+            )
         conn.commit()
     finally:
         conn.close()
+
+    # Only once the tables are in: a swap that failed can be retried from
+    # here without downloading again.
+    for p in pbf_paths:
+        p.unlink()
 
     logger.info("osm2pgsql import complete (%d file(s))", len(pbf_paths))
 
