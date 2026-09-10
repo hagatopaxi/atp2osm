@@ -8,13 +8,13 @@ from src.pipeline._db import connect, last_import_comment, last_import_date
 logger = logging.getLogger(__name__)
 
 
-def _mv_places_brand_sql() -> str:
+def _mv_places_brand_sql(name: str = "mv_places_brand") -> str:
     # is_importable is filtered AFTER deduplication, like apply_on_node() does
     # on the /validate side, otherwise the two counts diverge.
     # One row per (brand, subdivision): get_all() sums the unblocked
     # ones to announce what is still left to integrate.
     return f"""
-        CREATE MATERIALIZED VIEW mv_places_brand AS
+        CREATE MATERIALIZED VIEW {name} AS
         SELECT
             STRING_AGG(DISTINCT atp_brand, ' / ' ORDER BY atp_brand) AS brand,
             atp_brand_wikidata AS brand_wikidata,
@@ -27,7 +27,6 @@ def _mv_places_brand_sql() -> str:
 
 
 def create_mv_places_brand():
-    view_sql = _mv_places_brand_sql()
     conn = connect()
     try:
         # It counts matches between mv_places and atp_places, so it has to be
@@ -48,11 +47,21 @@ def create_mv_places_brand():
             logger.info("mv_places_brand already up-to-date, skipping")
             return
 
+        # Built beside the live view, then swapped in: the site keeps reading
+        # the old rows for the minutes the join takes, and only waits on the
+        # exclusive lock for the DROP + RENAME at the very end. A DROP first
+        # would hold that lock for the whole build — every request hanging on
+        # it, no maintenance page, since this step opens no data_imports row.
+        # One transaction: a failure leaves the old view exactly as it was.
         with conn.cursor() as cur:
-            cur.execute("DROP MATERIALIZED VIEW IF EXISTS mv_places_brand;")
+            cur.execute("DROP MATERIALIZED VIEW IF EXISTS mv_places_brand_new;")
             logger.info("Creating mv_places_brand...")
-            cur.execute(view_sql)
-            _matview.stamp(cur, "mv_places_brand", signature)
+            cur.execute(_mv_places_brand_sql("mv_places_brand_new"))
+            _matview.stamp(cur, "mv_places_brand_new", signature)
+            cur.execute("DROP MATERIALIZED VIEW IF EXISTS mv_places_brand;")
+            cur.execute(
+                "ALTER MATERIALIZED VIEW mv_places_brand_new RENAME TO mv_places_brand;"
+            )
         conn.commit()
         logger.info("mv_places_brand created")
     finally:
