@@ -32,8 +32,10 @@ def last_import_comment(conn, import_type):
 
 
 def start_import(conn, import_type):
-    """Mark this datasource as syncing: the app stays in maintenance mode as
-    long as the row is pending (see src/db.py:maintenance_since)."""
+    """Open the row of this datasource's run: 'pending' until record_import
+    resolves it, which the home page shows as syncing. The site keeps serving
+    meanwhile — every rebuild swaps its object in at the end, see
+    _matview.swap()."""
     with conn.cursor() as cur:
         cur.execute(
             "INSERT INTO data_imports (type, date, status) VALUES (%s, NULL, 'pending')",

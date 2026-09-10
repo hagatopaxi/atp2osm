@@ -15,6 +15,7 @@ from src.pipeline.constants import (
 )
 
 import requests
+from psycopg import sql
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
@@ -124,7 +125,7 @@ def download_pbf():
     conn = connect()
     try:
         last_date = last_import_date(conn, "osm")
-        start_import(conn, "osm")  # puts the site in maintenance mode
+        start_import(conn, "osm")
 
         if (
             last_date
@@ -162,10 +163,9 @@ def download_pbf():
 def _require_free_space(path, needed_bytes):
     """Fast-fail if the filesystem holding `path` has less than `needed_bytes` free.
 
-    osm2pgsql --create drops and recreates points/polygons with CASCADE, which
-    also drops mv_places and mv_places_brand. If it then runs out of disk it
-    exits non-zero with the views already gone — leaving the site broken. Bail
-    out *before* that happens, with a clear message.
+    The import writes beside the live tables, which stay for its duration, so
+    running out of disk halfway costs nothing but the hours it took — still
+    worth a clear message before rather than an osm2pgsql exit code after.
     """
     free = shutil.disk_usage(path).free
     if free < needed_bytes:
@@ -194,9 +194,9 @@ def _build_subdivision_parts():
     """
     conn = connect()
     try:
-        # osm2pgsql runs with --create, so a reimport gives subdivisions a new
-        # oid: it identifies the data these pieces were cut from, with nothing
-        # to record on the side. Cutting takes about a minute, too much to
+        # A reimport swaps a new subdivisions table in, so its oid identifies
+        # the data these pieces were cut from, with nothing to record on the
+        # side. Cutting takes about a minute, too much to
         # repeat nightly for a table that has not moved.
         with conn.cursor() as cur:
             oid = cur.execute("SELECT to_regclass('subdivisions')::oid").fetchone()[0]
@@ -236,9 +236,16 @@ def _build_subdivision_parts():
         conn.close()
 
 
+# Where osm2pgsql writes: a schema of its own, beside the live tables, since
+# --create drops and recreates whatever it finds under the names it is given.
+# The tables move to public once the import is complete.
+IMPORT_SCHEMA = "osm_import"
+OSM_TABLES = ("points", "polygons", "subdivisions")
+
+
 def _import_pbfs():
-    # All-or-nothing: osm2pgsql runs with --create, which drops and recreates
-    # points/polygons. Importing a subset would silently replace the whole
+    # All-or-nothing: osm2pgsql runs with --create, which starts the tables
+    # from scratch. Importing a subset would silently replace the whole
     # planet extract with whatever leftovers a previous failed run left behind.
     pbf_paths = [r["pbf_path"] for r in GEOFABRIK_REGIONS.values()]
     missing = [p for p in pbf_paths if not p.exists()]
@@ -251,7 +258,7 @@ def _import_pbfs():
             + ", ".join(p.name for p in missing)
         )
 
-    # Fast-fail on low disk before the destructive CASCADE-dropping import.
+    # Fast-fail on low disk before hours of import.
     # Heuristic: need ~3x total PBF size (tables + indexes + temp), floor 15 GB.
     # Override the floor with OSM2PGSQL_MIN_FREE_GB.
     total_pbf = sum(p.stat().st_size for p in pbf_paths)
@@ -260,11 +267,27 @@ def _import_pbfs():
     _require_free_space(pbf_paths[0].parent, needed)
 
     db = get_database()
+    conn = connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                sql.SQL("DROP SCHEMA IF EXISTS {} CASCADE").format(
+                    sql.Identifier(IMPORT_SCHEMA)
+                )
+            )
+            cur.execute(
+                sql.SQL("CREATE SCHEMA {}").format(sql.Identifier(IMPORT_SCHEMA))
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
     logger.info("Importing %d PBF file(s) into PostGIS...", len(pbf_paths))
     env = os.environ.copy()
     env["PGPASSWORD"] = db.password
-    # generic.lua reads it: the Lua style has no access to the configuration.
+    # generic.lua reads them: the Lua style has no access to the configuration.
     env["ATP2OSM_ADMIN_LEVEL_MAX"] = str(ADMIN_LEVEL_MAX)
+    env["ATP2OSM_IMPORT_SCHEMA"] = IMPORT_SCHEMA
     subprocess.run(
         [
             "osm2pgsql",
@@ -284,16 +307,27 @@ def _import_pbfs():
         env=env,
     )
 
-    for p in pbf_paths:
-        p.unlink()
-
+    # One transaction: the three tables move together, and the live ones
+    # retire under another name rather than being dropped — mv_places is
+    # materialized on them, and goes on serving until osm-views swaps it. The
+    # retired tables go once mv-brand has swapped the brand view too.
     conn = connect()
     try:
         with conn.cursor() as cur:
+            for table in OSM_TABLES:
+                _matview.swap(cur, "TABLE", table, f"{IMPORT_SCHEMA}.{table}")
             _matview.stamp(cur, "points", app_version(), "TABLE")
+            cur.execute(
+                sql.SQL("DROP SCHEMA {}").format(sql.Identifier(IMPORT_SCHEMA))
+            )
         conn.commit()
     finally:
         conn.close()
+
+    # Only once the tables are in: a swap that failed can be retried from
+    # here without downloading again.
+    for p in pbf_paths:
+        p.unlink()
 
     logger.info("osm2pgsql import complete (%d file(s))", len(pbf_paths))
 
@@ -308,7 +342,7 @@ def run_osm2pgsql():
     _build_subdivision_parts()
 
 
-def _mv_places_sql() -> str:
+def _mv_places_sql(name: str = "mv_places") -> str:
     # Only rows that can ever match are kept: the join in
     # MATCHED_POI_SQL requires an equality on one of brand:wikidata,
     # brand, name, email, website or phone, and NULL never equals
@@ -325,7 +359,7 @@ def _mv_places_sql() -> str:
     # lookup only ever runs on the 1.1M rows that survive it,
     # never on the 20.3M raw ones.
     return f"""
-        CREATE MATERIALIZED VIEW mv_places AS
+        CREATE MATERIALIZED VIEW {name} AS
         SELECT
             node_id                                              AS osm_id,
             'node'                                               AS node_type,
@@ -380,8 +414,20 @@ def _mv_places_sql() -> str:
     """
 
 
+# Canonical name to definition. Built under `<name>_new` on the new view and
+# renamed with it: PHONE_INDEXES in src/phone.py names the phone one.
+MV_PLACES_INDEXES = {
+    "mv_places_geog_idx": "USING GIST ((geom::geography))",
+    "mv_places_brand_wikidata_idx": "((brand_wikidata))",
+    "mv_places_brand_lower_idx": "(LOWER(brand))",
+    "mv_places_name_lower_idx": "(LOWER(name))",
+    "mv_places_website_norm_idx": "(LOWER(REGEXP_REPLACE(website, '^https?://', '', 'i')))",
+    "mv_places_phone_norm_idx": "(normalize_phone(phone))",
+    "mv_places_email_lower_idx": "(LOWER(email))",
+}
+
+
 def setup_mv_places():
-    view_sql = _mv_places_sql()
     newest_ts = _newest_geofabrik_timestamp()
     conn = connect()
     try:
@@ -415,31 +461,23 @@ def setup_mv_places():
             return
 
         try:
+            # Built beside the live view and swapped in at the end, in one
+            # transaction: the site reads the old rows for the minutes the
+            # build takes, and a failure leaves them exactly as they were.
+            # mv_places_brand is materialized on the old view, which
+            # therefore retires under another name instead of being dropped:
+            # it goes once mv-brand has swapped the brand view too.
             with conn.cursor() as cur:
-                cur.execute("DROP MATERIALIZED VIEW IF EXISTS mv_places CASCADE;")
+                cur.execute("DROP MATERIALIZED VIEW IF EXISTS mv_places_new;")
                 logger.info("Creating mv_places and indexes...")
-                cur.execute(view_sql)
-
-                cur.execute("""
-                    CREATE INDEX IF NOT EXISTS mv_places_geog_idx
-                        ON mv_places USING GIST ((geom::geography));
-                    CREATE INDEX IF NOT EXISTS mv_places_brand_wikidata_idx
-                        ON mv_places ((brand_wikidata));
-                    CREATE INDEX IF NOT EXISTS mv_places_brand_lower_idx
-                        ON mv_places (LOWER(brand));
-                    CREATE INDEX IF NOT EXISTS mv_places_name_lower_idx
-                        ON mv_places (LOWER(name));
-                    CREATE INDEX IF NOT EXISTS mv_places_website_norm_idx
-                        ON mv_places (LOWER(REGEXP_REPLACE(website, '^https?://', '', 'i')));
-                    CREATE INDEX IF NOT EXISTS mv_places_phone_norm_idx
-                        ON mv_places (normalize_phone(phone));
-                    CREATE INDEX IF NOT EXISTS mv_places_email_lower_idx
-                        ON mv_places (LOWER(email));
-                """)
-
-                _matview.stamp(cur, "mv_places", signature)
-
-            conn.commit()
+                cur.execute(_mv_places_sql("mv_places_new"))
+                _matview.create_indexes(cur, "mv_places_new", MV_PLACES_INDEXES)
+                _matview.stamp(cur, "mv_places_new", signature)
+                _matview.swap(
+                    cur, "MATERIALIZED VIEW", "mv_places", "mv_places_new",
+                    MV_PLACES_INDEXES,
+                )
+            # Commits the swap with it.
             record_import(conn, "osm", newest_ts, "success")
             logger.info("mv_places created (data date: %s)", newest_ts.date())
 

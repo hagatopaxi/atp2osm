@@ -272,8 +272,8 @@ leurs libellés. Ce qui ne doit jamais différer, ce sont les tags qu'elles
 2. Comparer à la version enregistrée sur la dernière ligne `data_imports` de
    type `nsi`. Identique → retour anticipé, la branche no-ope pour le reste du
    pipeline (même mécanique que `select_run` pour ATP).
-3. Sinon `start_import(conn, "nsi")` — met le site en maintenance — puis
-   télécharger la version épinglée.
+3. Sinon `start_import(conn, "nsi")` — ouvre la ligne `data_imports` de la
+   branche — puis télécharger la version épinglée.
 
 **`select_items(nsi_json)`** — §2.3.
 
@@ -296,8 +296,8 @@ Câblage dans `src/pipeline/dag.py` :
 
 **À ne pas oublier** : `record_failure` dérive `import_type` du préfixe du nom
 d'étape et retombe sur `"pipeline"` hors `osm`/`atp`. Ajouter `nsi` à sa liste,
-sinon un échec se journalise en `pipeline`, la ligne ouverte par
-`start_import(… "nsi")` reste béante et le site reste en maintenance.
+sinon un échec se journalise en `pipeline` et la ligne ouverte par
+`start_import(… "nsi")` reste béante.
 
 ---
 

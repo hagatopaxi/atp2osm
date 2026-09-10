@@ -98,6 +98,8 @@ Where it is compared: stamped on `points` and gating the PBF download; recorded 
 
 In development the version is a constant, so nothing rebuilds on its own: rerun the step by hand (`python -m src.pipeline step osm-import`).
 
+**Swaps** — a rebuilding step never drops what the site reads. It builds the object beside the live one (`mv_places_new`, `atp_places_new`, the `osm_import` schema osm2pgsql writes into) and `_matview.swap()` renames it in at the end, in the transaction that records the import: the exclusive lock is held for a rename, and a failed build leaves the live object as it was. The live one retires as `<name>_old` rather than being dropped — `mv_places_brand` is materialized on `mv_places`, `mv_places` on `points`, and each keeps serving until its own swap. `mv-brand` disposes of the retired chain once it has swapped the brand view, and only what nothing depends on any more. So the site serves throughout a refresh; the `pending` row of `data_imports` is a status the home page shows, not a maintenance flag.
+
 **Deploy** (`deploy/run` — git hook `post-receive`):
 - Builds the container image, writes the `atp2osm.container` Quadlet, writes the `refresh.service` + `refresh.timer` systemd units from the `deploy/` templates, then runs `daemon-reload` + `restart` + `enable timer` directly.
 - One-time server-side provisioning: `loginctl enable-linger $USER` (keeps the services running without an open session).
