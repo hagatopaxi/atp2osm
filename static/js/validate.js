@@ -65,30 +65,21 @@ function validateData(itemId) {
   }
 }
 
-function toggleReason(button) {
-  const on = button.classList.toggle("btn-active");
+function setReason(button, on) {
+  button.classList.toggle("btn-active", on);
   button.classList.toggle("btn-outline", !on);
   button.classList.toggle("btn-soft", on);
   button.classList.toggle("btn-primary", on);
-  const other = document
-    .querySelector('.reason-btn[data-reason="other"]')
-    .classList.contains("btn-active");
-  const comment = document.getElementById("invalidation_comment");
-  comment.classList.toggle("hidden", !other);
-  // « Autre » only means something once it is explained.
-  comment.required = other;
+}
+
+function toggleReason(button) {
+  setReason(button, !button.classList.contains("btn-active"));
 }
 
 function invalidateData(itemId) {
   currentInvalidItemId = itemId;
-  const comment = document.getElementById("invalidation_comment");
-  comment.value = "";
-  comment.classList.add("hidden");
-  comment.required = false;
-  document.querySelectorAll(".reason-btn").forEach((b) => {
-    b.classList.remove("btn-active", "btn-soft", "btn-primary");
-    b.classList.add("btn-outline");
-  });
+  document.getElementById("invalidation_comment").value = "";
+  document.querySelectorAll(".reason-btn").forEach((b) => setReason(b, false));
   document.getElementById("invalidation_modal").showModal();
 }
 
@@ -132,11 +123,9 @@ function checkAllValidated() {
 
 function publishComment() {
   const commentField = document.getElementById("invalidation_comment");
-  if (!commentField.reportValidity()) return;
-
   const selected = Array.from(document.querySelectorAll(".reason-btn.btn-active"));
   const reasons = selected.map((b) => b.dataset.reason);
-  const comment = reasons.includes("other") ? commentField.value : "";
+  const comment = commentField.value.trim();
 
   const collapse = document.querySelector(
     `[data-item-id="${currentInvalidItemId}"]`,

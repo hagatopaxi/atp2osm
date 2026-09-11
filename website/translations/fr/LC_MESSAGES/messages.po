@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-11 09:25+0200\n"
+"POT-Creation-Date: 2026-09-11 09:27+0200\n"
 "PO-Revision-Date: 2026-09-06 17:06+0200\n"
 "Last-Translator: the atp2osm contributors\n"
 "Language: fr\n"
@@ -115,36 +115,36 @@ msgid "Open the sidebar"
 msgstr "Ouvrir la barre latérale"
 
 #: website/templates/_error_reasons.html:12
-msgid "Generic / brand website"
-msgstr "Site web générique / de la marque"
+msgid "Website: ATP gives the generic brand site"
+msgstr "Site web : ATP donne le site générique de l'enseigne"
 
 #: website/templates/_error_reasons.html:13
-msgid "Invalid website (404, redirect)"
-msgstr "Site web invalide (404, redirection)"
+msgid "Website: the ATP link is broken (404, redirect)"
+msgstr "Site web : le lien ATP est cassé (404, redirection)"
 
 #: website/templates/_error_reasons.html:14
-msgid "Website not in the local language"
-msgstr "Site web pas en français"
+msgid "Website: the ATP link is not in the local language"
+msgstr "Site web : le lien ATP n'est pas dans la langue locale"
 
 #: website/templates/_error_reasons.html:15
-msgid "Wrong phone number"
-msgstr "Téléphone incorrect"
+msgid "Phone: ATP is wrong"
+msgstr "Téléphone : ATP se trompe"
 
 #: website/templates/_error_reasons.html:16
-msgid "Phone number in the wrong format"
-msgstr "Téléphone au mauvais format"
+msgid "Phone: the ATP format is wrong"
+msgstr "Téléphone : le format ATP est mauvais"
 
 #: website/templates/_error_reasons.html:17
-msgid "Wrong opening hours"
-msgstr "Horaires incorrects"
+msgid "Opening hours: ATP is wrong"
+msgstr "Horaires : ATP se trompe"
 
 #: website/templates/_error_reasons.html:18
-msgid "Wrong address"
-msgstr "Adresse incorrecte"
+msgid "Address: ATP is wrong"
+msgstr "Adresse : ATP se trompe"
 
 #: website/templates/_error_reasons.html:19
-msgid "Generic e-mail"
-msgstr "E-mail générique"
+msgid "E-mail: ATP gives a generic address"
+msgstr "E-mail : ATP donne une adresse générique"
 
 #: website/templates/_error_reasons.html:20
 msgid "Does not target the right POI"
@@ -317,7 +317,7 @@ msgid "Never integrated"
 msgstr "Jamais intégrée"
 
 #: website/templates/brands.html:64 website/templates/brands.html:125
-#: website/templates/brands/:brand_wikidata/validate.html:70
+#: website/templates/brands/:brand_wikidata/validate.html:75
 #: website/templates/docs.html:221 website/templates/history.html:34
 #: website/templates/history.html:125 website/templates/history_detail.html:84
 #: website/templates/history_detail.html:215
@@ -325,21 +325,21 @@ msgid "Success"
 msgstr "Succès"
 
 #: website/templates/brands.html:65 website/templates/brands.html:126
-#: website/templates/brands/:brand_wikidata/validate.html:70
+#: website/templates/brands/:brand_wikidata/validate.html:75
 #: website/templates/docs.html:233 website/templates/history.html:35
 #: website/templates/history.html:126 website/templates/history_detail.html:85
 msgid "Partial"
 msgstr "Partiel"
 
 #: website/templates/brands.html:66 website/templates/brands.html:127
-#: website/templates/brands/:brand_wikidata/validate.html:70
+#: website/templates/brands/:brand_wikidata/validate.html:75
 #: website/templates/docs.html:247 website/templates/history.html:36
 #: website/templates/history.html:127 website/templates/history_detail.html:86
 msgid "Cancelled"
 msgstr "Annulé"
 
 #: website/templates/brands.html:67 website/templates/brands.html:128
-#: website/templates/brands/:brand_wikidata/validate.html:70
+#: website/templates/brands/:brand_wikidata/validate.html:75
 #: website/templates/docs.html:261 website/templates/history.html:37
 #: website/templates/history.html:128 website/templates/history_detail.html:87
 #: website/templates/history_detail.html:215 website/templates/home.html:114
@@ -372,7 +372,7 @@ msgid "No brand matches these filters."
 msgstr "Aucune marque ne correspond à ces filtres."
 
 #: website/templates/brands.html:94
-#: website/templates/brands/:brand_wikidata/validate.html:146
+#: website/templates/brands/:brand_wikidata/validate.html:151
 #: website/templates/todo.html:47 website/templates/todo.html:207
 msgid "Wikidata code"
 msgstr "Code Wikidata"
@@ -1210,7 +1210,7 @@ msgstr "Liste des marques identifiées pour lesquelles aucun spider AllThePlaces
 msgid "Add a brand"
 msgstr "Ajouter une marque"
 
-#: website/templates/brands/:brand_wikidata/validate.html:144
+#: website/templates/brands/:brand_wikidata/validate.html:149
 #: website/templates/todo.html:42 website/templates/todo.html:203
 msgid "Brand name"
 msgstr "Nom de la marque"
@@ -1276,7 +1276,7 @@ msgstr "Estimation"
 msgid "Edited by"
 msgstr "Modifié par"
 
-#: website/templates/brands/:brand_wikidata/validate.html:78
+#: website/templates/brands/:brand_wikidata/validate.html:83
 #: website/templates/todo.html:168
 #, python-format
 msgid "on %(date)s"
@@ -1296,7 +1296,7 @@ msgstr "Modifier la marque"
 
 #: website/templates/brands/:brand_wikidata/confirm.html:92
 #: website/templates/brands/:brand_wikidata/rejected.html:23
-#: website/templates/brands/:brand_wikidata/validate.html:242
+#: website/templates/brands/:brand_wikidata/validate.html:248
 #: website/templates/todo.html:216
 msgid "Cancel"
 msgstr "Annuler"
@@ -1423,140 +1423,140 @@ msgstr "Tous les autres tags sont déjà dans OSM et ne seront pas mis à jour."
 msgid "value written"
 msgstr "valeur écrite"
 
-#: website/templates/brands/:brand_wikidata/validate.html:17
+#: website/templates/brands/:brand_wikidata/validate.html:20
 msgid "current value, replaced"
 msgstr "valeur actuelle, remplacée"
 
-#: website/templates/brands/:brand_wikidata/validate.html:28
-#: website/templates/brands/:brand_wikidata/validate.html:168
+#: website/templates/brands/:brand_wikidata/validate.html:31
+#: website/templates/brands/:brand_wikidata/validate.html:173
 #, python-format
 msgid "%(label)s:"
 msgstr "%(label)s :"
 
-#: website/templates/brands/:brand_wikidata/validate.html:60
+#: website/templates/brands/:brand_wikidata/validate.html:65
 #, python-format
 msgid "This batch covers %(count)s subdivision"
 msgid_plural "This batch covers %(count)s subdivisions"
 msgstr[0] "Ce lot couvre %(count)s département"
 msgstr[1] "Ce lot couvre %(count)s départements"
 
-#: website/templates/brands/:brand_wikidata/validate.html:62
+#: website/templates/brands/:brand_wikidata/validate.html:67
 #, python-format
 msgid "that is %(count)s POI."
 msgid_plural "that is %(count)s POIs."
 msgstr[0] "soit %(count)s POI."
 msgstr[1] "soit %(count)s POIs."
 
-#: website/templates/brands/:brand_wikidata/validate.html:65
+#: website/templates/brands/:brand_wikidata/validate.html:70
 msgid "Start the review over"
 msgstr "Recommencer la saisie"
 
-#: website/templates/brands/:brand_wikidata/validate.html:76
+#: website/templates/brands/:brand_wikidata/validate.html:81
 msgid "Notes from the last integration"
 msgstr "Notes de la dernière intégration"
 
-#: website/templates/brands/:brand_wikidata/validate.html:79
+#: website/templates/brands/:brand_wikidata/validate.html:84
 msgid "by"
 msgstr "par"
 
-#: website/templates/brands/:brand_wikidata/validate.html:86
+#: website/templates/brands/:brand_wikidata/validate.html:91
 msgid "Reported by a contributor during the last review — check these points more closely."
 msgstr "Relevé par un contributeur lors du dernier contrôle — vérifiez ces points plus attentivement."
 
-#: website/templates/brands/:brand_wikidata/validate.html:92
+#: website/templates/brands/:brand_wikidata/validate.html:97
 msgid "No comment"
 msgstr "Sans commentaire"
 
-#: website/templates/brands/:brand_wikidata/validate.html:109
+#: website/templates/brands/:brand_wikidata/validate.html:114
 msgid "First integration of this brand"
 msgstr "Première intégration de cette marque"
 
-#: website/templates/brands/:brand_wikidata/validate.html:110
+#: website/templates/brands/:brand_wikidata/validate.html:115
 msgid "No earlier review can guide you: be especially careful on every tag, and report the slightest doubtful value."
 msgstr "Aucun contrôle précédent ne peut vous guider : soyez particulièrement vigilant sur l'ensemble des tags, et signalez la moindre donnée douteuse."
 
-#: website/templates/brands/:brand_wikidata/validate.html:127
+#: website/templates/brands/:brand_wikidata/validate.html:132
 msgid "The data comes straight from an official API."
 msgstr "Les données proviennent directement d'une API officielle."
 
-#: website/templates/brands/:brand_wikidata/validate.html:133
+#: website/templates/brands/:brand_wikidata/validate.html:138
 msgid "Open the data source"
 msgstr "Ouvrir la source de données"
 
-#: website/templates/brands/:brand_wikidata/validate.html:136
+#: website/templates/brands/:brand_wikidata/validate.html:141
 msgid "Is this an API? If so, the source will no longer be required for the remaining points."
 msgstr "Est-ce une API ? Si oui, la source ne sera plus obligatoire pour les points restants."
 
-#: website/templates/brands/:brand_wikidata/validate.html:138
+#: website/templates/brands/:brand_wikidata/validate.html:143
 msgid "Yes"
 msgstr "Oui"
 
-#: website/templates/brands/:brand_wikidata/validate.html:139
+#: website/templates/brands/:brand_wikidata/validate.html:144
 msgid "No"
 msgstr "Non"
 
-#: website/templates/brands/:brand_wikidata/validate.html:150
+#: website/templates/brands/:brand_wikidata/validate.html:155
 msgid "This Wikidata code was <strong>inferred from the name</strong> of the object through the name-suggestion-index; it was not in OSM. Check that it really is this brand."
 msgstr "Ce code Wikidata a été <strong>déduit du nom</strong> de l'objet via le name-suggestion-index, il n'était pas présent dans OSM. Vérifiez qu'il s'agit bien de cette enseigne."
 
-#: website/templates/brands/:brand_wikidata/validate.html:154
+#: website/templates/brands/:brand_wikidata/validate.html:159
 msgid "Shop name"
 msgstr "Nom du magasin"
 
-#: website/templates/brands/:brand_wikidata/validate.html:156
+#: website/templates/brands/:brand_wikidata/validate.html:161
 msgid "Email"
 msgstr "Email"
 
-#: website/templates/brands/:brand_wikidata/validate.html:158
+#: website/templates/brands/:brand_wikidata/validate.html:163
 msgid "Phone"
 msgstr "Téléphone"
 
-#: website/templates/brands/:brand_wikidata/validate.html:160
+#: website/templates/brands/:brand_wikidata/validate.html:165
 msgid "Website"
 msgstr "Site web"
 
-#: website/templates/brands/:brand_wikidata/validate.html:162
+#: website/templates/brands/:brand_wikidata/validate.html:167
 msgid "Opening hours"
 msgstr "Horaires"
 
-#: website/templates/brands/:brand_wikidata/validate.html:168
+#: website/templates/brands/:brand_wikidata/validate.html:173
 msgid "NSI tags"
 msgstr "Tags NSI"
 
-#: website/templates/brands/:brand_wikidata/validate.html:191
+#: website/templates/brands/:brand_wikidata/validate.html:196
 #, python-format
 msgid "Map of %(title)s"
 msgstr "Carte de %(title)s"
 
-#: website/templates/brands/:brand_wikidata/validate.html:194
+#: website/templates/brands/:brand_wikidata/validate.html:199
 msgid "View in OSM"
 msgstr "Voir dans OSM"
 
-#: website/templates/brands/:brand_wikidata/validate.html:204
+#: website/templates/brands/:brand_wikidata/validate.html:209
 msgid "Reject"
 msgstr "Invalider"
 
-#: website/templates/brands/:brand_wikidata/validate.html:209
+#: website/templates/brands/:brand_wikidata/validate.html:214
 msgid "Accept"
 msgstr "Valider"
 
-#: website/templates/brands/:brand_wikidata/validate.html:215
+#: website/templates/brands/:brand_wikidata/validate.html:220
 msgid "Check the source before accepting."
 msgstr "Vérifiez la source avant de valider."
 
-#: website/templates/brands/:brand_wikidata/validate.html:226
+#: website/templates/brands/:brand_wikidata/validate.html:231
 msgid "Go to the next step"
 msgstr "Passer à l'étape suivante"
 
-#: website/templates/brands/:brand_wikidata/validate.html:232
+#: website/templates/brands/:brand_wikidata/validate.html:237
 msgid "Why are you rejecting this data?"
 msgstr "Pourquoi invalidez-vous cette donnée ?"
 
-#: website/templates/brands/:brand_wikidata/validate.html:239
+#: website/templates/brands/:brand_wikidata/validate.html:245
 msgid "Explain here…"
 msgstr "Expliquez ici…"
 
-#: website/templates/brands/:brand_wikidata/validate.html:241
+#: website/templates/brands/:brand_wikidata/validate.html:247
 msgid "Submit"
 msgstr "Soumettre"
 
@@ -1635,33 +1635,6 @@ msgstr "Erreur interne, désolé."
 #~ msgid "Dark theme"
 #~ msgstr "Thème sombre"
 
-#~ msgid "Light or dark theme"
-#~ msgstr "Thème clair ou sombre"
-
-#~ msgid "Theme"
-#~ msgstr "Thème"
-
-#~ msgid "Website: ATP gives the generic brand site"
-#~ msgstr "Site web : ATP donne le site générique de l'enseigne"
-
-#~ msgid "Website: the ATP link is broken (404, redirect)"
-#~ msgstr "Site web : le lien ATP est cassé (404, redirection)"
-
-#~ msgid "Phone: ATP is wrong"
-#~ msgstr "Téléphone : ATP se trompe"
-
-#~ msgid "Phone: the ATP format is wrong"
-#~ msgstr "Téléphone : le format ATP est mauvais"
-
-#~ msgid "Opening hours: ATP is wrong"
-#~ msgstr "Horaires : ATP se trompe"
-
-#~ msgid "Address: ATP is wrong"
-#~ msgstr "Adresse : ATP se trompe"
-
-#~ msgid "E-mail: ATP gives a generic address"
-#~ msgstr "E-mail : ATP donne une adresse générique"
-
 #~ msgid "503 - Maintenance"
 #~ msgstr "503 - Maintenance"
 
@@ -1673,4 +1646,10 @@ msgstr "Erreur interne, désolé."
 
 #~ msgid "Started: %(date)s"
 #~ msgstr "Début : %(date)s"
+
+#~ msgid "Light or dark theme"
+#~ msgstr "Thème clair ou sombre"
+
+#~ msgid "Theme"
+#~ msgstr "Thème"
 

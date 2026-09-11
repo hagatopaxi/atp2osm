@@ -236,11 +236,12 @@
     <div class="modal-box">
         <h3 class="font-bold text-lg">{{ _('Why are you rejecting this data?') }}</h3>
         <div id="invalidation_reasons" class="flex flex-wrap gap-2 mt-4">
-            {% for key in error_reasons %}
+            {% for key in error_reasons if key != 'other' %}
             <button type="button" class="btn btn-sm btn-outline reason-btn" data-reason="{{ key }}">{{ reasons.LABELS.get(key, key) }}</button>
             {% endfor %}
         </div>
-        <textarea id="invalidation_comment" class="textarea textarea-bordered w-full mt-4 hidden"
+        {# Always there: a word of explanation is welcome whatever the reason. #}
+        <textarea id="invalidation_comment" class="textarea textarea-bordered w-full mt-4"
             placeholder="{{ _('Explain here…') }}"></textarea>
         <div class="modal-action">
             <button id="submit_invalidation" class="btn btn-error" onclick="publishComment()">{{ _('Submit') }}</button>
