@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-11 09:27+0200\n"
+"POT-Creation-Date: 2026-09-11 09:48+0200\n"
 "PO-Revision-Date: 2026-09-06 17:06+0200\n"
 "Last-Translator: the atp2osm contributors\n"
 "Language: fr\n"
@@ -16,7 +16,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 #: src/upload.py:151
 #, python-format
@@ -64,32 +64,40 @@ msgstr "Marques manquantes"
 msgid "Documentation"
 msgstr "Documentation"
 
-#: website/templates/_aside.html:35
+#: website/templates/_aside.html:36 website/templates/_aside.html:38
+msgid "Light or dark theme"
+msgstr "Thème clair ou sombre"
+
+#: website/templates/_aside.html:42
+msgid "Theme"
+msgstr "Thème"
+
+#: website/templates/_aside.html:46
 msgid "Language"
 msgstr "Langue"
 
-#: website/templates/_aside.html:53 website/templates/_export_menu.html:10
+#: website/templates/_aside.html:64 website/templates/_export_menu.html:10
 msgid "About"
 msgstr "À propos"
 
-#: website/templates/_aside.html:54
+#: website/templates/_aside.html:65
 msgid "Open-source project. Contributions welcome!"
 msgstr "Projet open-source. Contributions bienvenues !"
 
-#: website/templates/_aside.html:59
+#: website/templates/_aside.html:70
 msgid "GPL-3.0 licence"
 msgstr "Licence GPL-3.0"
 
-#: website/templates/_aside.html:60
+#: website/templates/_aside.html:71
 #, python-format
 msgid "Data © <a href=\"%(link)s\" target=\"_blank\" rel=\"noopener\" class=\"link\">OpenStreetMap contributors</a>, ODbL"
 msgstr "Données © <a href=\"%(link)s\" target=\"_blank\" rel=\"noopener\" class=\"link\">OpenStreetMap contributors</a>, ODbL"
 
-#: website/templates/_aside.html:78
+#: website/templates/_aside.html:89
 msgid "Log out"
 msgstr "Déconnexion"
 
-#: website/templates/_aside.html:84 website/templates/_aside.html:86
+#: website/templates/_aside.html:95 website/templates/_aside.html:97
 #: website/templates/brands.html:41
 msgid "Sign in with OSM"
 msgstr "Se connecter avec OSM"
@@ -110,7 +118,7 @@ msgstr "atp2osm — Enrichir OpenStreetMap avec AllThePlaces"
 msgid "Integrate AllThePlaces points of interest into OpenStreetMap. A collaborative contribution tool for OSM mappers."
 msgstr "Intégrez les points d'intérêt AllThePlaces dans OpenStreetMap. Outil de contribution collaboratif pour les cartographes OSM."
 
-#: website/templates/_base.html:58
+#: website/templates/_base.html:59
 msgid "Open the sidebar"
 msgstr "Ouvrir la barre latérale"
 

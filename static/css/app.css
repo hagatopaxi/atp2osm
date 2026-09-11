@@ -220,3 +220,40 @@ body:has(#sidebar-toggle:not(:checked)) #sidebar .menu a {
 .input-sm input {
     font-size: inherit;
 }
+
+/* daisyUI theme override: every badge is a pill. --radius-selector is the
+   variable daisyUI keys badges (and checkboxes, toggles) on, so one value
+   here reaches them all, joined badges included, instead of a class on each. */
+:root,
+[data-theme] {
+    --radius-selector: 9999px;
+}
+/* A join rounds its ends with --radius-field, the radius of inputs and
+   buttons. A join made of badges takes the badges' radius instead, so a
+   grouped badge is as much a pill as a lone one. */
+.join:has(> .badge) {
+    --radius-field: var(--radius-selector);
+}
+
+/* daisyUI's soft badge tints its background at 8% and its border at 10%,
+   which reads as washed out. The same recipe, denser: the text keeps the
+   colour, the background and the border carry more of it. */
+.badge-soft {
+    /* Mixed towards the base content colour: darker on a light theme,
+       lighter on a dark one — amber alone fails on white. */
+    color: color-mix(in oklab, var(--badge-color, var(--color-base-content)) 50%, var(--color-base-content));
+    background-color: color-mix(in oklab, var(--badge-color, var(--color-base-content)) 18%, var(--color-base-100));
+    border-color: color-mix(in oklab, var(--badge-color, var(--color-base-content)) 40%, var(--color-base-100));
+}
+
+/* Semantic text: DaisyUI's success/error/warning/info are tuned as
+   backgrounds and reach 2-3:1 as text. Mixed towards the base content colour
+   — darker on a light theme, lighter on a dark one — the text utilities and
+   the soft alerts clear 4.5:1 in both. The badges keep their own tokens. */
+.text-success, .alert-soft.alert-success { color: color-mix(in oklab, var(--color-success) 50%, var(--color-base-content)); }
+.text-error,   .alert-soft.alert-error   { color: color-mix(in oklab, var(--color-error)   55%, var(--color-base-content)); }
+.text-warning, .alert-soft.alert-warning { color: color-mix(in oklab, var(--color-warning) 45%, var(--color-base-content)); }
+.text-info,    .alert-soft.alert-info    { color: color-mix(in oklab, var(--color-info)    50%, var(--color-base-content)); }
+/* Primary text and links sit at 3.6:1 on the dark base. Pulled a quarter of the
+   way to the base content colour, it clears AA on both themes. */
+.link-primary, .text-primary { color: color-mix(in oklab, var(--color-primary) 75%, var(--color-base-content)); }

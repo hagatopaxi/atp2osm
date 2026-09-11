@@ -60,7 +60,7 @@
 {% block content %}
 <div class="flex flex-col gap-2" data-brand-name="{{ brand }}">
     <div class="flex flex-col md:flex-row items-start justify-between gap-4">
-        <p class="text-xs text-base-content/60">
+        <p class="text-xs text-base-content/70">
             <span class="join">{{ wave.badge(wave_number) }}</span><br />
             {% trans count=scope | length %}This batch covers {{ count }} subdivision{% pluralize %}This batch covers {{ count }} subdivisions{% endtrans %} —
             {% for sub in scope %}{{ sub.name }} ({{ sub.count }}){{ ', ' if not loop.last }}{% endfor %}
@@ -80,8 +80,8 @@
             <div class="flex flex-wrap items-center gap-2">
                 <span class="font-semibold text-sm">{{ _('Notes from the last integration') }}</span>
                 <span class="badge badge-sm badge-{{ c_ }}">{{ labels.get(last_import.status, last_import.status) }}</span>
-                <a class="link text-xs text-base-content/60" href="/history/{{ last_import.id }}">{% trans date=last_import.import_date | dateformat('long') %}on {{ date }}{% endtrans %}</a>
-                <span class="text-xs text-base-content/60">{{ _('by') }}
+                <a class="link text-xs text-base-content/70" href="/history/{{ last_import.id }}">{% trans date=last_import.import_date | dateformat('long') %}on {{ date }}{% endtrans %}</a>
+                <span class="text-xs text-base-content/70">{{ _('by') }}
                     {% if last_import.osm_user_name %}
                     <a class="link" href="{{ api_url }}/user/{{ last_import.osm_user_name }}" target="_blank">{{ last_import.osm_user_name }}</a>
                     {% else %}{{ last_import.osm_user_id }}{% endif %}
@@ -95,7 +95,7 @@
                 {% for c in comments %}
                 <li class="border-l-2 border-{{ c_ }}/60 pl-3">
                     <p class="text-sm italic">{{ c.comment or _('No comment') }}</p>
-                    <p class="text-xs text-base-content/50 font-mono">
+                    <p class="text-xs text-base-content/70 font-mono">
                         <a class="link" href="{{ api_url }}/{{ c.osm_type }}/{{ c.osm_id }}" target="_blank">{{ c.osm_type }}/{{ c.osm_id }}</a>
                         {% if c.atp_id %}· ATP {{ c.spider_id ~ "/" if c.spider_id }}{{ c.atp_id }}{% endif %}
                     </p>
@@ -140,8 +140,8 @@
                 {% call info_card('info', 'hidden', 'data-api-question="' ~ item['node_type'] ~ '-' ~ item['id'] ~ '"') %}
                 <span data-api-msg>{{ _('Is this an API? If so, the source will no longer be required for the remaining points.') }}</span>
                 <div class="flex gap-2" data-api-choices>
-                    <button class="btn btn-xs btn-outline bg-white flex-1" onclick="answerIsApi(this, true)">{{ _('Yes') }}</button>
-                    <button class="btn btn-xs btn-outline bg-white flex-1" onclick="answerIsApi(this, false)">{{ _('No') }}</button>
+                    <button class="btn btn-xs btn-outline bg-base-100 flex-1" onclick="answerIsApi(this, true)">{{ _('Yes') }}</button>
+                    <button class="btn btn-xs btn-outline bg-base-100 flex-1" onclick="answerIsApi(this, false)">{{ _('No') }}</button>
                 </div>
                 {% endcall %}
                 {% endif %}
@@ -180,7 +180,7 @@
                 </div>
                 {% endif %}
 
-                <div class="text-xs text-base-content/50 mt-1 flex flex-col gap-0.5">
+                <div class="text-xs text-base-content/70 mt-1 flex flex-col gap-0.5">
                     <span><i class="iconoir-database"></i> <strong class="font-mono">ATP</strong>
                         <code>{{ item['spider_id'] }}/{{ item['atp_id'] }}</code></span>
                     <span><i class="iconoir-database"></i> <strong class="font-mono">OSM</strong>

@@ -47,14 +47,14 @@
 <input type="hidden" name="sort" value="{{ sort or '' }}" />
 <input type="hidden" name="dir" value="{{ direction }}" />
     <div class="flex flex-wrap items-end gap-3 mb-4">
-        <fieldset class="fieldset">
-            <legend class="fieldset-legend">{{ _('Brand') }}</legend>
+        <div class="fieldset">
+            <label class="fieldset-legend" for="filter-q">{{ _('Brand') }}</label>
             <label class="input input-sm w-56">
                 <i class="iconoir-search opacity-50"></i>
-                <input type="search" name="q" value="{{ filters.q or '' }}" placeholder="{{ _('Name or Wikidata code') }}"
+                <input type="search" id="filter-q" name="q" value="{{ filters.q or '' }}" placeholder="{{ _('Name or Wikidata code') }}"
                     {{ 'autofocus' if filters.q }} />
             </label>
-        </fieldset>
+        </div>
         <fieldset class="fieldset">
             <legend class="fieldset-legend">{{ _('Previous status') }}</legend>
             <div class="filter">
@@ -72,19 +72,19 @@
             </div>
         </fieldset>
         {{ period_filter(filters, _('Last integration')) }}
-        <fieldset class="fieldset">
-            <legend class="fieldset-legend">&nbsp;</legend>
+        <div class="fieldset">
+            <span class="fieldset-legend">&nbsp;</span>
             <div class="join">
                 <button type="submit" class="btn btn-sm btn-primary join-item">{{ _('Filter') }}</button>
                 <a href="{{ url_for('brands.brands') }}" class="btn btn-sm btn-soft join-item">{{ _('Reset') }}</a>
             </div>
-        </fieldset>
-        <span class="text-sm text-base-content/60 ml-auto mb-2">{% trans count=shown %}{{ count }} brand{% pluralize %}{{ count }} brands{% endtrans %}</span>
+        </div>
+        <span class="text-sm text-base-content/70 ml-auto mb-2">{% trans count=shown %}{{ count }} brand{% pluralize %}{{ count }} brands{% endtrans %}</span>
     </div>
 </form>
 
 {% if shown == 0 %}
-<p class="text-base-content/60">{{ _('No brand matches these filters.') }}</p>
+<p class="text-base-content/70">{{ _('No brand matches these filters.') }}</p>
 {% endif %}
 
 <div class="overflow-x-auto shrink-0">
