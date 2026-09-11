@@ -226,13 +226,20 @@ def login_cookie():
 def test_every_page_passes_wcag_2_aa(server, tmp_path):
     server, _ = server
     cookie = login_cookie()
-    urls = [server + p for p in PUBLIC + HISTORY]
+    urls = [{"url": server + p} for p in PUBLIC + HISTORY]
     urls += [{"url": server + p, "headers": {"Cookie": cookie}} for p in LOGGED_IN]
+    # Every page twice: the browser starts light, the switch turns it dark.
+    # The query string keeps pa11y-ci from folding the two runs into one.
+    urls += [
+        {**u, "url": u["url"] + "?theme=dark",
+         "actions": ["click element #theme-toggle",
+                     "wait for element html[data-theme=dark] to be added"]}
+        for u in urls
+    ]
     # A 500 renders an error page that passes or fails on its own merits: make
     # sure every page is the one we meant to check.
     for u in urls:
-        req = Request(u["url"], headers=u["headers"]) if isinstance(u, dict) else u
-        assert urlopen(req).status == 200, u
+        assert urlopen(Request(u["url"], headers=u.get("headers", {}))).status == 200, u
     config = tmp_path / "pa11yci.json"
     config.write_text(json.dumps({
         "defaults": {

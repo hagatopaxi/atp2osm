@@ -14,7 +14,7 @@
   {% macro nav_item(href, icon, label, exact=false) %}
   {% set is_active = (request.path == href) if exact else request.path.startswith(href) %}
   <li>
-    <a class="{{ 'bg-base-300 font-semibold hover:bg-base-200' if is_active else 'bg-white hover:bg-base-300' }} shadow-sm" href="{{ request.script_root }}{{ href }}">
+    <a class="{{ 'bg-base-300 font-semibold hover:bg-base-200' if is_active else 'bg-base-100 hover:bg-base-300' }} shadow-sm" href="{{ request.script_root }}{{ href }}">
       <i class="{{ icon }}"></i><span class="sidebar-hide whitespace-nowrap">{{ label }}</span>
     </a>
   </li>

@@ -254,3 +254,6 @@ body:has(#sidebar-toggle:not(:checked)) #sidebar .menu a {
 .text-error,   .alert-soft.alert-error   { color: color-mix(in oklab, var(--color-error)   55%, var(--color-base-content)); }
 .text-warning, .alert-soft.alert-warning { color: color-mix(in oklab, var(--color-warning) 45%, var(--color-base-content)); }
 .text-info,    .alert-soft.alert-info    { color: color-mix(in oklab, var(--color-info)    50%, var(--color-base-content)); }
+/* Primary text and links sit at 3.6:1 on the dark base. Pulled a quarter of the
+   way to the base content colour, it clears AA on both themes. */
+.link-primary, .text-primary { color: color-mix(in oklab, var(--color-primary) 75%, var(--color-base-content)); }

@@ -126,8 +126,8 @@
                 {% call info_card('info', 'hidden', 'data-api-question="' ~ item['node_type'] ~ '-' ~ item['id'] ~ '"') %}
                 <span data-api-msg>{{ _('Is this an API? If so, the source will no longer be required for the remaining points.') }}</span>
                 <div class="flex gap-2" data-api-choices>
-                    <button class="btn btn-xs btn-outline bg-white flex-1" onclick="answerIsApi(this, true)">{{ _('Yes') }}</button>
-                    <button class="btn btn-xs btn-outline bg-white flex-1" onclick="answerIsApi(this, false)">{{ _('No') }}</button>
+                    <button class="btn btn-xs btn-outline bg-base-100 flex-1" onclick="answerIsApi(this, true)">{{ _('Yes') }}</button>
+                    <button class="btn btn-xs btn-outline bg-base-100 flex-1" onclick="answerIsApi(this, false)">{{ _('No') }}</button>
                 </div>
                 {% endcall %}
                 {% endif %}
