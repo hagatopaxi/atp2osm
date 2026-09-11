@@ -261,6 +261,12 @@
           "minLength": 1,
           "default": "*-*-* 04:00:00"
         },
+        "recent_edit_weeks": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 12,
+          "description": "How recent a human edit has to be for wave 2 to leave it alone. A tag whose current value was set by a person within that many weeks is a deliberate, often surveyed choice: ATP does not overwrite it. Beyond that, or when the changeset declares bot=yes, the tag is written."
+        },
         "db": {
           "description": "PostGIS connection. The password is a secret and comes from OSM_DB_PASSWORD.",
           "type": "object",
@@ -420,6 +426,7 @@
         "source_repo_url": "https://github.com/hagatopaxi/atp2osm-import",
         "translations_dir": "",
         "refresh_schedule": "*-*-* 04:00:00",
+        "recent_edit_weeks": 12,
         "db": {
           "name": "",
           "user": "",

@@ -111,7 +111,8 @@ In development the version is a constant, so nothing rebuilds on its own: rerun 
 - SQL migrations in `migrations/` auto-run at startup (`src/migrate.py`), tracked in `schema_migrations` table
 
 **Core modules:**
-- `src/matching.py` — Spatial join queries between `mv_places` and `atp_places` (`MATCHED_POI_SQL`, shared with the `mv_places_brand` view and never duplicated), tag diffing logic (`apply_on_node`), batch composition (`pack_subdivisions`, `select_batch`), cooldown SQL, stats aggregation
+- `src/matching.py` — Spatial join queries between `mv_places` and `atp_places` (`MATCHED_POI_SQL`, shared with the `mv_places_brand` view and never duplicated), tag diffing logic (`apply_on_node`), batch composition (`pack_subdivisions`, `select_batch`), the `WAVES` list and the cooldown SQL it keys, stats aggregation
+- `src/osm_history.py` — Wave 2's guard: dates the current value of each tag a diff would overwrite, through the OSM API, and leaves alone what a human posted within `app.recent_edit_weeks`
 - `src/upload.py` — `BulkUpload` class that creates OSM changesets grouped by subdivision, uploads via `osmapi`
 - `src/migrate.py` — Simple sequential SQL migration runner
 
@@ -119,10 +120,10 @@ In development the version is a constant, so nothing rebuilds on its own: rerun 
 - `points`, `polygons` — Raw OSM data (from osm2pgsql)
 - `mv_places` — Materialized view joining both with normalized columns, restricted to objects a match can key on (same filter as `generic.lua`, kept as a safety net)
 - `subdivisions` — OSM administrative boundaries (from osm2pgsql). Each ATP POI is attached to the finest one containing it, walking down from `country.admin_level` to the country
-- `mv_places_brand` — Match count per (brand, subdivision); `get_all` sums the subdivisions that are not under cooldown
+- `mv_places_brand` — Match count per (brand, subdivision, wave); `get_all` sums the subdivisions that are not under cooldown, on the brand's current wave
 - `atp_places` — ATP data filtered to the country served
-- `import_history` — One row per human integration action
-- `import_subdivisions` — One row per changeset: subdivision code and name, count, status. Carries the per-subdivision blocking and the history detail
+- `import_history` — One row per human integration action, with the `wave` it belonged to (which is also what confines its cooldown)
+- `import_subdivisions` — One row per changeset: subdivision code and name, count, status, and the `tag_counts` frozen at integration time. Carries the per-subdivision blocking and the history detail
 
 ## Specs
 

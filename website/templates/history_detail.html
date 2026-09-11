@@ -1,5 +1,6 @@
 {% extends '_base.html' %}
 {% import '_error_reasons.html' as reasons %}
+{% import '_wave.html' as wave with context %}
 
 {% block title %}{% trans id=entry.id %}Integration #{{ id }}{% endtrans %}{% endblock %}
 {% block subtitle %}{% trans date=entry.import_date | datetimeformat('short') %}Details of the integration of {{ date }}.{% endtrans %}{% endblock %}
@@ -123,6 +124,9 @@
 
                 <dt class="text-base-content/60">{{ _('POIs integrated') }}</dt>
                 <dd>{{ entry.items_count if entry.items_count is not none else '—' }}</dd>
+
+                <dt class="text-base-content/60">{{ _('Wave') }}</dt>
+                <dd><div class="join">{{ wave.badge(entry.wave) }}</div></dd>
             </dl>
         </div>
     </div>
@@ -187,6 +191,7 @@
                         <tr>
                             <th>{{ _('Subdivision') }}</th>
                             <th>{{ _('POIs') }}</th>
+                            <th>{{ _('Tags written') }}</th>
                             <th>{{ _('Status') }}</th>
                             <th>{{ _('Changeset') }}</th>
                         </tr>
@@ -196,6 +201,15 @@
                         <tr>
                             <td>{{ sub.subdivision_name }} <span class="text-base-content/50 font-mono text-xs">{{ sub.subdivision_code }}</span></td>
                             <td>{{ sub.items_count }}</td>
+                            {# Frozen at integration time: the match it was
+                               computed from is gone by the next refresh. #}
+                            <td class="text-xs font-mono">
+                                {% for tag, count in (sub.tag_counts or {}).items() %}
+                                <span class="whitespace-nowrap">{{ tag }} {{ count }}</span>{{ ', ' if not loop.last }}
+                                {% else %}
+                                <span class="text-base-content/50">—</span>
+                                {% endfor %}
+                            </td>
                             <td>
                                 <span class="badge badge-sm {{ 'badge-success' if sub.status == 'success' else 'badge-error' }}">
                                     {{ _('Success') if sub.status == 'success' else _('Error') }}

@@ -20,5 +20,8 @@ ERROR_REASONS = (
     "email_generic",
     "poi_mismatch",
     "data_unverifiable",
+    # No longer offered: the comment field stands on its own. Kept so that the
+    # rejections recorded with it keep their label.
     "other",
 )
+

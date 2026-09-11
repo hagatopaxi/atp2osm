@@ -9,7 +9,7 @@ import osmapi
 from flask_babel import gettext
 
 from src.config import get_settings
-from src.matching import BATCH_MAX_SIZE, subdivision_names
+from src.matching import BATCH_MAX_SIZE, changed_tags, subdivision_names
 from osmapi.errors import ApiError
 from requests_oauthlib import OAuth2Session
 
@@ -69,14 +69,20 @@ class BulkUpload:
     Batch by subdivision and brand wikidata
     """
 
-    def __init__(self, changes: list, session: OAuth2Session):
+    def __init__(
+        self,
+        changes: list,
+        session: OAuth2Session,
+        max_size: int = BATCH_MAX_SIZE,
+    ):
         # Last gate before an irreversible send, and the only one at the point
         # where changesets are actually created. select_batch already truncates
         # to that size and the route checks it again; if both were ever wrong,
-        # nothing must leave for OSM.
-        if len(changes) > BATCH_MAX_SIZE:
+        # nothing must leave for OSM. The size is the wave's: wave 2 sends one
+        # POI at a time, and must not be allowed a hundred.
+        if len(changes) > max_size:
             raise ValueError(
-                f"refusing to upload {len(changes)} POIs, over the {BATCH_MAX_SIZE} limit"
+                f"refusing to upload {len(changes)} POIs, over the {max_size} limit"
             )
 
         self.changes = changes
@@ -224,11 +230,20 @@ class BulkUpload:
         return errors
 
     def _record(self, sub, sub_changes, status, changeset, comment):
-        """One entry per subdivision — becomes a row of import_subdivisions."""
+        """One entry per subdivision — becomes a row of import_subdivisions.
+
+        `tag_counts` is frozen here rather than recomputed later: after the next
+        refresh the matches are gone, and with them the only way to tell which
+        tag was written, and how many times."""
+        tag_counts = {}
+        for change in sub_changes:
+            for tag in changed_tags(change):
+                tag_counts[tag] = tag_counts.get(tag, 0) + 1
         self.results.append({
             "subdivision_code": sub,
             "subdivision_name": sub_changes[0]["subdivision_name"],
             "items_count": len(sub_changes),
+            "tag_counts": tag_counts,
             "osm_changeset_id": changeset,
             "status": status,
             "comment": comment,

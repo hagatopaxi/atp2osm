@@ -2,6 +2,7 @@ import pytest
 
 from src.matching import (
     BATCH_MAX_SIZE,
+    batch_scope,
     compose_batch,
     count_by_subdivision,
     pack_subdivisions,
@@ -59,11 +60,11 @@ def _changes(**by_subdivision):
 
 
 def test_select_batch_keeps_only_the_first_batch_and_describes_it():
-    changes, scope = select_batch(_changes(d69=6, d59=4, d23=3), set(), max_size=10)
+    changes = select_batch(_changes(d69=6, d59=4, d23=3), set(), max_size=10)
 
     assert len(changes) == 10
     assert [c["subdivision_code"] for c in changes].count("d69") == 6
-    assert scope == [
+    assert batch_scope(changes) == [
         {"number": "d69", "name": "d69", "count": 6},
         {"number": "d59", "name": "d59", "count": 4},
     ]
@@ -72,27 +73,27 @@ def test_select_batch_keeps_only_the_first_batch_and_describes_it():
 def test_select_batch_never_cuts_a_departement_in_two():
     # 6 + 3 = 9: d59 (4) does not fit in the 4 slots left, so it moves whole to
     # the next batch rather than being cut, and the batch stays under the limit.
-    changes, scope = select_batch(_changes(d69=6, d59=4, d23=3), set(), max_size=9)
+    changes = select_batch(_changes(d69=6, d59=4, d23=3), set(), max_size=9)
 
     assert len(changes) == 9
-    assert [d["number"] for d in scope] == ["d69", "d23"]
+    assert [d["number"] for d in batch_scope(changes)] == ["d69", "d23"]
 
 
 def test_select_batch_truncates_an_oversized_subdivision():
-    changes, scope = select_batch(_changes(d69=15), set(), max_size=10)
+    changes = select_batch(_changes(d69=15), set(), max_size=10)
 
     assert len(changes) == 10
-    assert scope == [{"number": "d69", "name": "d69", "count": 10}]
+    assert batch_scope(changes) == [{"number": "d69", "name": "d69", "count": 10}]
 
 
 def test_select_batch_returns_nothing_when_everything_is_blocked():
-    assert select_batch(_changes(d69=3), blocked={"d69"}, max_size=10) == ([], [])
+    assert select_batch(_changes(d69=3), blocked={"d69"}, max_size=10) == []
 
 
 def test_select_batch_never_exceeds_max_size():
     # What upload_changes relies on: whatever the counts, a batch fits.
     for counts in ({"a": 300}, {"a": 60, "b": 60, "c": 60}, {"a": 99, "b": 1}):
-        assert len(select_batch(_changes(**counts), set(), max_size=100).changes) <= 100
+        assert len(select_batch(_changes(**counts), set(), max_size=100)) <= 100
 
 
 def test_bulk_upload_refuses_an_oversized_batch():

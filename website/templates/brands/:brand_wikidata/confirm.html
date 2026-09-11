@@ -1,5 +1,6 @@
 {% extends '_base.html' %}
 {% from '_info_card.html' import info_card %}
+{% import '_wave.html' as wave with context %}
 
 {% block title %}{{ _('2/2 - Confirming the integration') }}{% endblock %}
 {% block subtitle %}{{ _('Last step before the integration.') }}{% endblock %}
@@ -17,7 +18,28 @@
 </div>
 {% endmacro %}
 
+{# A tag name and a count say nothing about whether the change is any good.
+   One real case per tag — the OSM value and the ATP one — does. #}
+{% macro render_tag_card(tag, count, example) %}
+<div class="card bg-base-100 shadow-sm w-full">
+    <div class="card-body items-center text-center gap-1">
+        <h2 class="card-title font-mono">{{ tag }}</h2>
+        <p class="text-2xl">{{ count }}</p>
+        {% if example %}
+        <div class="text-xs w-full text-left break-words">
+            {% if example.old %}
+            <p class="text-error"><i class="iconoir-minus align-middle"></i> {{ example.old }}</p>
+            {% endif %}
+            <p class="text-success"><i class="iconoir-plus align-middle"></i> {{ example.new }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
 {% block content %}
+<div class="join mb-2">{{ wave.badge(wave_number) }}</div>
+
 <h2 class="text-lg">{{ _('Size of the integration') }}</h2>
 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
     {{ render_stat_card(_('POI count'), stats["size"]) }}
@@ -27,7 +49,7 @@
 <h2 class="text-lg">{{ _('Updates per tag') }}</h2>
 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
     {% for stat in stats["by_tag"] %}
-    {{ render_stat_card(stat, stats["by_tag"][stat]) }}
+    {{ render_tag_card(stat, stats["by_tag"][stat], stats["examples"].get(stat)) }}
     {% endfor %}
 </div>
 
