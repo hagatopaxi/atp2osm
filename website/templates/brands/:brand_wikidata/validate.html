@@ -60,7 +60,7 @@
 {% block content %}
 <div class="flex flex-col gap-2" data-brand-name="{{ brand }}">
     <div class="flex flex-col md:flex-row items-start justify-between gap-4">
-        <p class="text-xs text-base-content/70">
+        <p class="text-xs muted">
             <span class="join">{{ wave.badge(wave_number) }}</span><br />
             {% trans count=scope | length %}This batch covers {{ count }} subdivision{% pluralize %}This batch covers {{ count }} subdivisions{% endtrans %} —
             {% for sub in scope %}{{ sub.name }} ({{ sub.count }}){{ ', ' if not loop.last }}{% endfor %}
@@ -80,22 +80,22 @@
             <div class="flex flex-wrap items-center gap-2">
                 <span class="font-semibold text-sm">{{ _('Notes from the last integration') }}</span>
                 <span class="badge badge-sm badge-{{ c_ }}">{{ labels.get(last_import.status, last_import.status) }}</span>
-                <a class="link text-xs text-base-content/70" href="/history/{{ last_import.id }}">{% trans date=last_import.import_date | dateformat('long') %}on {{ date }}{% endtrans %}</a>
-                <span class="text-xs text-base-content/70">{{ _('by') }}
+                <a class="link text-xs muted" href="/history/{{ last_import.id }}">{% trans date=last_import.import_date | dateformat('long') %}on {{ date }}{% endtrans %}</a>
+                <span class="text-xs muted">{{ _('by') }}
                     {% if last_import.osm_user_name %}
                     <a class="link" href="{{ api_url }}/user/{{ last_import.osm_user_name }}" target="_blank">{{ last_import.osm_user_name }}</a>
                     {% else %}{{ last_import.osm_user_id }}{% endif %}
                 </span>
             </div>
             {% if last_import.comment %}
-            <p class="text-xs text-base-content/70">{{ _('Reported by a contributor during the last review — check these points more closely.') }}</p>
+            <p class="text-xs muted">{{ _('Reported by a contributor during the last review — check these points more closely.') }}</p>
             {% set comments = last_import.comment | parse_comment %}
             {% if comments is iterable and comments is not string %}
             <ul class="flex flex-col gap-2">
                 {% for c in comments %}
                 <li class="border-l-2 border-{{ c_ }}/60 pl-3">
                     <p class="text-sm italic">{{ c.comment or _('No comment') }}</p>
-                    <p class="text-xs text-base-content/70 font-mono">
+                    <p class="text-xs muted font-mono">
                         <a class="link" href="{{ api_url }}/{{ c.osm_type }}/{{ c.osm_id }}" target="_blank">{{ c.osm_type }}/{{ c.osm_id }}</a>
                         {% if c.atp_id %}· ATP {{ c.spider_id ~ "/" if c.spider_id }}{{ c.atp_id }}{% endif %}
                     </p>
@@ -112,7 +112,7 @@
     {% call info_card('warning', 'my-4') %}
         <div class="flex flex-col gap-2">
             <p class="font-semibold text-sm">{{ _('First integration of this brand') }}</p>
-            <p class="text-xs text-base-content/70">{{ _('No earlier review can guide you: be especially careful on every tag, and report the slightest doubtful value.') }}</p>
+            <p class="text-xs muted">{{ _('No earlier review can guide you: be especially careful on every tag, and report the slightest doubtful value.') }}</p>
         </div>
     {% endcall %}
     {% endif %}
@@ -180,7 +180,7 @@
                 </div>
                 {% endif %}
 
-                <div class="text-xs text-base-content/70 mt-1 flex flex-col gap-0.5">
+                <div class="text-xs muted mt-1 flex flex-col gap-0.5">
                     <span><i class="iconoir-database"></i> <strong class="font-mono">ATP</strong>
                         <code>{{ item['spider_id'] }}/{{ item['atp_id'] }}</code></span>
                     <span><i class="iconoir-database"></i> <strong class="font-mono">OSM</strong>

@@ -1,13 +1,13 @@
 {# Discreet export menu, placed on the filter row above a table. #}
 {% macro export_menu(dataset, filters={}) %}
 <div class="dropdown dropdown-end">
-  <div tabindex="0" role="button" class="btn btn-sm btn-ghost text-base-content/70" title="{{ _('Export this data') }}">
+  <div tabindex="0" role="button" class="btn btn-sm btn-ghost muted" title="{{ _('Export this data') }}">
     <i class="iconoir-download"></i> {{ _('Export') }}
   </div>
   <ul tabindex="0" class="dropdown-content menu menu-sm bg-base-100 rounded-box z-10 w-40 p-2 shadow">
     <li><a rel="nofollow" href="{{ url_for('export.export', dataset=dataset, fmt='csv', **filters) | language_free }}">CSV</a></li>
     <li><a rel="nofollow" href="{{ url_for('export.export', dataset=dataset, fmt='json', **filters) | language_free }}">JSON</a></li>
-    <li><a href="{{ url_for('misc.docs') }}#export" class="text-base-content/70">{{ _('About') }}</a></li>
+    <li><a href="{{ url_for('misc.docs') }}#export" class="muted">{{ _('About') }}</a></li>
   </ul>
 </div>
 {% endmacro %}

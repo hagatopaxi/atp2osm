@@ -50,11 +50,11 @@
                     <dl class="flex flex-col gap-2 text-sm">
                         <div class="flex gap-3 items-start">
                             <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">spider</dt>
-                            <dd class="text-base-content/70">{{ _('A program dedicated to a single chain, which automatically collects its data from its official website (opening hours, phone, address…).') }}</dd>
+                            <dd class="muted">{{ _('A program dedicated to a single chain, which automatically collects its data from its official website (opening hours, phone, address…).') }}</dd>
                         </div>
                         <div class="flex gap-3 items-start">
                             <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">scraping</dt>
-                            <dd class="text-base-content/70">{{ _('The technique of automatically extracting information from web pages. It is what every ATP spider does to gather the data of a chain.') }}</dd>
+                            <dd class="muted">{{ _('The technique of automatically extracting information from web pages. It is what every ATP spider does to gather the data of a chain.') }}</dd>
                         </div>
                     </dl>
                 </div>
@@ -126,19 +126,19 @@
             <li class="step step-primary">
                 <div class="text-left ml-3">
                     <p class="font-semibold">{{ _('Collecting the ATP data') }}</p>
-                    <p class="text-base-content/70">{{ _('Every week, the latest ATP data is downloaded from alltheplaces.xyz. It holds the POIs with the attributes extracted from the official websites of the chains.') }}</p>
+                    <p class="muted">{{ _('Every week, the latest ATP data is downloaded from alltheplaces.xyz. It holds the POIs with the attributes extracted from the official websites of the chains.') }}</p>
                 </div>
             </li>
             <li class="step step-primary">
                 <div class="text-left ml-3">
                     <p class="font-semibold">{{ _('Refreshing the OSM data') }}</p>
-                    <p class="text-base-content/70">{{ _('In parallel, the OSM data is imported into the local database through osm2pgsql.') }}</p>
+                    <p class="muted">{{ _('In parallel, the OSM data is imported into the local database through osm2pgsql.') }}</p>
                 </div>
             </li>
             <li class="step step-primary">
                 <div class="text-left ml-3">
                     <p class="font-semibold">{{ _('Spatial and attribute matching') }}</p>
-                    <p class="text-base-content/70">
+                    <p class="muted">
                         {% trans %}Every ATP POI is matched against the OSM nodes within <strong>500 m</strong>, checking that at least one attribute is shared among <span class="font-mono text-xs">brand:wikidata</span>, <span class="font-mono text-xs">brand</span>, <span class="font-mono text-xs">name</span>, <span class="font-mono text-xs">phone</span>, <span class="font-mono text-xs">website</span>, <span class="font-mono text-xs">email</span>. Ambiguous matches — several OSM nodes for one ATP POI — are dropped.{% endtrans %}
                     </p>
                 </div>
@@ -146,13 +146,13 @@
             <li class="step step-primary">
                 <div class="text-left ml-3">
                     <p class="font-semibold">{{ _('Computing the missing tags') }}</p>
-                    <p class="text-base-content/70">{{ _('For every match kept, the tool computes which tags exist in ATP but not in OSM. Only the missing ones are offered — <strong>an existing tag is never changed.</strong>') }}</p>
+                    <p class="muted">{{ _('For every match kept, the tool computes which tags exist in ATP but not in OSM. Only the missing ones are offered — <strong>an existing tag is never changed.</strong>') }}</p>
                 </div>
             </li>
             <li class="step">
                 <div class="text-left ml-3">
                     <p class="font-semibold">{{ _('Review and integration') }}</p>
-                    <p class="text-base-content/70">{{ _('You check the changes offered for a brand, then you trigger the automatic integration of the whole dataset. The changes are sent to the OSM API through your account, grouped by subdivision.') }}</p>
+                    <p class="muted">{{ _('You check the changes offered for a brand, then you trigger the automatic integration of the whole dataset. The changes are sent to the OSM API through your account, grouped by subdivision.') }}</p>
                 </div>
             </li>
         </ul>
@@ -165,21 +165,21 @@
                 <span class="badge badge-primary badge-sm mt-0.5 shrink-0">1</span>
                 <div>
                     <p class="font-semibold">{{ _('Sign in with your OSM account') }}</p>
-                    <p class="text-base-content/70">{{ _('Use the sign-in button at the bottom of the menu. Your integrations are recorded under your name in the OSM changeset history.') }}</p>
+                    <p class="muted">{{ _('Use the sign-in button at the bottom of the menu. Your integrations are recorded under your name in the OSM changeset history.') }}</p>
                 </div>
             </li>
             <li class="flex gap-3">
                 <span class="badge badge-primary badge-sm mt-0.5 shrink-0">2</span>
                 <div>
                     <p class="font-semibold">{{ _('Pick a brand') }}</p>
-                    <p class="text-base-content/70">{% trans link='/brands' %}The <a href="{{ link }}" class="link link-primary">Brands to integrate</a> page lists every chain for which enrichments are available, with the number of nodes concerned.{% endtrans %}</p>
+                    <p class="muted">{% trans link='/brands' %}The <a href="{{ link }}" class="link link-primary">Brands to integrate</a> page lists every chain for which enrichments are available, with the number of nodes concerned.{% endtrans %}</p>
                 </div>
             </li>
             <li class="flex gap-3">
                 <span class="badge badge-primary badge-sm mt-0.5 shrink-0">3</span>
                 <div>
                     <p class="font-semibold">{{ _('Check the matches') }}</p>
-                    <p class="text-base-content/70">
+                    <p class="muted">
                         {{ _('For every node, check that the ATP ↔ OSM match is right: location, name of the place, tags offered. When in doubt, open the ATP source or the OSM object before accepting.') }}
                     </p>
                 </div>
@@ -188,7 +188,7 @@
                 <span class="badge badge-primary badge-sm mt-0.5 shrink-0">4</span>
                 <div>
                     <p class="font-semibold">{{ _('Integrate') }}</p>
-                    <p class="text-base-content/70">{{ _('If the data looks right, start the integration. The changesets are created automatically on OSM, one per subdivision. The operation cannot be undone: make sure you have checked the data.') }}</p>
+                    <p class="muted">{{ _('If the data looks right, start the integration. The changesets are created automatically on OSM, one per subdivision. The operation cannot be undone: make sure you have checked the data.') }}</p>
                 </div>
             </li>
         </ol>
@@ -221,7 +221,7 @@
                     <span class="badge badge-success mt-0.5 shrink-0">{{ _('Success') }}</span>
                     <div class="flex flex-col gap-1">
                         <p class="text-sm font-semibold">{{ _('Integration succeeded') }}</p>
-                        <p class="text-sm text-base-content/70">
+                        <p class="text-sm muted">
                             {{ _('Every change has been sent to OpenStreetMap and is now publicly visible.') }}
                         </p>
                     </div>
@@ -235,7 +235,7 @@
                         <p class="text-sm font-semibold">
                             {{ _('Integration partly succeeded') }}
                         </p>
-                        <p class="text-sm text-base-content/70">
+                        <p class="text-sm muted">
                             {{ _('Some subdivisions could not be integrated because of an OpenStreetMap API error. The changes that were sent are visible on OSM all the same. The data left out stays available for a later integration.') }}
                         </p>
                     </div>
@@ -249,7 +249,7 @@
                         <p class="text-sm font-semibold">
                             {{ _('Integration cancelled — data reported') }}
                         </p>
-                        <p class="text-sm text-base-content/70">
+                        <p class="text-sm muted">
                             {{ _('The integration was stopped after a contributor found errors in the ATP data. Nothing was sent to OpenStreetMap.') }}
                         </p>
                     </div>
@@ -261,7 +261,7 @@
                     <span class="badge badge-error mt-0.5 shrink-0">{{ _('Error') }}</span>
                     <div class="flex flex-col gap-1">
                         <p class="text-sm font-semibold">{{ _('Technical error') }}</p>
-                        <p class="text-sm text-base-content/70">
+                        <p class="text-sm muted">
                             {{ _('An error unrelated to what you did stopped the integration. Nothing was sent to OpenStreetMap. You can start the integration again from the page of the brand concerned after 4 weeks. That delay leaves time to fix the errors the datasets may hold.') }}
                         </p>
                     </div>
@@ -276,19 +276,19 @@
             <div class="card bg-base-100 shadow-sm">
                 <div class="card-body gap-1 py-3">
                     <h3 class="font-semibold">OpenStreetMap</h3>
-                    <p class="text-base-content/70">{% trans odbl='https://opendatacommons.org/licenses/odbl/', terms='https://osmfoundation.org/wiki/Licence/Contributor_Terms' %}The OSM data is published under the <a href="{{ odbl }}" target="_blank" rel="noopener" class="link link-primary">ODbL 1.0</a> (Open Database License). Every contribution made through this tool falls under the OpenStreetMap <a href="{{ terms }}" target="_blank" rel="noopener" class="link link-primary">Contributor Terms</a>.{% endtrans %}</p>
+                    <p class="muted">{% trans odbl='https://opendatacommons.org/licenses/odbl/', terms='https://osmfoundation.org/wiki/Licence/Contributor_Terms' %}The OSM data is published under the <a href="{{ odbl }}" target="_blank" rel="noopener" class="link link-primary">ODbL 1.0</a> (Open Database License). Every contribution made through this tool falls under the OpenStreetMap <a href="{{ terms }}" target="_blank" rel="noopener" class="link link-primary">Contributor Terms</a>.{% endtrans %}</p>
                 </div>
             </div>
             <div class="card bg-base-100 shadow-sm">
                 <div class="card-body gap-1 py-3">
                     <h3 class="font-semibold">All The Places</h3>
-                    <p class="text-base-content/70">{% trans cc0='https://creativecommons.org/publicdomain/zero/1.0/' %}The ATP data is published under <a href="{{ cc0 }}" target="_blank" rel="noopener" class="link link-primary">CC0 1.0</a> (public domain). It can be used freely, without restriction.{% endtrans %}</p>
+                    <p class="muted">{% trans cc0='https://creativecommons.org/publicdomain/zero/1.0/' %}The ATP data is published under <a href="{{ cc0 }}" target="_blank" rel="noopener" class="link link-primary">CC0 1.0</a> (public domain). It can be used freely, without restriction.{% endtrans %}</p>
                 </div>
             </div>
             <div class="card bg-base-100 shadow-sm">
                 <div class="card-body gap-1 py-3">
                     <h3 class="font-semibold">atp2osm</h3>
-                    <p class="text-base-content/70">{% trans gpl='https://www.gnu.org/licenses/gpl-3.0.html', github='https://github.com/hagatopaxi/atp2osm-import' %}The source code of this tool is published under the <a href="{{ gpl }}" target="_blank" rel="noopener" class="link link-primary">GPL-3.0</a> licence. Contributions are welcome on <a href="{{ github }}" target="_blank" rel="noopener" class="link link-primary">GitHub</a>.{% endtrans %}</p>
+                    <p class="muted">{% trans gpl='https://www.gnu.org/licenses/gpl-3.0.html', github='https://github.com/hagatopaxi/atp2osm-import' %}The source code of this tool is published under the <a href="{{ gpl }}" target="_blank" rel="noopener" class="link link-primary">GPL-3.0</a> licence. Contributions are welcome on <a href="{{ github }}" target="_blank" rel="noopener" class="link link-primary">GitHub</a>.{% endtrans %}</p>
                 </div>
             </div>
         </div>
@@ -306,15 +306,15 @@
                 <dl class="flex flex-col gap-2 text-sm">
                     <div class="flex gap-3 items-start">
                         <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">/api/export/history.csv</dt>
-                        <dd class="text-base-content/70">{{ _('One row per integration: brand, contributor, date, status, number of objects and of tags.') }}</dd>
+                        <dd class="muted">{{ _('One row per integration: brand, contributor, date, status, number of objects and of tags.') }}</dd>
                     </div>
                     <div class="flex gap-3 items-start">
                         <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">/api/export/subdivisions.csv</dt>
-                        <dd class="text-base-content/70">{{ _('The detail per changeset: administrative subdivision, number of objects, OSM changeset identifier and status.') }}</dd>
+                        <dd class="muted">{{ _('The detail per changeset: administrative subdivision, number of objects, OSM changeset identifier and status.') }}</dd>
                     </div>
                     <div class="flex gap-3 items-start">
                         <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">/api/export/todo.csv</dt>
-                        <dd class="text-base-content/70">{% trans %}The brands reported as missing from ATP. The ones ATP now knows are left out, unless <code class="font-mono text-xs">?show_in_atp=1</code> is passed.{% endtrans %}</dd>
+                        <dd class="muted">{% trans %}The brands reported as missing from ATP. The ones ATP now knows are left out, unless <code class="font-mono text-xs">?show_in_atp=1</code> is passed.{% endtrans %}</dd>
                     </div>
                 </dl>
 

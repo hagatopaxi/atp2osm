@@ -95,7 +95,7 @@
         <div class="card-body items-center text-center">
             <i class="{{ icon }} text-2xl text-base-content/40"></i>
             <p class="text-3xl font-bold">{{ value }}</p>
-            <h2 class="font-mono text-sm text-base-content/70">{{ label }}</h2>
+            <h2 class="font-mono text-sm muted">{{ label }}</h2>
         </div>
     </div>
     {% endfor %}
@@ -118,18 +118,18 @@
                 <div class="badge badge-success badge-sm">OK</div>
                 {% endif %}
                 <p class="text-sm mt-1">
-                    <span class="text-base-content/70">{{ _('Source:') }}</span>
+                    <span class="muted">{{ _('Source:') }}</span>
                     {% if row.date %} {{ row.date | dateformat('short') }} {%
                     else %}
-                    <span class="text-base-content/70">—</span>
+                    <span class="muted">—</span>
                     {% endif %}
                 </p>
                 <p class="text-sm">
-                    <span class="text-base-content/70">{{ _('Last check:') }}</span>
+                    <span class="muted">{{ _('Last check:') }}</span>
                     {{ row.created_at | dateformat('short') }}
                 </p>
                 {% else %}
-                <p class="text-sm text-base-content/70">{{ _('No data integrated') }}</p>
+                <p class="text-sm muted">{{ _('No data integrated') }}</p>
                 {% endif %}
             </div>
         </div>

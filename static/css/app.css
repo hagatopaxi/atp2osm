@@ -257,3 +257,8 @@ body:has(#sidebar-toggle:not(:checked)) #sidebar .menu a {
 /* Primary text and links sit at 3.6:1 on the dark base. Pulled a quarter of the
    way to the base content colour, it clears AA on both themes. */
 .link-primary, .text-primary { color: color-mix(in oklab, var(--color-primary) 75%, var(--color-base-content)); }
+
+/* Secondary text: captions, hints, metadata. 70% of the base content colour
+   is the lightest that still clears 4.5:1 on either theme — one class, so a
+   change of ratio is a change here, not in eighty templates. */
+.muted { color: color-mix(in oklab, var(--color-base-content) 70%, transparent); }

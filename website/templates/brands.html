@@ -79,12 +79,12 @@
                 <a href="{{ url_for('brands.brands') }}" class="btn btn-sm btn-soft join-item">{{ _('Reset') }}</a>
             </div>
         </div>
-        <span class="text-sm text-base-content/70 ml-auto mb-2">{% trans count=shown %}{{ count }} brand{% pluralize %}{{ count }} brands{% endtrans %}</span>
+        <span class="text-sm muted ml-auto mb-2">{% trans count=shown %}{{ count }} brand{% pluralize %}{{ count }} brands{% endtrans %}</span>
     </div>
 </form>
 
 {% if shown == 0 %}
-<p class="text-base-content/70">{{ _('No brand matches these filters.') }}</p>
+<p class="muted">{{ _('No brand matches these filters.') }}</p>
 {% endif %}
 
 <div class="overflow-x-auto shrink-0">
