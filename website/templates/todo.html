@@ -64,7 +64,7 @@
           </button>
           {% else %}
           <div class="tooltip" data-tip="{{ _('You must sign in to add a brand') }}">
-            <button type="button" disabled class="btn btn-primary btn-sm">
+            <button type="submit" disabled class="btn btn-primary btn-sm">
               <i class="iconoir-plus"></i> {{ _('Add') }}
             </button>
           </div>
@@ -80,39 +80,39 @@
   <form method="get" data-autosubmit class="flex flex-wrap items-end gap-3">
     <input type="hidden" name="sort" value="{{ sort }}" />
     <input type="hidden" name="dir" value="{{ direction }}" />
-    <fieldset class="fieldset">
-      <legend class="fieldset-legend">{{ _('Brand') }}</legend>
+    <div class="fieldset">
+      <label class="fieldset-legend" for="filter-q">{{ _('Brand') }}</label>
       <label class="input input-sm w-56">
         <i class="iconoir-search opacity-50"></i>
-        <input type="search" name="q" value="{{ filters.q or '' }}" placeholder="{{ _('Name or Wikidata code') }}"
+        <input type="search" id="filter-q" name="q" value="{{ filters.q or '' }}" placeholder="{{ _('Name or Wikidata code') }}"
           {{ 'autofocus' if filters.q }} />
       </label>
-    </fieldset>
-    <fieldset class="fieldset">
-      <legend class="fieldset-legend">{{ _('Added by') }}</legend>
-      <select name="user" class="select select-sm">
+    </div>
+    <div class="fieldset">
+      <label class="fieldset-legend" for="filter-user">{{ _('Added by') }}</label>
+      <select id="filter-user" name="user" class="select select-sm">
         <option value="">{{ _('All') }}</option>
         {% for uid, name in filter_users %}
         <option value="{{ uid }}" {{ 'selected' if filters.user == uid }}>{{ name }}</option>
         {% endfor %}
       </select>
-    </fieldset>
+    </div>
     {{ period_filter(filters, _('Date added')) }}
-    <fieldset class="fieldset">
-      <legend class="fieldset-legend">{{ _('Presence in ATP') }}</legend>
+    <div class="fieldset">
+      <label class="fieldset-legend" for="filter-in-atp">{{ _('Presence in ATP') }}</label>
       <label class="label cursor-pointer gap-2 h-8">
-        <input type="checkbox" name="show_in_atp" value="1" class="toggle toggle-sm"
+        <input type="checkbox" id="filter-in-atp" name="show_in_atp" value="1" class="toggle toggle-sm"
           {{ 'checked' if filters.show_in_atp }} />
         <span class="label-text">{{ _('Show the ones already in ATP') }}</span>
       </label>
-    </fieldset>
-    <fieldset class="fieldset">
-      <legend class="fieldset-legend">&nbsp;</legend>
+    </div>
+    <div class="fieldset">
+      <span class="fieldset-legend">&nbsp;</span>
       <div class="join">
         <button type="submit" class="btn btn-sm btn-primary join-item">{{ _('Filter') }}</button>
         <a href="{{ url_for('todo.todo') }}" class="btn btn-sm btn-soft join-item">{{ _('Reset') }}</a>
       </div>
-    </fieldset>
+    </div>
     <div class="ml-auto mb-2">{{ export_menu('todo', filters) }}</div>
   </form>
 
@@ -199,18 +199,18 @@
       <h3 class="text-lg font-bold mb-3">{{ _('Edit the brand') }}</h3>
       <form onsubmit="saveEntry(event)" class="flex flex-col gap-3">
         <input type="hidden" id="edit-id" />
-        <fieldset class="fieldset">
-          <legend class="fieldset-legend">{{ _('Brand name') }}</legend>
+        <div class="fieldset">
+          <label class="fieldset-legend" for="edit-name">{{ _('Brand name') }}</label>
           <input id="edit-name" type="text" class="input input-bordered w-full" required />
-        </fieldset>
-        <fieldset class="fieldset">
-          <legend class="fieldset-legend">{{ _('Wikidata code') }} <span class="text-base-content/70">{{ _('(optional)') }}</span></legend>
+        </div>
+        <div class="fieldset">
+          <label class="fieldset-legend" for="edit-wikidata">{{ _('Wikidata code') }} <span class="text-base-content/70">{{ _('(optional)') }}</span></label>
           <input id="edit-wikidata" type="text" class="input input-bordered w-full" />
-        </fieldset>
-        <fieldset class="fieldset">
-          <legend class="fieldset-legend">{{ _('Estimated POI count') }} <span class="text-base-content/70">{{ _('(optional)') }}</span></legend>
+        </div>
+        <div class="fieldset">
+          <label class="fieldset-legend" for="edit-estimation">{{ _('Estimated POI count') }} <span class="text-base-content/70">{{ _('(optional)') }}</span></label>
           <input id="edit-estimation" type="number" min="0" class="input input-bordered w-full" />
-        </fieldset>
+        </div>
         <div class="modal-action">
           <button type="button" class="btn btn-sm btn-soft"
             onclick="document.getElementById('edit-dialog').close()">{{ _('Cancel') }}</button>

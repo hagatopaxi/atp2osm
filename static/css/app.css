@@ -228,3 +228,8 @@ body:has(#sidebar-toggle:not(:checked)) #sidebar .menu a {
 .text-error   { color: oklch(52% 0.2 18); }
 .text-warning { color: oklch(52% 0.13 80); }
 .text-info    { color: oklch(50% 0.13 230); }
+/* Same for the soft alerts, which write their text in the raw token. */
+.alert-soft.alert-success { color: oklch(40% 0.13 160); }
+.alert-soft.alert-error   { color: oklch(45% 0.18 18); }
+.alert-soft.alert-warning { color: oklch(42% 0.12 80); }
+.alert-soft.alert-info    { color: oklch(42% 0.12 230); }

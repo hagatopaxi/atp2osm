@@ -38,14 +38,14 @@
 <form method="get" data-autosubmit class="flex flex-wrap items-end gap-3 mb-4">
     <input type="hidden" name="sort" value="{{ sort }}" />
     <input type="hidden" name="dir" value="{{ direction }}" />
-    <fieldset class="fieldset">
-        <legend class="fieldset-legend">{{ _('Brand') }}</legend>
+    <div class="fieldset">
+        <label class="fieldset-legend" for="filter-q">{{ _('Brand') }}</label>
         <label class="input input-sm w-56">
             <i class="iconoir-search opacity-50"></i>
-            <input type="search" name="q" value="{{ filters.q or '' }}" placeholder="{{ _('Name or Wikidata code') }}"
+            <input type="search" id="filter-q" name="q" value="{{ filters.q or '' }}" placeholder="{{ _('Name or Wikidata code') }}"
                 {{ 'autofocus' if filters.q }} />
         </label>
-    </fieldset>
+    </div>
     <fieldset class="fieldset">
         <legend class="fieldset-legend">{{ _('Status') }}</legend>
         <div class="filter">
@@ -56,25 +56,25 @@
             {% endfor %}
         </div>
     </fieldset>
-    <fieldset class="fieldset">
-        <legend class="fieldset-legend">{{ _('User') }}</legend>
-        <select name="user" class="select select-sm">
+    <div class="fieldset">
+        <label class="fieldset-legend" for="filter-user">{{ _('User') }}</label>
+        <select id="filter-user" name="user" class="select select-sm">
             <option value="">{{ _('All') }}</option>
             {% for uid, name in filter_users %}
             <option value="{{ uid }}" {{ 'selected' if filters.user == uid }}>{{ name }}</option>
             {% endfor %}
         </select>
-    </fieldset>
+    </div>
     {{ period_filter(filters) }}
-    <fieldset class="fieldset">
-        <legend class="fieldset-legend">&nbsp;</legend>
+    <div class="fieldset">
+        <span class="fieldset-legend">&nbsp;</span>
         <div class="join">
             <button type="submit" class="btn btn-sm btn-primary join-item">{{ _('Filter') }}</button>
             {% if filters %}
             <a href="{{ url_for('history.history') }}" class="btn btn-sm btn-soft join-item">{{ _('Reset') }}</a>
             {% endif %}
         </div>
-    </fieldset>
+    </div>
     <div class="ml-auto mb-2">{{ export_menu('history', filters) }}</div>
 </form>
 

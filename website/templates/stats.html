@@ -69,33 +69,33 @@
 
 {% block content %}
 <form method="get" data-autosubmit class="flex flex-wrap items-end gap-3 mb-4">
-    <fieldset class="fieldset">
-        <legend class="fieldset-legend">{{ _('Brand') }}</legend>
+    <div class="fieldset">
+        <label class="fieldset-legend" for="filter-q">{{ _('Brand') }}</label>
         <label class="input input-sm w-56">
             <i class="iconoir-search opacity-50"></i>
-            <input type="search" name="q" value="{{ filters.q or '' }}" placeholder="{{ _('Name or Wikidata code') }}"
+            <input type="search" id="filter-q" name="q" value="{{ filters.q or '' }}" placeholder="{{ _('Name or Wikidata code') }}"
                 {{ 'autofocus' if filters.q }} />
         </label>
-    </fieldset>
-    <fieldset class="fieldset">
-        <legend class="fieldset-legend">{{ _('User') }}</legend>
-        <select name="user" class="select select-sm">
+    </div>
+    <div class="fieldset">
+        <label class="fieldset-legend" for="filter-user">{{ _('User') }}</label>
+        <select id="filter-user" name="user" class="select select-sm">
             <option value="">{{ _('All') }}</option>
             {% for uid, name in filter_users %}
             <option value="{{ uid }}" {{ 'selected' if filters.user == uid }}>{{ name }}</option>
             {% endfor %}
         </select>
-    </fieldset>
+    </div>
     {{ period_filter(filters) }}
-    <fieldset class="fieldset">
-        <legend class="fieldset-legend">&nbsp;</legend>
+    <div class="fieldset">
+        <span class="fieldset-legend">&nbsp;</span>
         <div class="join">
             <button type="submit" class="btn btn-sm btn-primary join-item">{{ _('Filter') }}</button>
             {% if is_filtered %}
             <a href="{{ url_for('stats.stats') }}" class="btn btn-sm btn-soft join-item">{{ _('Reset') }}</a>
             {% endif %}
         </div>
-    </fieldset>
+    </div>
 </form>
 
 <div class="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-4">
@@ -130,7 +130,7 @@
             <span class="flex items-center gap-1"><span class="legend-swatch legend-swatch-line"></span> {{ _('Running total') }}</span>
         </span>
     </figcaption>
-    <div class="series-scroll">
+    <div class="series-scroll" tabindex="0">
         <div class="series-width" style="--bars: {{ series | length }}">
             {# One full-height column per period: the hover catches the whole
                period, not just the top of a flattened bar. #}
@@ -197,7 +197,7 @@
         <li class="flex items-center gap-1"><span class="legend-swatch bg-error"></span> {{ _('Brands rejected') }}</li>
     </ul>
     {% if spider_series | selectattr('reliability', 'ne', None) | list %}
-    <div class="series-scroll series-grow">
+    <div class="series-scroll series-grow" tabindex="0">
         <div class="series-width" style="--bars: {{ spider_series | length }}">
             <div class="series-chart series-chart-mini" role="img"
                 aria-label="{% for p in spider_series if p.reliability is not none %}{% trans period=p.period | dateformat('short'), rate=p.reliability %}{{ period }}: {{ rate }} % reliability. {% endtrans %}{% endfor %}">
@@ -228,7 +228,7 @@
         <li class="flex items-center gap-1"><span class="legend-swatch bg-error"></span> {{ _('Refused') }}</li>
     </ul>
     {% if changesets_max %}
-    <div class="series-scroll series-grow">
+    <div class="series-scroll series-grow" tabindex="0">
         <div class="series-width" style="--bars: {{ changesets | length }}">
             {# Normalised columns: the reading is about the success share, not
                the volume, which the chart above already gives. #}
