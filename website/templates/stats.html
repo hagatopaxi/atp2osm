@@ -53,7 +53,7 @@
     {% endfor %}
 </ul>
 {% else %}
-<p class="text-sm text-base-content/60">{{ empty }}</p>
+<p class="text-sm text-base-content/70">{{ empty }}</p>
 {% endif %}
 {% endmacro %}
 
@@ -61,7 +61,7 @@
 <figure class="card bg-base-100 shadow-sm p-4 h-full">
     <figcaption class="mb-3">
         <span class="font-semibold text-sm">{{ title }}</span>
-        {% if hint %}<span class="block text-xs text-base-content/50">{{ hint }}</span>{% endif %}
+        {% if hint %}<span class="block text-xs text-base-content/70">{{ hint }}</span>{% endif %}
     </figcaption>
     {{ caller() }}
 </figure>
@@ -111,7 +111,7 @@
         <div class="card-body items-center text-center p-4">
             <i class="{{ icon }} text-2xl text-base-content/40"></i>
             <p class="text-2xl font-bold">{{ value }}</p>
-            <h2 class="font-mono text-xs text-base-content/60">{{ label }}</h2>
+            <h2 class="font-mono text-xs text-base-content/70">{{ label }}</h2>
         </div>
     </div>
     {% endfor %}
@@ -122,10 +122,10 @@
     {% set unit_label = {'day': _('day'), 'week': _('week'), 'month': _('month')}[unit] %}
     <figcaption class="mb-3">
         <span class="font-semibold text-sm">{{ _('Pace and progress') }}</span>
-        <span class="block text-xs text-base-content/50">
+        <span class="block text-xs text-base-content/70">
             {% trans unit=unit_label %}What each {{ unit }} brought to OpenStreetMap, and what it all adds up to. Both series share one scale: the height of a bar reads directly as the share of that period in the total.{% endtrans %}
         </span>
-        <span class="flex flex-wrap gap-4 text-xs text-base-content/50 mt-1">
+        <span class="flex flex-wrap gap-4 text-xs text-base-content/70 mt-1">
             <span class="flex items-center gap-1"><span class="legend-swatch legend-swatch-bar"></span> {% trans unit=unit_label %}POIs integrated per {{ unit }}{% endtrans %}</span>
             <span class="flex items-center gap-1"><span class="legend-swatch legend-swatch-line"></span> {{ _('Running total') }}</span>
         </span>
@@ -154,7 +154,7 @@
                 </svg>
                 {% endif %}
             </div>
-            <div class="flex justify-between gap-4 text-xs text-base-content/50 mt-1 whitespace-nowrap">
+            <div class="flex justify-between gap-4 text-xs text-base-content/70 mt-1 whitespace-nowrap">
                 <span>{{ series[0].period | dateformat('short') }}</span>
                 <span>{{ series[-1].period | dateformat('short') }}</span>
             </div>
@@ -192,7 +192,7 @@
 
     {% call card(_('Reliability of the ATP data'),
                  gettext('Share of the brands whose integration was accepted, per %(unit)s. A brand counts once, whatever the volume behind it; a period without data is empty.', unit=unit_label)) %}
-    <ul class="flex flex-wrap gap-4 mb-3 text-xs text-base-content/50">
+    <ul class="flex flex-wrap gap-4 mb-3 text-xs text-base-content/70">
         <li class="flex items-center gap-1"><span class="legend-swatch bg-success"></span> {{ _('Brands integrated') }}</li>
         <li class="flex items-center gap-1"><span class="legend-swatch bg-error"></span> {{ _('Brands rejected') }}</li>
     </ul>
@@ -212,18 +212,18 @@
                 </div>
                 {% endfor %}
             </div>
-            <div class="flex justify-between gap-4 text-xs text-base-content/50 mt-1 whitespace-nowrap">
+            <div class="flex justify-between gap-4 text-xs text-base-content/70 mt-1 whitespace-nowrap">
                 <span>{{ spider_series[0].period | dateformat('short') }}</span>
                 <span>{{ spider_series[-1].period | dateformat('short') }}</span>
             </div>
         </div>
     </div>
     {% else %}
-    <p class="text-sm text-base-content/60">{{ _('No review over this period.') }}</p>
+    <p class="text-sm text-base-content/70">{{ _('No review over this period.') }}</p>
     {% endif %}
     {% endcall %}
     {% call card(_('Reliability of the OSM data'), _('A changeset is almost always refused because the local copy of OpenStreetMap has aged: one of the POIs no longer carries the same version in OSM and in the atp2osm database. The API then rejects the changeset as a whole.')) %}
-    <ul class="flex flex-wrap gap-4 mb-3 text-xs text-base-content/50">
+    <ul class="flex flex-wrap gap-4 mb-3 text-xs text-base-content/70">
         <li class="flex items-center gap-1"><span class="legend-swatch bg-success"></span> {{ _('Accepted') }}</li>
         <li class="flex items-center gap-1"><span class="legend-swatch bg-error"></span> {{ _('Refused') }}</li>
     </ul>
@@ -246,14 +246,14 @@
                 </div>
                 {% endfor %}
             </div>
-            <div class="flex justify-between gap-4 text-xs text-base-content/50 mt-1 whitespace-nowrap">
+            <div class="flex justify-between gap-4 text-xs text-base-content/70 mt-1 whitespace-nowrap">
                 <span>{{ changesets[0].period | dateformat('short') }}</span>
                 <span>{{ changesets[-1].period | dateformat('short') }}</span>
             </div>
         </div>
     </div>
     {% else %}
-    <p class="text-sm text-base-content/60">{{ _('No changeset over this period.') }}</p>
+    <p class="text-sm text-base-content/70">{{ _('No changeset over this period.') }}</p>
     {% endif %}
     {% endcall %}
 </div>

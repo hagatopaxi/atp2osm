@@ -78,18 +78,18 @@
     <div class="ml-auto mb-2">{{ export_menu('history', filters) }}</div>
 </form>
 
-<p class="text-sm text-base-content/60 mb-4">
+<p class="text-sm text-base-content/70 mb-4">
     <a href="{{ url_for('stats.stats', q=filters.q, user=filters.user) }}" class="link link-primary">
         <i class="iconoir-graph-up"></i> {{ _('See the integration statistics') }}
     </a>
 </p>
 
 {% if entries|length == 0 %}
-<p class="text-base-content/60">
+<p class="text-base-content/70">
     {% if filters %}{{ _('No integration matches these filters.') }}{% else %}{{ _('No integration recorded yet.') }}{% endif %}
 </p>
 {% else %}
-<p class="text-sm text-base-content/60 mb-2">{% trans count=total %}{{ count }} integration{% pluralize %}{{ count }} integrations{% endtrans %}</p>
+<p class="text-sm text-base-content/70 mb-2">{% trans count=total %}{{ count }} integration{% pluralize %}{{ count }} integrations{% endtrans %}</p>
 <div class="overflow-x-auto shrink-0">
 <table class="table table-compact bg-base-100 rounded-2">
     <thead>
@@ -115,7 +115,7 @@
                        target="_blank" rel="noopener">{{ entry.brand_wikidata }}</a>
                 {% endif %}
                 {% if entry.brand_wikidata %}
-                    <br><a class="link text-xs font-mono text-base-content/50" href="https://www.wikidata.org/wiki/{{ entry.brand_wikidata }}"
+                    <br><a class="link text-xs font-mono text-base-content/70" href="https://www.wikidata.org/wiki/{{ entry.brand_wikidata }}"
                        target="_blank" rel="noopener">{{ entry.brand_wikidata }}</a>
                 {% endif %}
             </td>

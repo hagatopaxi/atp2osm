@@ -238,6 +238,9 @@ def test_every_page_passes_wcag_2_aa(server, tmp_path):
         "defaults": {
             "standard": "WCAG2AA",
             "runners": ["axe", "htmlcs"],
+            # What axe cannot decide (a text over a gradient, a button with a
+            # noise texture) is a warning to read, not a failure.
+            "levelCapWhenNeedsReview": "warning",
             # AppArmor forbids Chromium's own sandbox on stock Ubuntu.
             "chromeLaunchConfig": {"args": ["--no-sandbox"]},
         },

@@ -56,9 +56,9 @@
       rel="noopener">
       <i class="iconoir-github"></i> GitHub
     </a>
-    <p class="mt-1 text-xs opacity-60">{{ _('GPL-3.0 licence') }}</p>
-    <p class="mt-1 text-xs opacity-60">{% trans link='https://www.openstreetmap.org/copyright' %}Data © <a href="{{ link }}" target="_blank" rel="noopener" class="link">OpenStreetMap contributors</a>, ODbL{% endtrans %}</p>
-    <p class="mt-1 text-xs opacity-60 font-mono">{{ app_version }}</p>
+    <p class="mt-1 text-xs opacity-70">{{ _('GPL-3.0 licence') }}</p>
+    <p class="mt-1 text-xs opacity-70">{% trans link='https://www.openstreetmap.org/copyright' %}Data © <a href="{{ link }}" target="_blank" rel="noopener" class="link">OpenStreetMap contributors</a>, ODbL{% endtrans %}</p>
+    <p class="mt-1 text-xs opacity-70 font-mono">{{ app_version }}</p>
   </div>
 
   <div class="w-full shrink-0">
@@ -73,7 +73,7 @@
         <a href="{{ api_url }}/user/{{ session['user']['name'] }}"
           class="text-sm font-semibold truncate link link-hover tooltip tooltip-top"
           data-tip="{{ session['user']['name'] }}" target="_blank" rel="noopener">{{ session['user']['name'] }}</a>
-        <p class="text-xs opacity-60">OpenStreetMap</p>
+        <p class="text-xs opacity-70">OpenStreetMap</p>
       </div>
       <button class="btn btn-ghost btn-sm btn-square text-error sidebar-hide" onclick="logout()" title="{{ _('Log out') }}">
         <i class="iconoir-log-out text-xl"></i>

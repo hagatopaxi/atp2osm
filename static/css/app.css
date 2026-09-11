@@ -220,3 +220,11 @@ body:has(#sidebar-toggle:not(:checked)) #sidebar .menu a {
 .input-sm input {
     font-size: inherit;
 }
+
+/* Semantic text on the light base: DaisyUI's success/error/warning/info are
+   tuned as backgrounds and reach 2-3:1 as text on white. Darker shades of the
+   same hues for the text utilities only — the badges keep their own tokens. */
+.text-success { color: oklch(50% 0.15 160); }
+.text-error   { color: oklch(52% 0.2 18); }
+.text-warning { color: oklch(52% 0.13 80); }
+.text-info    { color: oklch(50% 0.13 230); }
