@@ -1,0 +1,41 @@
+# amenity=* values that carry a name but never a brand: public buildings,
+# street furniture, transport. generic.lua and src/pipeline/nsi.py both read
+# this file, one value per line.
+bench
+bicycle_parking
+bus_station
+clock
+college
+community_centre
+courthouse
+drinking_water
+ferry_terminal
+fire_station
+fountain
+grave_yard
+grit_bin
+hunting_stand
+kindergarten
+library
+loading_dock
+motorcycle_parking
+parking
+parking_entrance
+parking_space
+place_of_worship
+police
+prison
+public_building
+ranger_station
+recycling
+school
+shelter
+taxi
+telephone
+toilets
+townhall
+university
+waste_basket
+waste_disposal
+waste_transfer_station
+water_point
