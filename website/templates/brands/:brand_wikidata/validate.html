@@ -14,6 +14,9 @@
    built into a string: under autoescape, concatenating raw HTML with what
    `_()` returns escapes the HTML. #}
 {% macro plus(k, item) %}{% if k in item['written_tags_keys'] %}<i class="iconoir-plus align-middle" aria-label="{{ _('value written') }}"></i> {% endif %}{% endmacro %}
+{# A value in pieces, the ones that really change underlined — see
+   highlight_diff. #}
+{% macro pieces(segments) %}{% for text, changed in segments %}{% if changed %}<strong class="underline decoration-2">{{ text }}</strong>{% else %}{{ text }}{% endif %}{% endfor %}{% endmacro %}
 {% macro minus() %}<i class="iconoir-minus align-middle" aria-label="{{ _('current value, replaced') }}"></i> {% endmacro %}
 
 
@@ -31,7 +34,7 @@
            sign both say which is which — red −, green + — so the reading does
            not rest on colour alone. #}
         {% if k in item['replaced_tags_keys'] %}
-        <p class="text-error break-words">{{ minus() }}{{ item["old_tag"][k] }}</p>
+        <p class="text-error break-words">{{ minus() }}{% if k in item['diff'] %}{{ pieces(item['diff'][k][0]) }}{% else %}{{ item["old_tag"][k] }}{% endif %}</p>
         {% endif %}
 
         {% if key == 'website' %}
@@ -44,6 +47,8 @@
                 class="link font-mono">{{
                 item["tag"][k]
                 }}</a></p>
+        {% elif k in item['diff'] %}
+        <p class="text-success break-words">{{ plus(k, item) }}{{ pieces(item['diff'][k][1]) }}</p>
         {% else %}
         <p class="{{'text-success' if k in item['written_tags_keys']}}">{{ plus(k, item) }}{{ item["tag"][k] }}</p>
         {% endif %}

@@ -1,5 +1,7 @@
+import difflib
 import json
 import logging
+import re
 
 from flask import (
     Blueprint,
@@ -52,6 +54,31 @@ _DETAILED_TAGS = frozenset({
     "website",
     "opening_hours",
 })
+
+# Where two opening_hours values are cut to be compared: a rule (';') or a
+# time range (','). The separators are kept, so the pieces re-join verbatim.
+_HOURS_SEPARATORS = re.compile(r"([;,])")
+
+
+def highlight_diff(old: str, new: str) -> tuple[list, list]:
+    """The two values as (text, changed) pieces, changed where they differ.
+
+    Two opening_hours strings differ in spaces *and* in a time, and the eye
+    reads the space first; marking the pieces that really change is what
+    lets a reviewer see the 14:30 -> 14:00. The comparison ignores spaces —
+    the display keeps them, the value is shown as it is.
+    """
+    old_parts = _HOURS_SEPARATORS.split(old)
+    new_parts = _HOURS_SEPARATORS.split(new)
+    key = lambda parts: [re.sub(r"\s", "", p) for p in parts]  # noqa: E731
+    matcher = difflib.SequenceMatcher(None, key(old_parts), key(new_parts), autojunk=False)
+    old_out, new_out = [], []
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        changed = tag != "equal"
+        old_out.extend((p, changed) for p in old_parts[i1:i2])
+        new_out.extend((p, changed) for p in new_parts[j1:j2])
+    return old_out, new_out
+
 
 # Sorted in Python: the list is already in memory, see the comment in brands().
 SORT_COLUMNS = {
@@ -213,6 +240,11 @@ def brands_validate(brand_wikidata):
             if key in item["old_tag"] and item["tag"][key] != item["old_tag"][key]
         ]
         item["written_tags_keys"] = item["new_tags_keys"] + item["replaced_tags_keys"]
+        item["diff"] = {
+            key: highlight_diff(item["old_tag"][key], item["tag"][key])
+            for key in item["replaced_tags_keys"]
+            if key == "opening_hours"
+        }
         # Everything the template has no dedicated row for — the NSI tags today,
         # whatever gets added to the sources tomorrow. A tag the reviewer cannot
         # see is a tag they cannot invalidate.

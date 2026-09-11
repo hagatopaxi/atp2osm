@@ -132,3 +132,23 @@ def test_the_next_wave_comes_only_once_the_first_is_done(brand_waves):
     integrate(brand_waves, "33", wave=1)
     with brand_waves.cursor(row_factory=dict_row) as cur:
         assert current_wave(cur, "Q1").number == 2
+
+
+def test_highlight_marks_the_time_not_the_space():
+    from src.routes.brands import highlight_diff
+
+    old, new = highlight_diff(
+        "Mo-Th 11:30-14:30, 18:30-22:30; Su 11:30-14:30",
+        "Mo-Th 11:30-14:30,18:30-21:30; Su 11:30-14:30",
+    )
+    assert [t for t, changed in old if changed] == [" 18:30-22:30"]
+    assert [t for t, changed in new if changed] == ["18:30-21:30"]
+    assert "".join(t for t, _ in new) == "Mo-Th 11:30-14:30,18:30-21:30; Su 11:30-14:30"
+
+
+def test_highlight_follows_a_split_rule():
+    from src.routes.brands import highlight_diff
+
+    old, new = highlight_diff("Fr-Sa 11:30-14:30", "Fr 11:30-14:30; Sa 11:30-15:00")
+    assert all(changed for _, changed in old)
+    assert all(changed for _, changed in new)
