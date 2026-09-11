@@ -14,8 +14,10 @@ from src.pipeline.constants import (
 )
 import duckdb
 import requests
+from psycopg import sql
 
 from src.config import get_country, get_database
+from src.pipeline import _matview
 from src.pipeline._version import app_version
 from src.pipeline.errors import unavailable_if_unreachable
 from src.pipeline.osm import forget_geofabrik_timestamp
@@ -95,7 +97,7 @@ def download_atp():
     conn = connect()
     try:
         last_date = last_import_date(conn, "atp")
-        start_import(conn, "atp")  # puts the site in maintenance mode
+        start_import(conn, "atp")
 
         with unavailable_if_unreachable("ATP"):
             resp = requests.get(ATP_HISTORY_URL, timeout=30)
@@ -183,8 +185,9 @@ def create_parquet_atp():
     logger.info("Created parquet from NDJSON files")
 
 
-def _attach_subdivisions(conn):
-    """Attach every POI to the administrative subdivision that contains it.
+def _attach_subdivisions(conn, table: str = "atp_places"):
+    """Attach every POI in `table` to the administrative subdivision that
+    contains it.
 
     Replaces the derivation from the postcode, which only ever worked in
     France. Levels are walked from ADMIN_LEVEL down to the country itself, so a
@@ -207,13 +210,15 @@ def _attach_subdivisions(conn):
     """
     logger.info("Attaching POIs to subdivisions (admin_level <= %d)...", ADMIN_LEVEL)
     with conn.cursor() as cur:
-        cur.execute("""
-            ALTER TABLE atp_places ADD COLUMN subdivision_code TEXT,
-                               ADD COLUMN subdivision_name TEXT;
-        """)
         cur.execute(
-            """
-            UPDATE atp_places atp
+            sql.SQL(
+                "ALTER TABLE {} ADD COLUMN subdivision_code TEXT,"
+                " ADD COLUMN subdivision_name TEXT"
+            ).format(sql.Identifier(table))
+        )
+        cur.execute(
+            sql.SQL("""
+            UPDATE {} atp
                SET (subdivision_code, subdivision_name) = (
                     -- ponytail: ref is not unique across levels — 16 codes in
                     -- France name both a région and a département (75 is Paris
@@ -232,14 +237,34 @@ def _attach_subdivisions(conn):
                      ORDER BY sub.admin_level DESC, sub.osm_id
                      LIMIT 1
                    );
-            """,
+            """).format(sql.Identifier(table)),
             (ADMIN_LEVEL,),
         )
-        cur.execute("DELETE FROM atp_places WHERE subdivision_code IS NULL")
+        cur.execute(
+            sql.SQL("DELETE FROM {} WHERE subdivision_code IS NULL").format(
+                sql.Identifier(table)
+            )
+        )
         dropped = cur.rowcount
     conn.commit()
     if dropped:
         logger.info("Dropped %d POI(s) falling outside the country", dropped)
+
+
+# Canonical name to definition. Built under `<name>_new` on the new table and
+# renamed with it: PHONE_INDEXES in src/phone.py names the phone one.
+ATP_PLACES_INDEXES = {
+    "atp_places_geom_idx": "USING GIST ((ST_GeomFromGeoJSON(geom)::geography))",
+    "atp_places_brand_wikidata_idx": "(brand_wikidata)",
+    "atp_places_brand_lower_idx": "(LOWER(brand))",
+    "atp_places_name_lower_idx": "(LOWER(name))",
+    "atp_places_website_norm_idx": "(LOWER(REGEXP_REPLACE(website, '^https?://', '', 'i')))",
+    "atp_places_phone_norm_idx": "(normalize_phone(phone))",
+    "atp_places_email_lower_idx": "(LOWER(email))",
+    "atp_places_subdivision_code_idx": "(subdivision_code)",
+    "atp_places_spider_idx": "(spider_id)",
+    "atp_places_source_type_idx": "(source_type)",
+}
 
 
 def import_atp():
@@ -269,9 +294,14 @@ def import_atp():
             return
 
         try:
+            # Loaded beside the live tables and swapped in at the end: the
+            # site reads the old rows for the minutes the load takes, and a
+            # failure leaves them as they were. The old ones retire under
+            # another name — mv_places_brand is materialized on atp_places —
+            # and go once mv-brand has swapped the brand view too.
             with conn.cursor() as cur:
-                cur.execute("DROP TABLE IF EXISTS atp_places CASCADE")
-                cur.execute("DROP TABLE IF EXISTS atp_spiders CASCADE")
+                cur.execute("DROP TABLE IF EXISTS atp_places_new")
+                cur.execute("DROP TABLE IF EXISTS atp_spiders_new")
             conn.commit()
 
             db = get_database()
@@ -292,7 +322,7 @@ def import_atp():
             # ISO codes Martinique MQ, and ATP follows its sources.
             countries = ", ".join(f"'{c.upper()}'" for c in get_country().territory_codes)
             ddb.execute(f"""
-                CREATE TABLE pg.atp_places AS
+                CREATE TABLE pg.atp_places_new AS
                 SELECT
                     id,
                     properties->>'$.addr:country'    AS country,
@@ -315,42 +345,27 @@ def import_atp():
                     AND geom IS NOT NULL
             """)
 
-            _attach_subdivisions(conn)
+            _attach_subdivisions(conn, "atp_places_new")
 
             logger.info("Creating indexes for atp_places...")
             with conn.cursor() as cur:
-                cur.execute("""
-                    CREATE INDEX IF NOT EXISTS atp_places_geom_idx
-                        ON atp_places USING GIST ((ST_GeomFromGeoJSON(geom)::geography));
-                    CREATE INDEX IF NOT EXISTS atp_places_brand_wikidata_idx
-                        ON atp_places (brand_wikidata);
-                    CREATE INDEX IF NOT EXISTS atp_places_brand_lower_idx
-                        ON atp_places (LOWER(brand));
-                    CREATE INDEX IF NOT EXISTS atp_places_name_lower_idx
-                        ON atp_places (LOWER(name));
-                    CREATE INDEX IF NOT EXISTS atp_places_website_norm_idx
-                        ON atp_places (LOWER(REGEXP_REPLACE(website, '^https?://', '', 'i')));
-                    CREATE INDEX IF NOT EXISTS atp_places_phone_norm_idx
-                        ON atp_places (normalize_phone(phone));
-                    CREATE INDEX IF NOT EXISTS atp_places_email_lower_idx
-                        ON atp_places (LOWER(email));
-                    CREATE INDEX IF NOT EXISTS atp_places_subdivision_code_idx
-                        ON atp_places (subdivision_code);
-                    CREATE INDEX IF NOT EXISTS atp_places_spider_idx
-                        ON atp_places (spider_id);
-                    CREATE INDEX IF NOT EXISTS atp_places_source_type_idx
-                        ON atp_places (source_type);
-                """)
+                _matview.create_indexes(cur, "atp_places_new", ATP_PLACES_INDEXES)
             conn.commit()
 
             logger.info("Creating atp_spiders table...")
             ddb.execute(f"""
-                CREATE TABLE pg.atp_spiders AS
+                CREATE TABLE pg.atp_spiders_new AS
                 SELECT *
                 FROM read_json('{SPIDERS_PATH}')
-                WHERE spider IN (SELECT DISTINCT spider_id FROM pg.atp_places)
+                WHERE spider IN (SELECT DISTINCT spider_id FROM pg.atp_places_new)
             """)
 
+            with conn.cursor() as cur:
+                _matview.swap(
+                    cur, "TABLE", "atp_places", "atp_places_new", ATP_PLACES_INDEXES
+                )
+                _matview.swap(cur, "TABLE", "atp_spiders", "atp_spiders_new")
+            # Commits the swap with it.
             record_import(conn, "atp", parquet_mtime, "success", version)
             logger.info("ATP import complete (parquet mtime: %s)", parquet_mtime.date())
 

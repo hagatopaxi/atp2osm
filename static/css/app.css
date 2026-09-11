@@ -221,15 +221,36 @@ body:has(#sidebar-toggle:not(:checked)) #sidebar .menu a {
     font-size: inherit;
 }
 
-/* Semantic text on the light base: DaisyUI's success/error/warning/info are
-   tuned as backgrounds and reach 2-3:1 as text on white. Darker shades of the
-   same hues for the text utilities only — the badges keep their own tokens. */
-.text-success { color: oklch(50% 0.15 160); }
-.text-error   { color: oklch(52% 0.2 18); }
-.text-warning { color: oklch(52% 0.13 80); }
-.text-info    { color: oklch(50% 0.13 230); }
-/* Same for the soft alerts, which write their text in the raw token. */
-.alert-soft.alert-success { color: oklch(40% 0.13 160); }
-.alert-soft.alert-error   { color: oklch(45% 0.18 18); }
-.alert-soft.alert-warning { color: oklch(42% 0.12 80); }
-.alert-soft.alert-info    { color: oklch(42% 0.12 230); }
+/* daisyUI theme override: every badge is a pill. --radius-selector is the
+   variable daisyUI keys badges (and checkboxes, toggles) on, so one value
+   here reaches them all, joined badges included, instead of a class on each. */
+:root,
+[data-theme] {
+    --radius-selector: 9999px;
+}
+/* A join rounds its ends with --radius-field, the radius of inputs and
+   buttons. A join made of badges takes the badges' radius instead, so a
+   grouped badge is as much a pill as a lone one. */
+.join:has(> .badge) {
+    --radius-field: var(--radius-selector);
+}
+
+/* daisyUI's soft badge tints its background at 8% and its border at 10%,
+   which reads as washed out. The same recipe, denser: the text keeps the
+   colour, the background and the border carry more of it. */
+.badge-soft {
+    /* Mixed towards the base content colour: darker on a light theme,
+       lighter on a dark one — amber alone fails on white. */
+    color: color-mix(in oklab, var(--badge-color, var(--color-base-content)) 50%, var(--color-base-content));
+    background-color: color-mix(in oklab, var(--badge-color, var(--color-base-content)) 18%, var(--color-base-100));
+    border-color: color-mix(in oklab, var(--badge-color, var(--color-base-content)) 40%, var(--color-base-100));
+}
+
+/* Semantic text: DaisyUI's success/error/warning/info are tuned as
+   backgrounds and reach 2-3:1 as text. Mixed towards the base content colour
+   — darker on a light theme, lighter on a dark one — the text utilities and
+   the soft alerts clear 4.5:1 in both. The badges keep their own tokens. */
+.text-success, .alert-soft.alert-success { color: color-mix(in oklab, var(--color-success) 50%, var(--color-base-content)); }
+.text-error,   .alert-soft.alert-error   { color: color-mix(in oklab, var(--color-error)   55%, var(--color-base-content)); }
+.text-warning, .alert-soft.alert-warning { color: color-mix(in oklab, var(--color-warning) 45%, var(--color-base-content)); }
+.text-info,    .alert-soft.alert-info    { color: color-mix(in oklab, var(--color-info)    50%, var(--color-base-content)); }

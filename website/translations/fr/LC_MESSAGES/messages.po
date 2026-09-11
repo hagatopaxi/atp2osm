@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-07 06:09+0200\n"
+"POT-Creation-Date: 2026-09-11 09:27+0200\n"
 "PO-Revision-Date: 2026-09-06 17:06+0200\n"
 "Last-Translator: the atp2osm contributors\n"
 "Language: fr\n"
@@ -16,9 +16,9 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
-#: src/upload.py:89
+#: src/upload.py:145
 #, python-format
 msgid "ATP data integration (%(subdivision)s; %(brand)s)"
 msgstr "Intégration des données ATP (%(subdivision)s ; %(brand)s)"
@@ -64,32 +64,40 @@ msgstr "Marques manquantes"
 msgid "Documentation"
 msgstr "Documentation"
 
-#: website/templates/_aside.html:35
+#: website/templates/_aside.html:36 website/templates/_aside.html:38
+msgid "Light or dark theme"
+msgstr "Thème clair ou sombre"
+
+#: website/templates/_aside.html:42
+msgid "Theme"
+msgstr "Thème"
+
+#: website/templates/_aside.html:46
 msgid "Language"
 msgstr "Langue"
 
-#: website/templates/_aside.html:53 website/templates/_export_menu.html:10
+#: website/templates/_aside.html:64 website/templates/_export_menu.html:10
 msgid "About"
 msgstr "À propos"
 
-#: website/templates/_aside.html:54
+#: website/templates/_aside.html:65
 msgid "Open-source project. Contributions welcome!"
 msgstr "Projet open-source. Contributions bienvenues !"
 
-#: website/templates/_aside.html:59
+#: website/templates/_aside.html:70
 msgid "GPL-3.0 licence"
 msgstr "Licence GPL-3.0"
 
-#: website/templates/_aside.html:60
+#: website/templates/_aside.html:71
 #, python-format
 msgid "Data © <a href=\"%(link)s\" target=\"_blank\" rel=\"noopener\" class=\"link\">OpenStreetMap contributors</a>, ODbL"
 msgstr "Données © <a href=\"%(link)s\" target=\"_blank\" rel=\"noopener\" class=\"link\">OpenStreetMap contributors</a>, ODbL"
 
-#: website/templates/_aside.html:78
+#: website/templates/_aside.html:89
 msgid "Log out"
 msgstr "Déconnexion"
 
-#: website/templates/_aside.html:84 website/templates/_aside.html:86
+#: website/templates/_aside.html:95 website/templates/_aside.html:97
 #: website/templates/brands.html:40
 msgid "Sign in with OSM"
 msgstr "Se connecter avec OSM"
@@ -110,7 +118,7 @@ msgstr "atp2osm — Enrichir OpenStreetMap avec AllThePlaces"
 msgid "Integrate AllThePlaces points of interest into OpenStreetMap. A collaborative contribution tool for OSM mappers."
 msgstr "Intégrez les points d'intérêt AllThePlaces dans OpenStreetMap. Outil de contribution collaboratif pour les cartographes OSM."
 
-#: website/templates/_base.html:58
+#: website/templates/_base.html:59
 msgid "Open the sidebar"
 msgstr "Ouvrir la barre latérale"
 
@@ -1540,20 +1548,123 @@ msgstr "500 - Erreur interne"
 msgid "Internal error, sorry."
 msgstr "Erreur interne, désolé."
 
-#: website/templates/errors/503.html:3
-msgid "503 - Maintenance"
-msgstr "503 - Maintenance"
+#~ msgid "Wave 2 — replacing values"
+#~ msgstr "Vague 2 — remplacement de valeurs"
 
-#: website/templates/errors/503.html:6
-msgid "Data refresh in progress"
-msgstr "Mise à jour des données en cours"
+#~ msgid "Value written to OSM: %(value)s"
+#~ msgstr "Valeur insérée dans OSM : %(value)s"
 
-#: website/templates/errors/503.html:8
-msgid "The OpenStreetMap and All The Places data is being refreshed. The site will be available again as soon as the refresh is over."
-msgstr "Les données OpenStreetMap et All The Places sont en cours de rafraîchissement. Le site sera de nouveau disponible dès que le rafraîchissement sera terminé."
+#~ msgid "The OSM value was checked on the ground"
+#~ msgstr "La valeur OSM a été vérifiée sur le terrain"
 
-#: website/templates/errors/503.html:10
-#, python-format
-msgid "Started: %(date)s"
-msgstr "Début : %(date)s"
+#~ msgid "Generic / brand website"
+#~ msgstr "Site web générique / de la marque"
+
+#~ msgid "Invalid website (404, redirect)"
+#~ msgstr "Site web invalide (404, redirection)"
+
+#~ msgid "Wrong phone number"
+#~ msgstr "Téléphone incorrect"
+
+#~ msgid "Phone number in the wrong format"
+#~ msgstr "Téléphone au mauvais format"
+
+#~ msgid "Wrong opening hours"
+#~ msgstr "Horaires incorrects"
+
+#~ msgid "Wrong address"
+#~ msgstr "Adresse incorrecte"
+
+#~ msgid "Generic e-mail"
+#~ msgstr "E-mail générique"
+
+#~ msgid "The OSM value is the right one"
+#~ msgstr "La valeur OSM est la bonne"
+
+#~ msgid "The OSM value is more precise"
+#~ msgstr "La valeur OSM est plus précise"
+
+#~ msgid "Phone: neither OSM nor ATP is right"
+#~ msgstr "Téléphone : ni OSM ni ATP n'ont la bonne valeur"
+
+#~ msgid "Opening hours: neither OSM nor ATP is right"
+#~ msgstr "Horaires : ni OSM ni ATP n'ont la bonne valeur"
+
+#~ msgid "Website: neither OSM nor ATP is right"
+#~ msgstr "Site web : ni OSM ni ATP n'ont la bonne valeur"
+
+#~ msgid "E-mail: neither OSM nor ATP is right"
+#~ msgstr "E-mail : ni OSM ni ATP n'ont la bonne valeur"
+
+#~ msgid "Dark theme"
+#~ msgstr "Thème sombre"
+
+#~ msgid "Website: ATP gives the generic brand site"
+#~ msgstr "Site web : ATP donne le site générique de l'enseigne"
+
+#~ msgid "Website: the ATP link is broken (404, redirect)"
+#~ msgstr "Site web : le lien ATP est cassé (404, redirection)"
+
+#~ msgid "Phone: ATP is wrong"
+#~ msgstr "Téléphone : ATP se trompe"
+
+#~ msgid "Phone: the ATP format is wrong"
+#~ msgstr "Téléphone : le format ATP est mauvais"
+
+#~ msgid "Opening hours: ATP is wrong"
+#~ msgstr "Horaires : ATP se trompe"
+
+#~ msgid "Address: ATP is wrong"
+#~ msgstr "Adresse : ATP se trompe"
+
+#~ msgid "E-mail: ATP gives a generic address"
+#~ msgstr "E-mail : ATP donne une adresse générique"
+
+#~ msgid "503 - Maintenance"
+#~ msgstr "503 - Maintenance"
+
+#~ msgid "Data refresh in progress"
+#~ msgstr "Mise à jour des données en cours"
+
+#~ msgid "The OpenStreetMap and All The Places data is being refreshed. The site will be available again as soon as the refresh is over."
+#~ msgstr "Les données OpenStreetMap et All The Places sont en cours de rafraîchissement. Le site sera de nouveau disponible dès que le rafraîchissement sera terminé."
+
+#~ msgid "Started: %(date)s"
+#~ msgstr "Début : %(date)s"
+
+#~ msgid "Adding tags"
+#~ msgstr "Ajout de tags"
+
+#~ msgid "Modifying tags"
+#~ msgstr "Modification de tags"
+
+#~ msgid "Wave %(number)s"
+#~ msgstr "Vague %(number)s"
+
+#~ msgid "This wave is in alpha: it goes out in very small batches while the community has its say."
+#~ msgstr "Cette vague est en alpha : elle part par très petits lots, le temps que la communauté se prononce."
+
+#~ msgid "alpha"
+#~ msgstr "alpha"
+
+#~ msgid "Proposed wave"
+#~ msgstr "Vague proposée"
+
+#~ msgid "Wave"
+#~ msgstr "Vague"
+
+#~ msgid "Tags written"
+#~ msgstr "Tags écrits"
+
+#~ msgid "; a value marked <span class=\"text-error\"><i class=\"iconoir-minus align-middle\"></i> in red</span> is the one it replaces in OSM"
+#~ msgstr " ; une valeur marquée <span class=\"text-error\"><i class=\"iconoir-minus align-middle\"></i> en rouge</span> est celle qu'elle remplace dans OSM"
+
+#~ msgid "Every other tag is already in OSM and will not be updated."
+#~ msgstr "Tous les autres tags sont déjà dans OSM et ne seront pas mis à jour."
+
+#~ msgid "value written"
+#~ msgstr "valeur écrite"
+
+#~ msgid "current value, replaced"
+#~ msgstr "valeur actuelle, remplacée"
 
