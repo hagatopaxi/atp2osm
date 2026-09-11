@@ -31,8 +31,19 @@
 
   <div class="flex-1"></div>
 
+  {# One fixed button: the icon flips, the word stays — a swap of two
+     captions overlapped and wrapped. #}
+  <label class="btn btn-soft btn-sm w-full justify-start mt-6 shrink-0 whitespace-nowrap" title="{{ _('Light or dark theme') }}">
+    <span class="swap">
+      <input type="checkbox" id="theme-toggle" aria-label="{{ _('Light or dark theme') }}" />
+      <i class="swap-on iconoir-sun-light"></i>
+      <i class="swap-off iconoir-half-moon"></i>
+    </span>
+    <span class="sidebar-hide">{{ _('Theme') }}</span>
+  </label>
+
   {% if locales | length > 1 %}
-  <nav class="w-full shrink-0 mt-6" aria-label="{{ _('Language') }}">
+  <nav class="w-full shrink-0 mt-2" aria-label="{{ _('Language') }}">
     <details class="dropdown dropdown-top w-full">
       <summary class="btn btn-ghost btn-sm w-full justify-start">
         <i class="iconoir-language"></i>
