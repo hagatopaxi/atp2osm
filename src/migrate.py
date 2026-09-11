@@ -83,6 +83,11 @@ def run_migrations(conn):
         _ensure_schema_migrations_table(cursor)
         conn.commit()
 
+        # Every gunicorn worker runs this at boot: the lock serialises them, so
+        # the second one reads the first one's rows instead of racing it.
+        # Session level, so it survives the commit after each migration; it
+        # goes with the connection.
+        cursor.execute("SELECT pg_advisory_lock(hashtext('schema_migrations'));")
         applied = _get_applied_versions(cursor)
         migrations = _discover_migrations()
         pending = [(v, p) for v, p in migrations if v not in applied]
