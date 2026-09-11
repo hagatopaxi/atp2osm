@@ -14,6 +14,7 @@ import requests
 
 from src.config import get_country
 from src.pipeline._version import app_version
+from src.pipeline.constants import PROJECT_ROOT
 from src.pipeline.errors import unavailable_if_unreachable
 from src.pipeline._db import (
     connect,
@@ -77,13 +78,23 @@ _UNREACHABLE_LANDUSE = frozenset({
     "industrial", "construction", "aquaculture", "farmyard", "flowerbed",
     "depot",
 })
+# The file generic.lua reads too: one list, shared.
+_UNREACHABLE_AMENITY = frozenset(
+    line for line in (PROJECT_ROOT / "osm2pgsql" / "not_a_chain_amenity.txt")
+    .read_text().splitlines()
+    if line and not line.startswith("#")
+)
 
 
 def _reaches_mv_places(primary_key: str, primary_value: str) -> bool:
     """False when generic.lua would have dropped such an object on import."""
     if primary_key in _UNREACHABLE_KEYS:
         return False
-    return not (primary_key == "landuse" and primary_value in _UNREACHABLE_LANDUSE)
+    if primary_key == "landuse":
+        return primary_value not in _UNREACHABLE_LANDUSE
+    if primary_key == "amenity":
+        return primary_value not in _UNREACHABLE_AMENITY
+    return True
 
 
 def _is_country(location_set: dict) -> bool:

@@ -69,6 +69,16 @@ local function insert_subdivision(object)
     return true
 end
 
+-- amenity=* values no brand ever takes, listed in not_a_chain_amenity.txt
+-- next to this file: the whitelist that stood here kept restaurants, banks
+-- and fuel and rejected La Poste, Gang of Pizza, ECF and DEKRA with the same
+-- line. nsi.py reads the same file.
+local here = debug.getinfo(1, "S").source:sub(2):match("(.*/)") or "./"
+local not_a_chain_amenity = {}
+for line in io.lines(here .. "not_a_chain_amenity.txt") do
+    if line ~= "" and line:sub(1, 1) ~= "#" then not_a_chain_amenity[line] = true end
+end
+
 -- Based on tags wiki list, that removes every POI which are definitely not places
 -- https://wiki.openstreetmap.org/wiki/Map_features
 local function is_definitely_not_a_place(tags)
@@ -123,33 +133,12 @@ local function is_definitely_not_a_place(tags)
     if tags["railway"] and tags["railway"] ~= 'subway_entrance' then return true end
     if tags["railway"] and tags["railway"] ~= 'tram_stop' then return true end
 
-    if tags["amenity"] then
-        local amenity = tags["amenity"]
-
-        if amenity == 'shop' then return false end
-
-        if amenity == 'bar' then return false end
-        if amenity == 'biergarten' then return false end
-        if amenity == 'cafe' then return false end
-        if amenity == 'fast_food' then return false end
-        if amenity == 'food_court' then return false end
-        if amenity == 'ice_cream' then return false end
-        if amenity == 'pub' then return false end
-        if amenity == 'restaurant' then return false end
-        if amenity == 'atm' then return false end
-        if amenity == 'bank' then return false end
-        if amenity == 'bureau_de_change' then return false end
-        if amenity == 'money_transfer' then return false end
-        if amenity == 'payment_centre' then return false end
-        if amenity == 'bicycle_rental' then return false end
-        if amenity == 'boat_rental' then return false end
-        if amenity == 'car_rental' then return false end
-        if amenity == 'fuel' then return false end
-        if amenity == 'motorcycle_rental' then return false end
-
-        -- All other amenities are rejected for ATP
-        return true
-    end
+    -- Amenities that carry a name but never a chain: public buildings,
+    -- street furniture, transport. Everything else stays — a post office, a
+    -- vending machine, a driving school or a vehicle inspection centre is
+    -- branded as often as a shop, and the matchable-keys filter below drops
+    -- the anonymous ones anyway.
+    if tags["amenity"] and not_a_chain_amenity[tags["amenity"]] then return true end
 
     return false
 end
