@@ -23,6 +23,7 @@
   <ul class="menu p-0 w-full gap-2">
     {{ nav_item('/',        'iconoir-home',    _('Home'),                  exact=true) }}
     {{ nav_item('/brands',  'iconoir-archery', _('Brands to integrate')) }}
+    {% if spiders_page_linked %}{{ nav_item('/spiders', 'icown-spider', _('Spiders')) }}{% endif %}
     {{ nav_item('/history', 'iconoir-clock',   _('Integration history')) }}
     {{ nav_item('/stats',   'iconoir-graph-up', _('Statistics')) }}
     {{ nav_item('/todo',    'iconoir-list',    _('Missing brands')) }}

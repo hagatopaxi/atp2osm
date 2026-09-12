@@ -270,6 +270,25 @@
         </div>
     </section>
 
+    {% if spiders_page_linked %}
+    <section>
+        <h2 class="text-lg font-semibold mb-3">{{ _('Reading the spider figures') }}</h2>
+        <p class="text-sm text-base-content/80 leading-relaxed mb-4">
+            {% trans link='/spiders' %}The <a href="{{ link }}" class="link link-primary">spiders</a> page counts what each AllThePlaces spider brings, step by step. Each figure is a subset of the one before it.{% endtrans %}
+        </p>
+        <div class="overflow-x-auto">
+        <table class="table table-sm bg-base-100">
+            <tbody>
+                <tr><th class="whitespace-nowrap">{{ _('Scraped here') }}</th><td>{{ _('The POIs the spider produced inside the country and its territories.') }}</td></tr>
+                <tr><th class="whitespace-nowrap">{{ _('Matched') }}</th><td>{{ _('Those with an OpenStreetMap object within 500 m sharing a brand, a name, an email, a phone or a website. The rest is either missing from OSM, or present without any attribute to recognise it by.') }}</td></tr>
+                <tr><th class="whitespace-nowrap">{{ _('To integrate') }}</th><td>{{ _('The matches with something left to do — a tag to add (wave 1) or to replace (wave 2), minus the subdivisions under cooldown. A POI on both waves counts twice, as two integrations. The brands page shows one wave at a time and only the brands carrying a Wikidata code, so its totals are lower.') }}</td></tr>
+                <tr><th class="whitespace-nowrap">{{ _('Integrated') }}</th><td>{{ _('The POIs actually written to OpenStreetMap through the brands the spider produces — a brand two spiders share counts for both.') }}</td></tr>
+            </tbody>
+        </table>
+        </div>
+    </section>
+    {% endif %}
+
     <section>
         <h2 class="text-lg font-semibold mb-3">{{ _('Licences') }}</h2>
         <div class="flex flex-col gap-3 text-sm">

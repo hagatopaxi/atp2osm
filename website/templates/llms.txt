@@ -9,6 +9,7 @@
 {% set descriptions = {
     'misc.home':       (_('Home'), _('introduction and integration statistics.')),
     'brands.brands':   (_('Brands to integrate'), _('the ATP brands available for integration.')),
+    'spiders.spiders': (_('Spiders'), _('the ATP spiders producing POIs of the country: deposit, matches and integrations.')),
     'history.history': (_('Integration history'), _('integrations carried out, dates and statuses.')),
     'stats.stats':     (_('Statistics'), _('metrics and charts of the integrations carried out.')),
     'todo.todo':       (_('Missing brands'), _('brands absent from ATP.')),

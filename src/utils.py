@@ -222,12 +222,13 @@ def build_filters(args, spec):
     return ("WHERE " + " AND ".join(where) if where else ""), params, active
 
 
-def filter_brands(rows, args):
+def filter_brands(rows, args, search=("brand", "brand_wikidata")):
     """Filter the brand list from the query string.
 
     Counterpart of build_filters() for an already in-memory list — see the comment
     in the /brands view for why. The only filter proper to this list is the
-    'never imported' status.
+    'never imported' status. `search` names the columns ?q= looks into; the
+    status and the period always read last_status and last_import.
 
     Returns (filtered_rows, active_filters).
     """
@@ -236,11 +237,7 @@ def filter_brands(rows, args):
     q = args.get("q", "").strip()
     if q:
         needle = q.lower()
-        rows = [
-            r
-            for r in rows
-            if needle in r["brand"].lower() or needle in r["brand_wikidata"].lower()
-        ]
+        rows = [r for r in rows if any(needle in (r[c] or "").lower() for c in search)]
         active["q"] = q
 
     status = args.get("status", "")
