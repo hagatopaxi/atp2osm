@@ -7,6 +7,7 @@ only the columns the expression touches.
 """
 
 import json
+import pathlib
 
 import psycopg
 import pytest
@@ -33,6 +34,9 @@ SCHEMA = """
     );
 """
 
+OPENING_HOURS_FN = (
+    pathlib.Path(__file__).parent.parent / "migrations" / "026_normalize_opening_hours_fn.sql"
+)
 POINT = "ST_SetSRID(ST_MakePoint(2.35, 48.85), 4326)"
 GEOJSON = '{"type":"Point","coordinates":[2.35,48.85]}'
 
@@ -41,6 +45,7 @@ GEOJSON = '{"type":"Point","coordinates":[2.35,48.85]}'
 def places(db_kwargs):
     with psycopg.connect(**db_kwargs) as conn:
         ensure_normalize_phone(conn)
+        conn.execute(OPENING_HOURS_FN.read_text())
         conn.execute(SCHEMA)
         conn.commit()
         yield conn
@@ -127,13 +132,24 @@ def test_whitespace_around_separators_is_not_a_difference(places):
     assert (tags, flag) == ({}, False)
 
 
-def test_no_whitespace_anywhere_is_a_difference(places):
+def test_a_spelling_is_not_a_difference(places):
+    """`Su closed`, a rule per day, a split midnight: ATP's dialect, same hours."""
+    tags, flag = modifiable(
+        places,
+        {"opening_hours": "Mo-We,Fr 09:00-02:00; Th 09:00-12:00; PH off"},
+        opening_hours="Mo 09:00-24:00; Tu-We 00:00-02:00,09:00-24:00; "
+        "Th 00:00-02:00,09:00-12:00; Fr 09:00-24:00; Sa 00:00-02:00; Su closed",
+    )
+    assert (tags, flag) == ({}, False)
+
+
+def test_the_replacement_is_written_the_osm_way(places):
     tags, _ = modifiable(
         places,
-        {"opening_hours": "Mo-Fr  08:00 - 12:00"},
-        opening_hours="Mo-Fr 08:00-12:00",
+        {"opening_hours": "Mo-Fr 08:00-18:00"},
+        opening_hours="Mo-Fr 08:00-19:00; Sa closed",
     )
-    assert tags == {}
+    assert tags == {"opening_hours": "Mo-Fr 08:00-19:00"}
 
 
 def test_different_hours_still_are(places):
@@ -143,3 +159,12 @@ def test_different_hours_still_are(places):
         opening_hours="Mo-Fr 08:00-19:00",
     )
     assert tags == {"opening_hours": "Mo-Fr 08:00-19:00"}
+
+
+def test_a_week_the_comparison_cannot_read_is_never_proposed(places):
+    """Seasonal or commented hours: overwriting them is a loss, so they are left to humans."""
+    for old in ("Jan-Mar Mo-Fr 09:00-12:00; Apr-Dec Mo-Fr 09:00-18:00",
+                'Mo-Fr 09:00-12:00 "sur rendez-vous"',
+                "PH off"):
+        tags, flag = modifiable(places, {"opening_hours": old}, opening_hours="Mo-Fr 08:00-19:00")
+        assert (tags, flag) == ({}, False), old

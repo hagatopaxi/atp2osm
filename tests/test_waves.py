@@ -64,6 +64,15 @@ def test_wave_2_rewrites_every_writing_present():
     }
 
 
+def test_wave_2_keeps_what_atp_never_scraped_of_the_hours():
+    """`PH off` was a contributor's; ATP only knows the week."""
+    res = match(
+        {"opening_hours": "Mo-Fr 08:00-18:00; Su off; PH off"},
+        {"opening_hours": "Mo-Sa 08:00-19:00"},
+    )
+    assert res["tag"] == {"opening_hours": "Mo-Sa 08:00-19:00; PH off"}
+
+
 def test_wave_2_never_adds_a_tag():
     """A hole is wave 1's business, and a brand is only ever on one wave."""
     assert match({"name": "Babylone"}, {"phone": "0123456789"}) is None
