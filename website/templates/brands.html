@@ -43,9 +43,27 @@
 {% endcall %}
 {% endif %}
 
+{# One tab per wave: a link that keeps the other filters and only swaps the
+   wave, so switching tabs is a plain request. #}
+{% set current_wave = filters.wave | default('') | string %}
+<div role="tablist" class="tabs tabs-box tabs-sm w-fit mb-4 shadow-none border border-base-content/20">
+    <a role="tab" class="tab gap-2 {{ 'tab-active' if current_wave == '' }}"
+       href="{{ url_for('brands.brands', **dict(request.args, wave='')) }}">
+        {{ _('All') }} <span class="badge badge-xs badge-soft badge-neutral">{{ total_brands }}</span>
+    </a>
+    {% for number in waves %}
+    <a role="tab" class="tab gap-2 {{ 'tab-active' if current_wave == number | string }}"
+       href="{{ url_for('brands.brands', **dict(request.args, wave=number)) }}">
+        <i class="{{ wave.icon(number) | trim }}"></i> {{ wave.label(number) | trim }}
+        <span class="badge badge-xs badge-soft {{ wave.color(number) | trim }}">{{ wave_counts[number] }}</span>
+    </a>
+    {% endfor %}
+</div>
+
 <form method="get" data-autosubmit>
 <input type="hidden" name="sort" value="{{ sort or '' }}" />
 <input type="hidden" name="dir" value="{{ direction }}" />
+<input type="hidden" name="wave" value="{{ current_wave }}" />
     <div class="flex flex-wrap items-end gap-3 mb-4">
         <div class="fieldset">
             <label class="fieldset-legend" for="filter-q">{{ _('Brand') }}</label>
