@@ -247,6 +247,11 @@ def filter_brands(rows, args):
         rows = [r for r in rows if status_group(r["last_status"]) == status]
         active["status"] = status
 
+    wave = args.get("wave", "")
+    if wave.isdigit():
+        rows = [r for r in rows if r["wave"] == int(wave)]
+        active["wave"] = int(wave)
+
     date_from = args.get("from", "").strip()
     if date_from:
         rows = [

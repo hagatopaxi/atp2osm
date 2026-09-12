@@ -3,10 +3,13 @@ import json
 import logging
 import re
 
+from collections import Counter
+
 from flask import (
     Blueprint,
     Response,
     abort,
+    make_response,
     redirect,
     render_template,
     request,
@@ -181,7 +184,12 @@ def brands():
     # replaying get_all()'s cooldowns. Worth switching if the list grows enough
     # that fetching it whole costs.
     all_brands = get_all(osmdb)
-    rows, filters = filter_brands(all_brands, request.args)
+    # The wave tab is remembered in a cookie, so a reader coming back lands on
+    # the tab they left; an explicit `wave=` (the "All" tab) clears it.
+    args = request.args.to_dict()
+    if "wave" not in args:
+        args["wave"] = request.cookies.get("brands_wave", "")
+    rows, filters = filter_brands(all_brands, args)
     sort = request.args.get("sort")
     direction = "asc" if request.args.get("dir") == "asc" else "desc"
     if sort in SORT_COLUMNS:
@@ -191,7 +199,7 @@ def brands():
             key=lambda r: (r[key] is None, r[key]),
             reverse=direction == "desc",
         )
-    return render_template(
+    response = make_response(render_template(
         "brands.html",
         rows=rows,
         total_brands=len(all_brands),
@@ -199,7 +207,10 @@ def brands():
         filters=filters,
         sort=sort,
         direction=direction,
-    )
+        wave_counts=Counter(r["wave"] for r in all_brands),
+    ))
+    response.set_cookie("brands_wave", args["wave"], max_age=365 * 86400, samesite="Lax")
+    return response
 
 
 @brands_bp.route("/brands/<brand_wikidata>/validate")
