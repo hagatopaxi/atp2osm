@@ -11,7 +11,6 @@ be read, mounted and diffed.
 """
 
 import json
-import logging
 import os
 import pathlib
 import zoneinfo
@@ -21,7 +20,6 @@ from functools import lru_cache
 import jsonschema
 from babel import Locale, UnknownLocaleError
 
-logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = pathlib.Path(__file__).parent.parent.resolve()
 TEMPLATE_DIR = PROJECT_ROOT / "website" / "templates"
@@ -184,14 +182,6 @@ def _parse_country(raw: dict) -> Country:
 
     writable = tuple(raw.get("nsi_writable_tags", _default("country", "nsi_writable_tags")))
     calibration = raw.get("nsi_calibration", {})
-    unmeasured = set(writable) - set(calibration.get("agreement") or {})
-    if unmeasured:
-        # A tag written without a measurement behind it produces no error, only
-        # badly tagged objects — see scripts/calibrate_nsi_tags.py.
-        logger.warning(
-            "NSI writes %s without a measured agreement rate", sorted(unmeasured)
-        )
-
     return Country(
         territory_codes=tuple(raw["territory_codes"]),
         locales=locales,

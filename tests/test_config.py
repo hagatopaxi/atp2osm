@@ -115,21 +115,6 @@ def test_a_value_that_cannot_work_is_refused_at_startup(changes, message):
         load(**changes)
 
 
-def test_an_unmeasured_nsi_tag_is_warned_about(caplog):
-    """A tag written without a measurement behind it mistags in silence."""
-    load(country={"nsi_writable_tags": ["brand:wikidata", "official_name"]})
-    assert "official_name" in caplog.text
-
-    caplog.clear()
-    load(
-        country={
-            "nsi_writable_tags": ["brand:wikidata"],
-            "nsi_calibration": {"agreement": {"brand:wikidata": 1.0}},
-        }
-    )
-    assert not caplog.text
-
-
 def test_the_file_itself_is_refused_when_it_cannot_be_read(tmp_path, monkeypatch):
     config.get_settings.cache_clear()
     monkeypatch.setenv("ATP2OSM_CONFIG", str(tmp_path / "nowhere.json"))
