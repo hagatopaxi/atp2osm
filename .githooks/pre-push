@@ -28,9 +28,7 @@ done
 
 uv sync --quiet
 
-# The DB-backed tests skip themselves without OSM_DB_*: load .env so they run.
-# The accessibility test (tests/test_a11y.py) needs node too: it runs pa11y-ci
-# through npx against a server it starts on the throwaway database.
+# The DB-backed tests need OSM_DB_*: load .env so they run.
 if [ ! -f .env ]; then
 	echo "pre-push: no .env, the database-backed tests cannot run" >&2
 	exit 1
@@ -43,12 +41,11 @@ fi
 
 uv run python -m compileall -q src scripts
 
-# Accessibility: pa11y-ci (axe + htmlcs, WCAG 2 AA) over the public pages,
-# read from the sitemap of this checkout's dev server (started if need be).
-url=$(./dev.sh up -d | grep -o 'http://[^ ]*')
-for _ in $(seq 30); do curl -sf "$url/sitemap.xml" >/dev/null && break; sleep 1; done
-if ! npx -y pa11y-ci --sitemap "$url/sitemap.xml"; then
-	echo "pre-push: accessibility checks failed on $url" >&2
+# Accessibility: pa11y-ci (axe + htmlcs, WCAG 2 AA) over every page, light
+# and dark, on a server the test starts on the throwaway database. Excluded
+# from the plain pytest run above by pyproject's addopts.
+if ! uv run --env-file .env pytest -q -m a11y; then
+	echo "pre-push: accessibility checks failed" >&2
 	exit 1
 fi
 echo "pre-push: ok"

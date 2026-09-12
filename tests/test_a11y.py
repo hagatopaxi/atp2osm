@@ -32,6 +32,8 @@ from tests.conftest import CONFIG, TEST_DB
 QID = "Q999001"
 SECRET = "test"
 
+pytestmark = pytest.mark.a11y
+
 PUBLIC = ["/", "/fr/", "/brands", "/history", "/stats", "/todo", "/docs"]
 LOGGED_IN = [
     f"/brands/{QID}/validate",

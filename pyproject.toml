@@ -28,4 +28,7 @@ dev = ["pytest>=9.0.2"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-addopts = ["--import-mode=importlib"]
+# The a11y run drives a browser over every page for a minute: not a unit
+# test, the pre-push hook runs it on its own (pytest -m a11y).
+addopts = ["--import-mode=importlib", "-m", "not a11y"]
+markers = ["a11y: browser accessibility checks, run by the pre-push hook"]
