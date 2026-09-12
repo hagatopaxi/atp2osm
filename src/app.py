@@ -1,6 +1,5 @@
 import logging
 import json
-import psycopg
 
 from flask import Flask, render_template
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -9,8 +8,7 @@ from src.config import TEMPLATE_DIR, STATIC_DIR, CACHE_DIR, get_settings
 from src.db import teardown_osmdb
 from src.extensions import cache
 from src import i18n
-from src.migrate import run_migrations
-from src.phone import ensure_normalize_phone
+from src import migrate
 from src.routes.auth import auth_bp
 from src.routes.brands import brands_bp
 from src.error_reasons import ERROR_REASONS
@@ -67,20 +65,11 @@ def parse_comment(value):
         return value
 
 
-def run_startup_tasks():
-    """Run migrations at server startup."""
-    try:
-        with psycopg.connect(**settings.db.connect_kwargs) as conn:
-            run_migrations(conn)
-            # Generated from the country, not migrated into the schema: a new
-            # country costs a configuration file, never a migration.
-            ensure_normalize_phone(conn)
-    except Exception:
-        logger.exception("Startup tasks failed.")
-        raise
-
-
-run_startup_tasks()
+# Production migrates once per deploy, before the container restarts (see
+# deploy/run): gunicorn workers never touch the schema. Development has no
+# deploy step, so the server does it at boot.
+if settings.is_dev:
+    migrate.main()
 
 
 @app.context_processor

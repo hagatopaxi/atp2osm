@@ -97,6 +97,17 @@ systemctl --user disable --now "${PROJECT_NAME}-refresh.timer" 2>/dev/null || tr
 systemctl --user disable --now "${CONTAINER_NAME}-refresh-osm.timer" 2>/dev/null || true
 rm -f "$SYSTEMD_USER_DIR/${CONTAINER_NAME}-refresh-osm.timer" "$SYSTEMD_USER_DIR/${CONTAINER_NAME}-refresh-osm.service"
 
+# Migrate once, here, before any worker boots: the workers never touch the
+# schema, so nothing races. A failed migration aborts the deploy and leaves the
+# running container as it was.
+echo "--> Migrating the database..."
+podman run --rm --network host \
+  -v "$CONFIG:/app/config.json:ro,Z" \
+  --env-file "$PROJECT_DIR/.env" \
+  --env ATP2OSM_CONFIG=/app/config.json --env GIT_COMMIT="$GIT_SHORT" \
+  "${IMAGE_NAME}:${GIT_SHORT}" \
+  uv run --no-sync python -m src.migrate
+
 # Reload systemd, restart container, enable refresh timer
 systemctl --user daemon-reload
 systemctl --user restart "${CONTAINER_NAME}.service"

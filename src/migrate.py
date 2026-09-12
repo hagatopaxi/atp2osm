@@ -76,17 +76,21 @@ def _run_python_migration(path, conn):
 
 
 def run_migrations(conn):
-    """Run all pending SQL migrations. Called at server startup."""
+    """Run all pending SQL migrations.
+
+    Production runs this once per deploy (`python -m src.migrate`, from
+    deploy/run) before the container restarts; development runs it at boot.
+    """
     logger.info("Checking for pending migrations...")
 
     with conn.cursor() as cursor:
         _ensure_schema_migrations_table(cursor)
         conn.commit()
 
-        # Every gunicorn worker runs this at boot: the lock serialises them, so
-        # the second one reads the first one's rows instead of racing it.
-        # Session level, so it survives the commit after each migration; it
-        # goes with the connection.
+        # In development every Flask reload runs this, and two workers may boot
+        # at once: the lock serialises them, so the second one reads the
+        # first one's rows instead of racing it. Session level, so it survives
+        # the commit after each migration; it goes with the connection.
         cursor.execute("SELECT pg_advisory_lock(hashtext('schema_migrations'));")
         applied = _get_applied_versions(cursor)
         migrations = _discover_migrations()
@@ -117,3 +121,22 @@ def run_migrations(conn):
                 raise
 
     logger.info("All migrations applied.")
+
+
+def main():
+    """Migrate the database once, outside any web worker."""
+    import psycopg
+    from src.config import get_settings
+    from src.phone import ensure_normalize_phone
+
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    settings = get_settings()
+    with psycopg.connect(**settings.db.connect_kwargs) as conn:
+        run_migrations(conn)
+        # Generated from the country, not migrated into the schema: a new
+        # country costs a configuration file, never a migration.
+        ensure_normalize_phone(conn)
+
+
+if __name__ == "__main__":
+    main()
