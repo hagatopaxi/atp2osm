@@ -34,7 +34,7 @@
            sign both say which is which — red −, green + — so the reading does
            not rest on colour alone. #}
         {% if k in item['replaced_tags_keys'] %}
-        <p class="text-error break-words">{{ minus() }}{% if k in item['diff'] %}{{ pieces(item['diff'][k][0]) }}{% else %}{{ item["old_tag"][k] }}{% endif %}</p>
+        <p class="text-error break-words">{{ minus() }}{% if key == 'website' %}<a href="{{ item['old_tag'][k] }}" target="_blank" class="link">{% endif %}{% if k in item['diff'] %}{{ pieces(item['diff'][k][0]) }}{% else %}{{ item["old_tag"][k] }}{% endif %}{% if key == 'website' %}</a>{% endif %}</p>
         {% endif %}
 
         {% if key == 'website' %}
