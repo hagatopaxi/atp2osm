@@ -228,6 +228,11 @@ body:has(#sidebar-toggle:not(:checked)) #sidebar .menu a {
 [data-theme] {
     --radius-selector: 9999px;
 }
+/* A pill never breaks across lines: a two-word badge in a tight column
+   would wrap into two half-pills. */
+.badge {
+    white-space: nowrap;
+}
 /* A join rounds its ends with --radius-field, the radius of inputs and
    buttons. A join made of badges takes the badges' radius instead, so a
    grouped badge is as much a pill as a lone one. */
