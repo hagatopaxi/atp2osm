@@ -1,8 +1,10 @@
 import json
 import logging
 import shutil
+import subprocess
 import zipfile
 from datetime import datetime, timezone
+from pathlib import Path
 from src.pipeline.constants import (
     ADMIN_LEVEL,
     ATP_DIR,
@@ -11,6 +13,8 @@ from src.pipeline.constants import (
     PARQUET_PATH,
     SPIDERS_PATH,
     ATP_HISTORY_URL,
+    ATP_REPO_DIR,
+    ATP_REPO_URL,
 )
 import duckdb
 import requests
@@ -93,6 +97,47 @@ def select_run(runs, last_date):
     raise RuntimeError("No ATP run could be downloaded")
 
 
+def spider_dates(repo: Path = ATP_REPO_DIR) -> dict[str, str]:
+    """Date of the last commit touching each spider file, keyed on its path.
+
+    A blobless clone: 20 MB for the whole history, and one walk over it gives
+    every file at once. --no-renames matters — rename detection reads the blobs,
+    and each one would be fetched on demand, one round-trip at a time.
+    """
+    if (repo / ".git").exists():
+        subprocess.run(["git", "-C", str(repo), "fetch", "--quiet"], check=True)
+        subprocess.run(
+            ["git", "-C", str(repo), "reset", "--quiet", "--soft", "origin/HEAD"],
+            check=True,
+        )
+    else:
+        subprocess.run(
+            ["git", "clone", "--quiet", "--filter=blob:none", "--no-checkout",
+             ATP_REPO_URL, str(repo)],
+            check=True,
+        )
+    log = subprocess.run(
+        ["git", "-C", str(repo), "log", "--no-renames", "--format=%cI",
+         "--name-only", "--", "locations/spiders"],
+        check=True, capture_output=True, text=True,
+    ).stdout
+    return _parse_dated_log(log)
+
+
+def _parse_dated_log(log: str) -> dict[str, str]:
+    """`git log --format=%cI --name-only` output: a date, then its files."""
+    dates: dict[str, str] = {}
+    date = None
+    for line in log.splitlines():
+        if not line:
+            continue
+        if line.startswith("locations/"):
+            dates.setdefault(line, date)  # newest first: the first one wins
+        else:
+            date = line
+    return dates
+
+
 def download_atp():
     conn = connect()
     try:
@@ -140,9 +185,19 @@ def download_atp():
             stats_path = ATP_DIR / "stats.json"
             with unavailable_if_unreachable("ATP"):
                 download_large_file(stats_url, stats_path)
-            with open(stats_path) as infile, open(SPIDERS_PATH, "w") as out:
-                out.write(json.dumps(json.loads(infile.read())["results"]))
+            with open(stats_path) as infile:
+                spiders = json.load(infile)["results"]
             stats_path.unlink()
+            # ponytail: GitHub down costs the dates of this run, not the run.
+            try:
+                dates = spider_dates()
+            except subprocess.CalledProcessError:
+                logger.exception("Could not date the spiders, leaving them undated")
+                dates = {}
+            for spider in spiders:
+                spider["updated_at"] = dates.get(spider["filename"])
+            with open(SPIDERS_PATH, "w") as out:
+                json.dump(spiders, out)
 
         logger.info("Downloaded ATP run %s", run.get("run_id"))
 
