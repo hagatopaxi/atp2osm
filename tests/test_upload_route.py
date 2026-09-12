@@ -162,7 +162,7 @@ def test_a_brand_under_cooldown_is_refused_and_nothing_is_sent(
     res = client.post("/brands/Q123/upload")
 
     assert res.status_code == 403
-    assert json.loads(res.data) == {"error": "Forbidden"}
+    assert json.loads(res.data) == {"errors": ["Brand under cooldown"]}
     assert subdivisions(migrated_conn) == []
 
 
@@ -175,7 +175,7 @@ def test_a_batch_over_the_limit_is_refused_and_nothing_is_sent(
     res = client.post("/brands/Q123/upload")
 
     assert res.status_code == 403
-    assert json.loads(res.data) == {"error": "Import too large"}
+    assert json.loads(res.data) == {"errors": ["Import too large"]}
     assert history(migrated_conn) == []
 
 

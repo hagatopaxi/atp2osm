@@ -6,6 +6,7 @@ import re
 from flask import (
     Blueprint,
     Response,
+    abort,
     redirect,
     render_template,
     request,
@@ -90,8 +91,8 @@ SORT_COLUMNS = {
 }
 
 
-def _get_blocking_import(brand_wikidata: str):
-    """Changeset-less import still under cooldown, or None.
+def _get_blocking_import(brand_wikidata: str, wave: int):
+    """Changeset-less import still under cooldown on this wave, or None.
 
     Only ever blocks the whole brand: a cancellation, or a pre-migration row,
     points at no subdivision in particular. Per-subdivision blocking lives in
@@ -104,10 +105,10 @@ def _get_blocking_import(brand_wikidata: str):
         return cursor.execute(
             f"""SELECT id, import_date, status
                 FROM ({BLOCKED_BRANDS_SQL}) blocking
-                WHERE brand_wikidata = %s
+                WHERE brand_wikidata = %s AND wave = %s
                 ORDER BY import_date DESC
                 LIMIT 1""",
-            (brand_wikidata,),
+            (brand_wikidata, wave),
         ).fetchone()
 
 
@@ -270,6 +271,9 @@ def brands_validate(brand_wikidata):
 @auth_required
 def brands_confirm(brand_wikidata):
     changes, _, wave = get_batch(brand_wikidata)
+    # A blocked brand is not in the list: only a forged URL lands here.
+    if _get_blocking_import(brand_wikidata, wave.number):
+        abort(403)
 
     if len(changes) == 0:
         return redirect(
@@ -314,19 +318,19 @@ def report_error(brand_wikidata):
 @brands_bp.route("/brands/<brand_wikidata>/upload", methods=["POST"])
 @auth_required
 def upload_changes(brand_wikidata):
-    if _get_blocking_import(brand_wikidata):
+    changes, _, wave = get_batch(brand_wikidata)
+    if _get_blocking_import(brand_wikidata, wave.number):
         return Response(
-            json.dumps({"error": "Forbidden"}),
+            json.dumps({"errors": ["Brand under cooldown"]}),
             status=403,
             mimetype="application/json",
         )
 
-    changes, _, wave = get_batch(brand_wikidata)
     # What select_batch truncates, upload must never exceed: last check before an
     # irreversible send. The size is the wave's — wave 2 sends one POI at a time.
     if len(changes) > wave.batch_size:
         return Response(
-            json.dumps({"error": "Import too large"}),
+            json.dumps({"errors": ["Import too large"]}),
             status=403,
             mimetype="application/json",
         )
