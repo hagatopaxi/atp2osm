@@ -47,7 +47,10 @@ HISTORY = []
 def seed(conn):
     """The osm2pgsql and ATP tables, shaped like the pipeline leaves them."""
     ensure_normalize_phone(conn)
+    # `_migrated` leaves empty stubs of the pipeline's tables; the real shape
+    # is built here.
     conn.execute("""
+        DROP TABLE IF EXISTS atp_places, atp_spiders;
         CREATE TABLE subdivisions (
             area_id SERIAL, osm_id INT8 NOT NULL, ref TEXT, name TEXT NOT NULL,
             admin_level INT NOT NULL, geom GEOMETRY(Geometry, 4326) NOT NULL
