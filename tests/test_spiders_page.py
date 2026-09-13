@@ -35,7 +35,7 @@ def test_history_is_borrowed_from_the_brands_and_deposit_counted_per_spider(migr
 
     shop, agg = rows["shop_fr"], rows["aggregator"]
     assert (shop["scraped"], shop["matched"], shop["integrated"]) == (2, 1, 10)
-    # Every wave: the cancellation puts Q1's wave 1 under cooldown, its wave 2
+    # Every wave: the recent success puts Q1's wave 1 under cooldown, its wave 2
     # stays; Q2's old success blocks nothing any more.
     assert (shop["to_integrate"], agg["to_integrate"]) == (1, 5)
     assert shop["last_status"] == "cancelled"

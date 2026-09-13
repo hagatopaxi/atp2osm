@@ -98,7 +98,9 @@ La reprise depuis les logs a en outre détaillé toutes les intégrations
 partielles : il ne reste aucune ligne `partial` sans enfants, et aucune
 intégration n'en produit plus. La règle des 2 semaines n'a donc jamais eu à
 exister ; le cooldown des lignes sans enfants se limite à 4 semaines
-(`cancelled`, `error`) et 3 mois (`success`).
+(`error`) et 3 mois (`success`). Un abandon (`cancelled`) n'a pas de
+cooldown : la marque reste cachée tant qu'aucun de ses spiders ATP n'a été
+modifié après l'abandon (date `updated_at` de `atp_spiders`).
 
 ## Processus fonctionnels
 
@@ -231,9 +233,11 @@ WHERE ih.brand_wikidata = %s
 
 **Intégrations sans changeset — blocage de la marque entière.** Un abandon
 (`cancelled`) signale une donnée jugée fautive, pas un département en
-particulier : il est juste que toute la marque s'efface pendant 4 semaines,
-comme aujourd'hui. Une marque sans rien à intégrer, et les rares lignes
-antérieures que la reprise n'a pas su détailler, relèvent du même cas. `partial`
+particulier : toute la marque s'efface, jusqu'à ce qu'un de ses spiders
+ait été modifié après l'abandon — c'est la seule chose qui puisse changer la
+donnée. Un spider sans date ne la fait jamais revenir. Une marque sans rien à
+intégrer, et les rares lignes antérieures que la reprise n'a pas su détailler,
+gardent le cooldown de leur statut. `partial`
 n'y figure pas : il suppose des lignes filles, et n'en manque plus aucune.
 
 ```sql
@@ -324,6 +328,8 @@ disponible
 bloqué (3 mois)  ──── rafraîchissement hebdo ────►  plus de correspondances
    │                                                 (le blocage devient sans objet)
    │  ou : intégration en échec → bloqué 4 semaines
+   │  ou : abandon → toute la marque, toutes vagues, bloquée jusqu'à
+   │       modification d'un de ses spiders
    ▼
 disponible
 ```
