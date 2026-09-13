@@ -30,8 +30,14 @@
 --
 -- The rules are read with OSM semantics: a later rule overrides an earlier
 -- one on the days it names. Returns NULL when no weekday rule is left.
+--
+-- A day the value declares closed (`Su off`, `Su closed`) is not written
+-- unless *with_off* asks for it: the wiki leaves an unmentioned day
+-- unknown, so what ATP knows closed is written `Su off` — but a value that
+-- only differs by it is not worth a changeset, so the comparison reads the
+-- hours alone.
 
-CREATE OR REPLACE FUNCTION normalize_opening_hours(oh TEXT) RETURNS TEXT
+CREATE OR REPLACE FUNCTION normalize_opening_hours(oh TEXT, with_off BOOLEAN DEFAULT false) RETURNS TEXT
 LANGUAGE plpgsql IMMUTABLE STRICT PARALLEL SAFE AS $$
 DECLARE
   day_names CONSTANT TEXT[] := ARRAY['Mo','Tu','We','Th','Fr','Sa','Su'];
@@ -41,6 +47,7 @@ DECLARE
   rule_re   TEXT;
   -- Per day, the open ranges as "start-end" minutes, comma-joined ("" = closed).
   hours     TEXT[] := ARRAY['','','','','','',''];
+  closed    BOOLEAN[] := ARRAY[false,false,false,false,false,false,false];
   rule      TEXT;
   additional BOOLEAN;
   m         TEXT[];
@@ -106,6 +113,7 @@ BEGIN
       LOOP
         hours[d] := CASE WHEN additional AND hours[d] <> '' AND spec <> ''
                          THEN hours[d] || ',' || spec ELSE spec END;
+        closed[d] := spec = '';
         EXIT WHEN d = d_to;
         d := d % 7 + 1;
       END LOOP;
@@ -161,14 +169,22 @@ BEGIN
   END IF;
 
   -- One rule per distinct set of hours, its days as `Mo-We,Fr`, in the order
-  -- of their first day. Closed days are simply not written.
-  FOR d IN 1..7 LOOP
-    CONTINUE WHEN hours[d] = '' OR hours[d] = ANY(seen);
-    seen := seen || hours[d];
-    group_days := '{}';
-    FOR nd IN d..7 LOOP
-      IF hours[nd] = hours[d] THEN group_days := group_days || nd; END IF;
-    END LOOP;
+  -- of their first day; the days declared closed last, as one `off` rule.
+  FOR d IN 1..8 LOOP
+    IF d = 8 THEN
+      EXIT WHEN NOT with_off OR NOT true = ANY(closed) OR out_rules = '{}';
+      group_days := '{}';
+      FOR nd IN 1..7 LOOP
+        IF closed[nd] AND hours[nd] = '' THEN group_days := group_days || nd; END IF;
+      END LOOP;
+    ELSE
+      CONTINUE WHEN hours[d] = '' OR hours[d] = ANY(seen);
+      seen := seen || hours[d];
+      group_days := '{}';
+      FOR nd IN d..7 LOOP
+        IF hours[nd] = hours[d] THEN group_days := group_days || nd; END IF;
+      END LOOP;
+    END IF;
 
     day_spec := '{}';
     run_start := group_days[1];
@@ -180,6 +196,11 @@ BEGIN
         run_start := group_days[nd + 1];
       END IF;
     END LOOP;
+
+    IF d = 8 THEN
+      out_rules := out_rules || (array_to_string(day_spec, ',') || ' off');
+      EXIT;
+    END IF;
 
     ranges := '{}';
     FOREACH tr IN ARRAY string_to_array(hours[d], ',') LOOP

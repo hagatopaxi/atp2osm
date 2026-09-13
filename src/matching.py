@@ -28,9 +28,10 @@ MATCHED_POI_SQL = """
         osm.tags as old_tags,
         ST_X(ST_Centroid(osm.geom)) AS lon,
         ST_Y(ST_Centroid(osm.geom)) AS lat,
-        -- Written the way OSM writes it (normalize_opening_hours): what is
-        -- compared below is also what gets written.
-        normalize_opening_hours(atp.opening_hours) AS atp_opening_hours,
+        -- Written the way OSM writes it (normalize_opening_hours), the days
+        -- ATP knows closed included: what is compared below is what gets
+        -- written, minus those.
+        normalize_opening_hours(atp.opening_hours, true) AS atp_opening_hours,
         atp.phone as atp_phone,
         atp.email as atp_email,
         atp.website as atp_website,
@@ -75,7 +76,7 @@ MATCHED_POI_SQL = """
                 -- merge_opening_hours writes it back. A value with no
                 -- readable week (NULL: seasonal, commented, lowercase…) is
                 -- left to humans, never overwritten.
-                ('opening_hours', normalize_opening_hours(atp.opening_hours),
+                ('opening_hours', normalize_opening_hours(atp.opening_hours, true),
                     normalize_opening_hours(osm.tags->>'opening_hours')
                         <> normalize_opening_hours(atp.opening_hours)),
                 ('email', atp.email,
