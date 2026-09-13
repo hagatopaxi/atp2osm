@@ -306,8 +306,15 @@ def get_all(osmdb):
             current.wave,
             current.total,
             ih.last_import,
-            ih.last_status
+            ih.last_status,
+            sp.spider_updated
         FROM current
+        LEFT JOIN (
+            SELECT p.brand_wikidata, MAX(s.updated_at) AS spider_updated
+            FROM atp_places p
+            JOIN atp_spiders s ON s.spider = p.spider_id
+            GROUP BY p.brand_wikidata
+        ) sp ON sp.brand_wikidata = current.brand_wikidata
         LEFT JOIN (
             SELECT DISTINCT ON (brand_wikidata)
                 brand_wikidata,

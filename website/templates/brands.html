@@ -161,6 +161,9 @@
             <td>
                 {% if row["last_import"] %}
                 {{ row["last_import"] | dateformat('short') }}
+                {% if row["last_status"] == "cancelled" and row["spider_updated"] %}
+                <br><small class="muted">{{ _('Spider') }} {{ row["spider_updated"] | dateformat('short') }}</small>
+                {% endif %}
                 {% else %}
                 {{ _('Never') }}
                 {% endif %}
