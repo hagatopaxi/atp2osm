@@ -8,14 +8,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-13 19:03+0200\n"
+"POT-Creation-Date: 2026-09-13 21:51+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #: src/upload.py:151
 #, python-format
@@ -420,15 +420,20 @@ msgstr ""
 msgid "Actions"
 msgstr ""
 
-#: website/templates/brands.html:127 website/templates/spiders.html:143
+#: website/templates/brands.html:127 website/templates/spiders.html:36
+#: website/templates/spiders.html:100
+msgid "Spider"
+msgstr ""
+
+#: website/templates/brands.html:130 website/templates/spiders.html:143
 msgid "Never"
 msgstr ""
 
-#: website/templates/brands.html:134
+#: website/templates/brands.html:137
 msgid "You must sign in"
 msgstr ""
 
-#: website/templates/brands.html:141 website/templates/docs.html:190
+#: website/templates/brands.html:144 website/templates/docs.html:190
 msgid "Integrate"
 msgstr ""
 
@@ -1123,10 +1128,6 @@ msgid_plural "%(count)s spiders producing POIs of the country — what they scra
 msgstr[0] ""
 msgstr[1] ""
 
-#: website/templates/spiders.html:36 website/templates/spiders.html:100
-msgid "Spider"
-msgstr ""
-
 #: website/templates/spiders.html:39
 msgid "Spider, brand or Wikidata code"
 msgstr ""
@@ -1454,7 +1455,7 @@ msgstr ""
 
 #: website/templates/brands/:brand_wikidata/confirm.html:73
 #: website/templates/brands/:brand_wikidata/rejected.html:23
-#: website/templates/brands/:brand_wikidata/validate.html:248
+#: website/templates/brands/:brand_wikidata/validate.html:251
 #: website/templates/todo.html:188
 msgid "Cancel"
 msgstr ""
@@ -1678,43 +1679,43 @@ msgid "Opening hours"
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:173
-msgid "NSI tags"
+msgid "Other tags"
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:196
+#: website/templates/brands/:brand_wikidata/validate.html:199
 #, python-format
 msgid "Map of %(title)s"
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:199
+#: website/templates/brands/:brand_wikidata/validate.html:202
 msgid "View in OSM"
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:209
+#: website/templates/brands/:brand_wikidata/validate.html:212
 msgid "Reject"
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:214
+#: website/templates/brands/:brand_wikidata/validate.html:217
 msgid "Accept"
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:220
+#: website/templates/brands/:brand_wikidata/validate.html:223
 msgid "Check the source before accepting."
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:231
+#: website/templates/brands/:brand_wikidata/validate.html:234
 msgid "Go to the next step"
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:237
+#: website/templates/brands/:brand_wikidata/validate.html:240
 msgid "Why are you rejecting this data?"
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:245
+#: website/templates/brands/:brand_wikidata/validate.html:248
 msgid "Explain here…"
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:247
+#: website/templates/brands/:brand_wikidata/validate.html:250
 msgid "Submit"
 msgstr ""
 
@@ -1740,5 +1741,13 @@ msgstr ""
 
 #: website/templates/errors/500.html:6
 msgid "Internal error, sorry."
+msgstr ""
+
+#: website/templates/errors/503.html:3
+msgid "503 - OpenStreetMap unavailable"
+msgstr ""
+
+#: website/templates/errors/503.html:6
+msgid "OpenStreetMap could not be reached: nothing was changed. Please try again in a few minutes."
 msgstr ""
 
