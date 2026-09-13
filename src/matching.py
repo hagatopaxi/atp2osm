@@ -28,9 +28,10 @@ MATCHED_POI_SQL = """
         osm.tags as old_tags,
         ST_X(ST_Centroid(osm.geom)) AS lon,
         ST_Y(ST_Centroid(osm.geom)) AS lat,
-        -- Written the way OSM writes it (normalize_opening_hours): what is
-        -- compared below is also what gets written.
-        normalize_opening_hours(atp.opening_hours) AS atp_opening_hours,
+        -- Written the way OSM writes it (normalize_opening_hours), the days
+        -- ATP knows closed included: what is compared below is what gets
+        -- written, minus those.
+        normalize_opening_hours(atp.opening_hours, true) AS atp_opening_hours,
         atp.phone as atp_phone,
         atp.email as atp_email,
         atp.website as atp_website,
@@ -75,7 +76,7 @@ MATCHED_POI_SQL = """
                 -- merge_opening_hours writes it back. A value with no
                 -- readable week (NULL: seasonal, commented, lowercase…) is
                 -- left to humans, never overwritten.
-                ('opening_hours', normalize_opening_hours(atp.opening_hours),
+                ('opening_hours', normalize_opening_hours(atp.opening_hours, true),
                     normalize_opening_hours(osm.tags->>'opening_hours')
                         <> normalize_opening_hours(atp.opening_hours)),
                 ('email', atp.email,
@@ -338,21 +339,21 @@ def apply_tag(tags: dict, key: str, value: Any) -> None:
 
 
 # The rules normalize_opening_hours reads, mirrored: weekdays (or none) then
-# times, off/closed or 24/7. The other rules of a value are what ATP never
-# scrapes. `PH` may sit in the day list: the holiday is kept as a rule of
-# its own, the weekdays are what got replaced.
+# times, off/closed or 24/7, an explicit `open` allowed. The other rules of
+# a value are what ATP never scrapes. `PH` may sit in the day list: the
+# holiday is kept as a rule of its own, the weekdays are what got replaced.
 _DAY = r"(?:Mo|Tu|We|Th|Fr|Sa|Su)"
 _SPEC = r"(?:\d{1,2}:\d{2}-\d{1,2}:\d{2}(?:,\d{1,2}:\d{2}-\d{1,2}:\d{2})*|off|closed|24/7)"
-_WEEKDAY_RULE = re.compile(rf"^({_DAY}(?:-{_DAY})?(?:,{_DAY}(?:-{_DAY})?)*)? ?{_SPEC}$")
+_WEEKDAY_RULE = re.compile(rf"^({_DAY}(?:-{_DAY})?(?:,{_DAY}(?:-{_DAY})?)*)? ?{_SPEC}(?: open)?$")
 _WEEKDAY_AND_PH_RULE = re.compile(
-    rf"^((?:{_DAY}(?:-{_DAY})?|PH)(?:,(?:{_DAY}(?:-{_DAY})?|PH))*) ?({_SPEC})$"
+    rf"^((?:{_DAY}(?:-{_DAY})?|PH)(?:,(?:{_DAY}(?:-{_DAY})?|PH))*) ?({_SPEC})(?: open)?$"
 )
-_PH_RULE = re.compile(rf"^PH ?{_SPEC}$")
-# A comma where the syntax wants a semicolon, between two rules.
-_COMMA_BETWEEN_RULES = re.compile(rf"(\d|off|closed)\s*,\s*(?=(?:{_DAY}|PH)\b)")
+_PH_RULE = re.compile(rf"^PH ?{_SPEC}(?: open)?$")
+# A comma between two rules: the second is additional to the first.
+_COMMA_BETWEEN_RULES = re.compile(rf"(\d|off|closed|open)\s*,\s*(?=(?:{_DAY}|PH)\b)")
 # What makes an unreadable rule speak of the week — the SQL function then
 # returns NULL and the value is never proposed. Checked again here: a rule
-# like that written back after ATP's week would override it.
+# like that written back next to ATP's week would override it.
 _SPEAKS_OF_WEEK = re.compile(rf"\b{_DAY}\b|\d{{1,2}}:\d{{2}}")
 
 
@@ -360,27 +361,34 @@ def merge_opening_hours(old: str, weekdays: str) -> str:
     """*old* with its weekday rules replaced by *weekdays*, the rest kept.
 
     ATP knows the week and nothing else: `PH off`, a `"sur rendez-vous"`
-    comment, the `||` fallback were written by a contributor and stay where
-    they are, after the new week. Mirrors normalize_opening_hours, which
-    left those very rules out of the comparison.
+    comment, the `||` fallback were written by a contributor and stay. Where
+    they stay matters — the rightmost rule wins, so `PH off; Mo-Su 09:00-18:00`
+    opens on a holiday Monday and `Mo-Su 09:00-18:00; PH off` does not: the
+    week takes the place of the first weekday rule, the other rules keep
+    their order around it. Mirrors normalize_opening_hours, which left those
+    very rules out of the comparison.
     """
     head, *fallback = old.split("||")
-    rest = []
+    rules = []
     for rule in _COMMA_BETWEEN_RULES.sub(r"\1;", head).split(";"):
         rule = rule.strip()
         if not rule:
             continue
         tidy = re.sub(r"\s*([,-])\s*", r"\1", re.sub(r"\s+", " ", rule))
         if _WEEKDAY_RULE.match(tidy):
-            continue
-        if (m := _WEEKDAY_AND_PH_RULE.match(tidy)) and "PH" in m[1].split(","):
-            rest.append(f"PH {m[2]}")
+            if weekdays not in rules:
+                rules.append(weekdays)
+        elif (m := _WEEKDAY_AND_PH_RULE.match(tidy)) and set(m[1].split(",")) > {"PH"}:
+            if weekdays not in rules:
+                rules.append(weekdays)
+            rules.append(f"PH {m[2]}")
         elif _SPEAKS_OF_WEEK.search(tidy) and not _PH_RULE.match(tidy):
             raise ValueError(f"opening_hours rule not read as a week, would override it: {rule!r}")
         else:
-            rest.append(rule)
-    merged = "; ".join([weekdays, *rest])
-    return " || ".join([merged, *(f.strip() for f in fallback)])
+            rules.append(rule)
+    if weekdays not in rules:
+        rules.insert(0, weekdays)
+    return " || ".join(["; ".join(rules), *(f.strip() for f in fallback)])
 
 
 def apply_on_node(atp_osm_match: dict, wave: int = 1) -> dict:

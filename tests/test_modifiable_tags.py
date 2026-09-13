@@ -149,7 +149,16 @@ def test_the_replacement_is_written_the_osm_way(places):
         {"opening_hours": "Mo-Fr 08:00-18:00"},
         opening_hours="Mo-Fr 08:00-19:00; Sa closed",
     )
-    assert tags == {"opening_hours": "Mo-Fr 08:00-19:00"}
+    assert tags == {"opening_hours": "Mo-Fr 08:00-19:00; Sa off"}
+
+
+def test_a_closed_day_alone_is_not_worth_a_changeset(places):
+    tags, flag = modifiable(
+        places,
+        {"opening_hours": "Mo-Fr 08:00-18:00"},
+        opening_hours="Mo-Fr 08:00-18:00; Sa closed",
+    )
+    assert (tags, flag) == ({}, False)
 
 
 def test_different_hours_still_are(places):

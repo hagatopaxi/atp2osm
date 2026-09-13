@@ -25,8 +25,10 @@ def normalize(db_kwargs):
         conn.execute(FN.read_text())
         conn.commit()
 
-        def _normalize(value):
-            return conn.execute("SELECT normalize_opening_hours(%s)", (value,)).fetchone()[0]
+        def _normalize(value, with_off=False):
+            return conn.execute(
+                "SELECT normalize_opening_hours(%s, %s)", (value, with_off)
+            ).fetchone()[0]
 
         yield _normalize
 
@@ -60,6 +62,37 @@ def test_one_writing_per_week(normalize, canonical, spellings):
     assert normalize(canonical) == canonical
     for spelling in spellings:
         assert normalize(spelling) == canonical, spelling
+
+
+def test_the_days_declared_closed_are_written_on_request(normalize):
+    """The wiki leaves an unmentioned day unknown; what ATP knows closed is
+    written `off`. Never compared: a `Su off` alone is not worth a changeset."""
+    assert normalize("Mo-Sa 09:00-19:00; Su closed", with_off=True) == "Mo-Sa 09:00-19:00; Su off"
+    assert normalize("Mo,We,Fr 09:00-19:00; Tu,Th off; Sa-Su closed", with_off=True) == "Mo,We,Fr 09:00-19:00; Tu,Th,Sa-Su off"
+    assert normalize("Mo-Sa 09:00-19:00", with_off=True) == "Mo-Sa 09:00-19:00"
+    assert normalize("Mo-Su off", with_off=True) is None
+    assert normalize("Mo-Su 00:00-24:00", with_off=True) == "24/7"
+    # A later rule reopens a day; a `PH off` is no weekday.
+    assert normalize("Mo-Su off; Mo-Fr 09:00-19:00; PH off", with_off=True) == "Mo-Fr 09:00-19:00; Sa-Su off"
+    # A midnight split closes nothing: ATP unmarks the day it spills into.
+    assert normalize("Fr 22:00-24:00; Sa 00:00-02:00; Su closed", with_off=True) == "Fr 22:00-02:00; Su off"
+
+
+def test_a_rule_after_a_comma_adds_to_the_days_it_names(normalize):
+    """The wiki's own example: Tu-Fr open morning and evening both."""
+    assert normalize("Mo-Fr 08:00-12:00, Tu-Sa 18:00-22:00") == "Mo 08:00-12:00; Tu-Fr 08:00-12:00,18:00-22:00; Sa 18:00-22:00"
+    assert normalize("Mo-Fr 08:00-12:00; Tu-Sa 18:00-22:00") == "Mo 08:00-12:00; Tu-Sa 18:00-22:00"
+    assert normalize("Mo 20:00-24:00, Tu 00:00-02:00") == "Mo 20:00-02:00"
+
+
+def test_overlapping_ranges_are_one(normalize):
+    assert normalize("Mo-Fr 08:00-14:00, Mo-Fr 12:00-18:00") == "Mo-Fr 08:00-18:00"
+    assert normalize("Mo-Fr 08:00-18:00, Mo-Fr 12:00-14:00") == "Mo-Fr 08:00-18:00"
+
+
+def test_an_explicit_open_says_nothing(normalize):
+    assert normalize("Mo-Fr 09:00-12:00 open") == "Mo-Fr 09:00-12:00"
+    assert normalize("Mo-Fr 09:00-12:00 open; PH off") == "Mo-Fr 09:00-12:00"
 
 
 def test_a_later_rule_overrides_the_days_it_names(normalize):
@@ -97,7 +130,6 @@ UNREADABLE = [
     "Jan-Mar Mo-Fr 09:00-12:00; Apr-Dec Mo-Fr 09:00-18:00",
     "week 1-26 Mo-Fr 09:00-12:00",
     'Mo-Fr 09:00-12:00 "sur rendez-vous"',
-    "Mo-Fr 09:00-12:00 open",
     "Mo-Fr 09:00+",
     "Mo-Fr 09:00-sunset",
     "mo-fr 09:00-12:00",
@@ -127,7 +159,13 @@ def test_merge_refuses_what_the_comparison_could_not_read(value):
     "old, written",
     [
         ("Mo-Fr 08:00-18:00; Su off; PH off", "Mo-Sa 08:00-19:00; PH off"),
-        ("PH off; Mo-Fr 08:00-18:00", "Mo-Sa 08:00-19:00; PH off"),
+        # The rightmost rule wins: a `PH off` written before the week was
+        # overridden by it, and stays so.
+        ("PH off; Mo-Fr 08:00-18:00", "PH off; Mo-Sa 08:00-19:00"),
+        ("Mo-Fr 08:00-18:00; PH off; Sa 09:00-12:00", "Mo-Sa 08:00-19:00; PH off"),
+        ("Mo-Fr 08:00-18:00 open; PH off", "Mo-Sa 08:00-19:00; PH off"),
+        ("Mo-Fr 08:00-12:00, Tu-Sa 18:00-22:00; PH off", "Mo-Sa 08:00-19:00; PH off"),
+        ('"sur rendez-vous"', 'Mo-Sa 08:00-19:00; "sur rendez-vous"'),
         ('Mo-Fr 08:00-18:00; "sur rendez-vous"', 'Mo-Sa 08:00-19:00; "sur rendez-vous"'),
         ("Mo-Fr 08:00-18:00 || Mo-Su 06:00-23:00 open", "Mo-Sa 08:00-19:00 || Mo-Su 06:00-23:00 open"),
         ("Mo-Fr 08:00-18:00;PH off;", "Mo-Sa 08:00-19:00; PH off"),
@@ -158,18 +196,20 @@ READABLE = [
     "Mo-Fr 08:00-18:00, Sa 09:00-12:00, PH off",
     "Mo-Fr 08:00-18:00; Su,PH 10:00-12:00",
     "Mo-Su,PH 09:00-21:30",
+    "PH off; Mo-Fr 08:00-18:00",
+    "Mo-Fr 08:00-12:00, Tu-Sa 18:00-22:00 open",
 ]
 
 
 @pytest.mark.parametrize("old", READABLE)
-@pytest.mark.parametrize("atp", ["Mo-Sa 08:00-19:00", "Mo-Fr 09:00-24:00; Sa 00:00-01:00", "Mo-Su 00:00-24:00"])
+@pytest.mark.parametrize("atp", ["Mo-Sa 08:00-19:00; Su closed", "Mo-Fr 09:00-24:00; Sa 00:00-01:00", "Mo-Su 00:00-24:00"])
 def test_what_is_written_reads_back_as_atps_week(normalize, old, atp):
     """The invariant between the two functions: the value a changeset leaves
     behind compares equal to ATP's, so the next refresh proposes nothing —
     and everything that was left out of the comparison is still there."""
-    atp_week = normalize(atp)
-    written = merge_opening_hours(old, atp_week)
-    assert normalize(written) == atp_week
+    written = merge_opening_hours(old, normalize(atp, with_off=True))
+    assert normalize(written) == normalize(atp)
+    assert ("Su off" in written) == ("Su closed" in atp)
     for kept in ("PH off", "PH closed", '"sur rendez-vous"', "|| Mo-Su 06:00-23:00 open"):
         assert (kept in old) == (kept in written), kept
     assert ("PH" in old) == ("PH" in written)
