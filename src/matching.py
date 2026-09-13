@@ -238,13 +238,24 @@ BLOCKED_DEPARTEMENTS_SQL = f"""
 # `partial` is absent: it implies some subdivisions succeeded and others failed,
 # hence child rows. The backfill (migration 016) detailed them all, and no import
 # produces a childless one any more.
+#
+# A cancellation has no cooldown: the contributor looked at the data and turned
+# it down, so the brand comes back when the data can have changed — one of its
+# spiders was edited after the cancellation. An undated spider never lifts it.
 BLOCKED_BRANDS_SQL = f"""
     SELECT ih.*
     FROM import_history ih
     WHERE NOT EXISTS (SELECT 1 FROM import_subdivisions sub WHERE sub.import_id = ih.id)
       AND (
-        (ih.status IN ('cancelled', 'error') AND {_within(ERROR_COOLDOWN)})
-        OR (ih.status = 'success'            AND {_within(SUCCESS_COOLDOWN)})
+        (ih.status = 'error'     AND {_within(ERROR_COOLDOWN)})
+        OR (ih.status = 'success' AND {_within(SUCCESS_COOLDOWN)})
+        OR (ih.status = 'cancelled' AND NOT EXISTS (
+            SELECT 1
+            FROM atp_places p
+            JOIN atp_spiders s ON s.spider = p.spider_id
+            WHERE p.brand_wikidata = ih.brand_wikidata
+              AND s.updated_at > ih.import_date
+        ))
       )
 """
 
@@ -272,7 +283,8 @@ UNBLOCKED_WAVES_SQL = f"""
       AND NOT EXISTS (
           SELECT 1 FROM ({BLOCKED_BRANDS_SQL}) blocked_brands
           WHERE blocked_brands.brand_wikidata = mvb.brand_wikidata
-            AND blocked_brands.wave = mvb.wave
+            -- A cancellation turns the brand down, not one wave of it.
+            AND (blocked_brands.wave = mvb.wave OR blocked_brands.status = 'cancelled')
       )
     GROUP BY mvb.brand_wikidata, mvb.wave
 """
@@ -294,8 +306,15 @@ def get_all(osmdb):
             current.wave,
             current.total,
             ih.last_import,
-            ih.last_status
+            ih.last_status,
+            sp.spider_updated
         FROM current
+        LEFT JOIN (
+            SELECT p.brand_wikidata, MAX(s.updated_at) AS spider_updated
+            FROM atp_places p
+            JOIN atp_spiders s ON s.spider = p.spider_id
+            GROUP BY p.brand_wikidata
+        ) sp ON sp.brand_wikidata = current.brand_wikidata
         LEFT JOIN (
             SELECT DISTINCT ON (brand_wikidata)
                 brand_wikidata,

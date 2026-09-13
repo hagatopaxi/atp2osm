@@ -145,6 +145,14 @@ def _migrated(db_kwargs):
 
     with psycopg.connect(**db_kwargs) as c:
         run_migrations(c)
+        # The pipeline's tables the site reads, empty: the cooldown SQL joins
+        # them, and a migration never creates them.
+        c.execute("""
+            CREATE TABLE atp_places (id TEXT, spider_id TEXT, brand_wikidata TEXT, brand TEXT);
+            CREATE TABLE atp_spiders (spider TEXT, filename TEXT, errors INT8, features INT8,
+                                      elapsed_time FLOAT8, updated_at TIMESTAMPTZ);
+        """)
+        c.commit()
     return db_kwargs
 
 

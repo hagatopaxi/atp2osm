@@ -108,7 +108,7 @@ def _get_blocking_import(brand_wikidata: str, wave: int):
         return cursor.execute(
             f"""SELECT id, import_date, status
                 FROM ({BLOCKED_BRANDS_SQL}) blocking
-                WHERE brand_wikidata = %s AND wave = %s
+                WHERE brand_wikidata = %s AND (wave = %s OR status = 'cancelled')
                 ORDER BY import_date DESC
                 LIMIT 1""",
             (brand_wikidata, wave),
