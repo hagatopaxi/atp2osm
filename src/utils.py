@@ -19,14 +19,6 @@ def delete_file_if_exists(file_path):
 
 
 
-def clean_debug_folder():
-    for file_path in os.listdir("./data/debug"):
-        os.remove(f"./data/debug/{file_path}")
-
-
-print
-
-
 def download_large_file(
     url: str,
     destination: str | Path,

@@ -1024,3 +1024,28 @@ def test_a_failed_brand_view_leaves_the_live_one_and_the_retired_chain(refreshed
 
     assert oid(refreshed, "mv_places_brand") == built
     assert relations(refreshed, "_old") == retired
+
+
+# =============================================================================
+# The site reads what the pipeline built
+# =============================================================================
+
+
+def test_the_review_reads_its_proposals_off_the_views(refreshed):
+    """brand_matches, unstaged: the matching SQL on the tables and views the
+    refresh just built, through to the proposals the review page shows."""
+    from psycopg.rows import dict_row
+
+    from src.matching import get_changes, get_filtered
+
+    atp2osm.create_mv_places_brand()
+    with refreshed.cursor(row_factory=dict_row) as cur:
+        get_filtered(cur, brand="Q1")
+        changes = get_changes(cur, wave=1)
+
+    (change,) = changes
+    assert (change["node_type"], change["id"]) == ("node", 101)
+    assert change["tag"]["phone"] == "+33 1 00 00 00 00"
+    assert change["old_tag"] == {"name": "Babylone", "shop": "clothes", "brand:wikidata": "Q1"}
+    assert (change["subdivision_code"], change["subdivision_name"]) == ("75", "Paris")
+    assert change["osm_timestamp"] is not None
