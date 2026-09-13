@@ -138,6 +138,41 @@ def _parse_dated_log(log: str) -> dict[str, str]:
     return dates
 
 
+def load_spiders(cur, path: Path, table: str) -> None:
+    """Build `table` from spiders.json, on a declared schema.
+
+    The file is ATP's stats.json plus the `updated_at` the download step adds:
+    inferring the columns from it gave the site a column that was missing,
+    JSON or VARCHAR depending on the file of the day. A column the site reads
+    from here needs a bridging migration too (AGENTS.md, "Pipeline tables and
+    the site"): production keeps the old table until this step runs again.
+    """
+    with open(path) as infile:
+        spiders = json.load(infile)
+    cur.execute(
+        sql.SQL("""
+            CREATE TABLE {} (
+                spider TEXT PRIMARY KEY,
+                filename TEXT,
+                errors INT8,
+                features INT8,
+                elapsed_time FLOAT8,
+                updated_at TIMESTAMPTZ
+            )
+        """).format(sql.Identifier(table))
+    )
+    cur.executemany(
+        sql.SQL("INSERT INTO {} VALUES (%s, %s, %s, %s, %s, %s)").format(
+            sql.Identifier(table)
+        ),
+        [
+            (s["spider"], s.get("filename"), s.get("errors"), s.get("features"),
+             s.get("elapsed_time"), s.get("updated_at"))
+            for s in spiders
+        ],
+    )
+
+
 def download_atp():
     conn = connect()
     try:
@@ -407,24 +442,13 @@ def import_atp():
                 _matview.create_indexes(cur, "atp_places_new", ATP_PLACES_INDEXES)
             conn.commit()
 
-            # A column the site reads from here needs a bridging migration too
-            # (AGENTS.md, "Pipeline tables and the site"): production keeps the
-            # old table until this step runs again.
             logger.info("Creating atp_spiders table...")
-            ddb.execute(f"""
-                CREATE TABLE pg.atp_spiders_new AS
-                SELECT *
-                FROM read_json('{SPIDERS_PATH}')
-                WHERE spider IN (SELECT DISTINCT spider_id FROM pg.atp_places_new)
-            """)
-
             with conn.cursor() as cur:
-                # The columns come from the JSON: a spiders.json written before
-                # the dating existed has no updated_at, and the site reads it.
-                cur.execute(
-                    "ALTER TABLE atp_spiders_new"
-                    " ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ"
-                )
+                load_spiders(cur, SPIDERS_PATH, "atp_spiders_new")
+                cur.execute("""
+                    DELETE FROM atp_spiders_new
+                    WHERE spider NOT IN (SELECT DISTINCT spider_id FROM atp_places_new)
+                """)
                 _matview.swap(
                     cur, "TABLE", "atp_places", "atp_places_new", ATP_PLACES_INDEXES
                 )
