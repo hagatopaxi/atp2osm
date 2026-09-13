@@ -1,0 +1,149 @@
+{% extends '_base.html' %}
+{% from '_sort_th.html' import sort_th with context %}
+{% from '_period_filter.html' import period_filter with context %}
+
+{% block meta_description %}{% trans count=total_spiders %}The {{ count }} AllThePlaces spiders producing POIs of the country: what they scrape, what matches OpenStreetMap, what was integrated through atp2osm.{% endtrans %}{% endblock %}
+{% block page_title %}{{ _('Spiders') }}{% endblock %}
+{% block og_title %}{{ _('Spiders') }} — atp2osm{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "{{ _('Home') }}", "item": "{{ request.host_url }}" },
+    { "@type": "ListItem", "position": 2, "name": "{{ _('Spiders') }}" }
+  ]
+}
+</script>
+{% endblock %}
+
+{% block title %}{{ _('AllThePlaces spiders') }}{% endblock %}
+{% block subtitle %}{% trans count=total_spiders %}{{ count }} spider producing POIs of the country — what it scrapes here, what matches OpenStreetMap, what was integrated.{% pluralize %}{{ count }} spiders producing POIs of the country — what they scrape here, what matches OpenStreetMap, what was integrated.{% endtrans %}{% endblock %}
+
+{% block custom_js %}
+<script src="/static/js/filters.js?v={{ app_version }}"></script>
+<script src="/static/js/infinite-scroll.js?v={{ app_version }}" defer></script>
+{% endblock %}
+
+{% block content %}
+<form method="get" data-autosubmit>
+<input type="hidden" name="sort" value="{{ sort or '' }}" />
+<input type="hidden" name="dir" value="{{ direction }}" />
+    <div class="flex flex-wrap items-end gap-3 mb-4">
+        <div class="fieldset">
+            <label class="fieldset-legend" for="filter-q">{{ _('Spider') }}</label>
+            <label class="input input-sm w-56">
+                <i class="iconoir-search opacity-50"></i>
+                <input type="search" id="filter-q" name="q" value="{{ filters.q or '' }}" placeholder="{{ _('Spider, brand or Wikidata code') }}"
+                    {{ 'autofocus' if filters.q }} />
+            </label>
+        </div>
+        <fieldset class="fieldset">
+            <legend class="fieldset-legend">{{ _('ATP run') }}</legend>
+            <div class="filter">
+                <input class="btn btn-sm filter-reset" type="radio" name="run" value="" aria-label="{{ _('All') }}" />
+                <input class="btn btn-sm btn-success" type="radio" name="run" value="ok" aria-label="{{ _('Without error') }}" {{ 'checked' if filters.run == 'ok' }} />
+                <input class="btn btn-sm btn-error" type="radio" name="run" value="failed" aria-label="{{ _('With errors') }}" {{ 'checked' if filters.run == 'failed' }} />
+            </div>
+        </fieldset>
+        <fieldset class="fieldset">
+            <legend class="fieldset-legend">{{ _('Previous status') }}</legend>
+            <div class="filter">
+                <input class="btn btn-sm filter-reset" type="radio" name="status" value="" aria-label="{{ _('All') }}" />
+                {% for value, label, color in [
+                    ('none',      _('Never integrated'), ''),
+                    ('success',   _('Success'),          'btn-success'),
+                    ('partial',   _('Partial'),          'btn-warning'),
+                    ('cancelled', _('Cancelled'),        'btn-info'),
+                    ('error',     _('Error'),            'btn-error')
+                ] %}
+                <input class="btn btn-sm {{ color }}" type="radio" name="status" value="{{ value }}"
+                    aria-label="{{ label }}" {{ 'checked' if filters.status == value }} />
+                {% endfor %}
+            </div>
+        </fieldset>
+        {{ period_filter(filters, _('Last integration')) }}
+        <div class="fieldset">
+            <span class="fieldset-legend">&nbsp;</span>
+            <div class="join">
+                <button type="submit" class="btn btn-sm btn-primary join-item">{{ _('Filter') }}</button>
+                <a href="{{ url_for('spiders.spiders') }}" class="btn btn-sm btn-soft join-item">{{ _('Reset') }}</a>
+            </div>
+        </div>
+        <span class="text-sm muted ml-auto mb-2">{% trans count=shown %}{{ count }} spider{% pluralize %}{{ count }} spiders{% endtrans %}</span>
+    </div>
+</form>
+
+{% if shown == 0 %}
+<p class="muted">{{ _('No spider matches these filters.') }}</p>
+{% endif %}
+
+{% set status_labels = {
+    "success":   _('Success'),
+    "partial":   _('Partial'),
+    "cancelled": _('Cancelled'),
+    "error":     _('Error')
+} %}
+{% set status_classes = {
+    "success":   "badge-success",
+    "partial":   "badge-warning",
+    "cancelled": "badge-info",
+    "error":     "badge-error"
+} %}
+
+<div class="overflow-x-auto shrink-0">
+<table data-infinite-scroll class="table table-compact bg-base-100 rounded-2">
+    <thead>
+        <tr>
+            {{ sort_th('spiders.spiders', 'spider', _('Spider')) }}
+            <th>{{ _('Brands') }}</th>
+            <th>{{ _('ATP run') }}</th>
+            {{ sort_th('spiders.spiders', 'updated', _('Last change')) }}
+            {{ sort_th('spiders.spiders', 'scraped', _('Scraped here')) }}
+            {{ sort_th('spiders.spiders', 'matched', _('Matched')) }}
+            {{ sort_th('spiders.spiders', 'to_integrate', _('To integrate')) }}
+            {{ sort_th('spiders.spiders', 'integrated', _('Integrated')) }}
+            {{ sort_th('spiders.spiders', 'status', _('Previous status')) }}
+            {{ sort_th('spiders.spiders', 'last_import', _('Last integration')) }}
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in rows %}
+        <tr>
+            <td>
+                <a class="link font-mono" href="https://github.com/alltheplaces/alltheplaces/blob/master/{{ row['filename'] }}"
+                   target="_blank" rel="noopener">{{ row["spider"] }}</a>
+            </td>
+            <td class="md:max-w-xs">
+                {% for wikidata, name in row["brand_list"] or [] %}
+                {{ ' / ' if not loop.first }}<a class="link whitespace-nowrap" href="{{ url_for('brands.brands', q=wikidata) }}">{{ name }}</a>
+                {% else %}—{% endfor %}
+            </td>
+            <td>
+                {% if row["errors"] == 0 %}
+                <span class="badge badge-success" title="{% trans count=row['features'] %}{{ count }} POI worldwide{% pluralize %}{{ count }} POIs worldwide{% endtrans %}">{{ _('Without error') }}</span>
+                {% else %}
+                <span class="badge badge-error" title="{% trans count=row['errors'] %}{{ count }} error{% pluralize %}{{ count }} errors{% endtrans %}">{{ _('With errors') }}</span>
+                {% endif %}
+            </td>
+            <td>{{ row["updated_at"] | dateformat('short') if row["updated_at"] else '—' }}</td>
+            <td>{{ row["scraped"] }}</td>
+            <td>{{ row["matched"] }}</td>
+            <td>{{ row["to_integrate"] }}</td>
+            <td>{{ row["integrated"] }}</td>
+            <td>
+                {% if row["last_status"] %}
+                <span class="badge {{ status_classes.get(row['last_status'], 'badge-ghost') }}">{{ status_labels.get(row['last_status'], row['last_status']) }}</span>
+                {% else %}
+                <span class="badge badge-ghost">—</span>
+                {% endif %}
+            </td>
+            <td>{{ row["last_import"] | dateformat('short') if row["last_import"] else _('Never') }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+{% endblock %}

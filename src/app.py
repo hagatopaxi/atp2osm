@@ -16,6 +16,7 @@ from src.matching import WAVES_BY_NUMBER
 from src.routes.export import export_bp
 from src.routes.history import history_bp
 from src.routes.misc import misc_bp
+from src.routes.spiders import SPIDERS_PAGE_LINKED, spiders_bp
 from src.routes.stats import stats_bp
 from src.routes.todo import todo_bp
 
@@ -25,7 +26,7 @@ settings = get_settings()  # fail fast at startup if any required env var is mis
 
 # The pages that exist in every language. Everything else — assets, the API,
 # the OAuth callback, robots.txt — stays language-free.
-TRANSLATED_PATHS = ("/", "/brands", "/history", "/stats", "/todo", "/docs")
+TRANSLATED_PATHS = ("/", "/brands", "/spiders", "/history", "/stats", "/todo", "/docs")
 
 app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
@@ -48,6 +49,7 @@ i18n.init_app(
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(brands_bp)
+app.register_blueprint(spiders_bp)
 app.register_blueprint(export_bp)
 app.register_blueprint(history_bp)
 app.register_blueprint(misc_bp)
@@ -84,6 +86,7 @@ def inject_globals():
         # The waves themselves — numbers and batch sizes are data; their
         # labels are in _wave.html, where a locale exists to resolve them.
         "waves": WAVES_BY_NUMBER,
+        "spiders_page_linked": SPIDERS_PAGE_LINKED,
     }
 
 

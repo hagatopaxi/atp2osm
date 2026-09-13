@@ -9,6 +9,7 @@ from staticmap import StaticMap, CircleMarker
 
 from src.config import STATIC_DIR
 from src.db import get_osmdb
+from src.routes.spiders import SPIDERS_PAGE_LINKED
 from src.extensions import cache
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,7 @@ misc_bp = Blueprint("misc", __name__)
 PUBLIC_PAGES = (
     "misc.home",
     "brands.brands",
+    *(("spiders.spiders",) if SPIDERS_PAGE_LINKED else ()),
     "history.history",
     "stats.stats",
     "todo.todo",

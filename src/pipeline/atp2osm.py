@@ -30,11 +30,24 @@ def _mv_places_brand_sql(name: str = "mv_places_brand") -> str:
     """
 
 
+def _mv_places_spider_sql(name: str = "mv_places_spider") -> str:
+    # ATP POIs that met an OSM object, per spider — the /spiders page's
+    # "matched" column. Counted before the wave flags: a match with nothing
+    # left to integrate is still a match, that is what measures the deposit.
+    return f"""
+        CREATE MATERIALIZED VIEW {name} AS
+        SELECT spider_id, COUNT(*) AS matched
+        FROM ({matched_poi_sql("TRUE")}) matched
+        GROUP BY spider_id
+    """
+
+
 # What the upstream steps retire, readers first: the old brand view hangs on
 # mv_places_old, which hangs on points_old and polygons_old. Nothing hangs on
 # the old brand view, so the whole chain frees up here, once it is swapped.
 _RETIRED = (
     ("MATERIALIZED VIEW", "mv_places_brand"),
+    ("MATERIALIZED VIEW", "mv_places_spider"),
     ("MATERIALIZED VIEW", "mv_places"),
     ("TABLE", "atp_places"),
     ("TABLE", "atp_spiders"),
@@ -67,7 +80,9 @@ def create_mv_places_brand():
             last_import_date(conn, "atp"),
             last_import_comment(conn, "nsi"),  # the NSI version string
         )
-        if _matview.is_current(conn, "mv_places_brand", signature):
+        if _matview.is_current(conn, "mv_places_brand", signature) and (
+            _matview.is_current(conn, "mv_places_spider", signature)
+        ):
             logger.info("mv_places_brand already up-to-date, skipping")
             return
 
@@ -83,6 +98,13 @@ def create_mv_places_brand():
             _matview.stamp(cur, "mv_places_brand_new", signature)
             _matview.swap(
                 cur, "MATERIALIZED VIEW", "mv_places_brand", "mv_places_brand_new"
+            )
+            cur.execute("DROP MATERIALIZED VIEW IF EXISTS mv_places_spider_new;")
+            logger.info("Creating mv_places_spider...")
+            cur.execute(_mv_places_spider_sql("mv_places_spider_new"))
+            _matview.stamp(cur, "mv_places_spider_new", signature)
+            _matview.swap(
+                cur, "MATERIALIZED VIEW", "mv_places_spider", "mv_places_spider_new"
             )
             _drop_retired(cur)
         conn.commit()

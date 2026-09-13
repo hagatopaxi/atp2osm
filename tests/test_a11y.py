@@ -25,7 +25,7 @@ from flask import Flask
 from flask.sessions import SecureCookieSessionInterface
 
 from src.phone import ensure_normalize_phone
-from src.pipeline.atp2osm import _mv_places_brand_sql
+from src.pipeline.atp2osm import _mv_places_brand_sql, _mv_places_spider_sql
 from src.pipeline.osm import _mv_places_sql
 from tests.conftest import CONFIG, TEST_DB
 
@@ -34,7 +34,7 @@ SECRET = "test"
 
 pytestmark = pytest.mark.a11y
 
-PUBLIC = ["/", "/fr/", "/brands", "/history", "/stats", "/todo", "/docs"]
+PUBLIC = ["/", "/fr/", "/brands", "/spiders", "/history", "/stats", "/todo", "/docs"]
 LOGGED_IN = [
     f"/brands/{QID}/validate",
     f"/brands/{QID}/confirm",
@@ -106,6 +106,15 @@ def seed(conn):
             ('nsi', NOW() - INTERVAL '1 day', 'success', 'v6.0.20260901'),
             ('pipeline', NOW() - INTERVAL '1 day', 'success', NULL);
 
+        CREATE TABLE atp_spiders (
+            spider TEXT, filename TEXT, errors INT8, features INT8,
+            elapsed_time FLOAT8, updated_at TIMESTAMPTZ
+        );
+        INSERT INTO atp_spiders VALUES
+            ('babylone_fr', 'locations/spiders/babylone_fr.py', 0, 2, 1.5,
+             NOW() - INTERVAL '3 days'),
+            ('broken_fr', 'locations/spiders/broken_fr.py', 3, 0, 0.1, NULL);
+
         INSERT INTO todo_brands (brand_wikidata, brand_name, osm_user_id, estimation)
         VALUES ('Q999002', 'Missing Brand', 42, 120);
     """)
@@ -136,6 +145,7 @@ def seed(conn):
     """, (rows[0][0], rows[2][0], rows[2][0]))
     conn.execute(_mv_places_sql())
     conn.execute(_mv_places_brand_sql())
+    conn.execute(_mv_places_spider_sql())
     conn.commit()
 
 
@@ -188,8 +198,9 @@ def server(_migrated, tmp_path_factory):
     with psycopg.connect(**_migrated) as conn:
         conn.execute("""
             DROP MATERIALIZED VIEW IF EXISTS mv_places_brand;
+            DROP MATERIALIZED VIEW IF EXISTS mv_places_spider;
             DROP MATERIALIZED VIEW IF EXISTS mv_places;
-            DROP TABLE IF EXISTS atp_places, points, polygons,
+            DROP TABLE IF EXISTS atp_places, atp_spiders, points, polygons,
                                  subdivisions, subdivision_parts
         """)
         conn.commit()

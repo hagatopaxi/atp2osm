@@ -21,6 +21,10 @@ SPLIT_DIR = ATP_DIR / "split"
 PARQUET_PATH = ATP_DIR / "latest.parquet"
 SPIDERS_PATH = ATP_DIR / "spiders.json"
 ATP_HISTORY_URL = "https://data.alltheplaces.xyz/runs/history.json"
+# Blobless clone of the spiders' source, kept between runs and fetched
+# incrementally: it dates each spider's last change for the /spiders page.
+ATP_REPO_URL = "https://github.com/alltheplaces/alltheplaces.git"
+ATP_REPO_DIR = ATP_DIR / "alltheplaces"
 GEOFABRIK_BASE = "https://download.geofabrik.de"
 
 # NSI (name-suggestion-index). dist/ is no longer committed on the GitHub main
