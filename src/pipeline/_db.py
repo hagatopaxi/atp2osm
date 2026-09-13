@@ -1,6 +1,15 @@
+import os
+
 import psycopg
 
 from src.config import get_database
+
+
+def forced() -> bool:
+    """ATP2OSM_FORCE=1: every step rebuilds as if nothing had ever been
+    imported. Every guard reads the previous run through the helpers below
+    or through _matview.is_current, so this is the one place to lie."""
+    return bool(os.environ.get("ATP2OSM_FORCE"))
 
 
 def connect():
@@ -8,6 +17,8 @@ def connect():
 
 
 def last_import_date(conn, import_type):
+    if forced():
+        return None
     with conn.cursor() as cur:
         cur.execute(
             # NULLS LAST: pending and error rows carry no date.
@@ -21,6 +32,8 @@ def last_import_date(conn, import_type):
 
 def last_import_comment(conn, import_type):
     """Comment of the last resolved import — NSI stores its npm version there."""
+    if forced():
+        return None
     with conn.cursor() as cur:
         cur.execute(
             "SELECT comment FROM data_imports WHERE type=%s AND status <> 'pending'"

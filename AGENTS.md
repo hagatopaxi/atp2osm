@@ -77,6 +77,9 @@ podman-compose run osm2pgsql osm2pgsql --output flex -S /osm2pgsql/generic.lua -
 #   systemctl --user start atp2osm-gwenael-leger-fr-refresh.service
 # Manual trigger locally:
 #   ATP2OSM_CONFIG=./config.json OSM_DB_PASSWORD=... ./run-pipeline.sh
+# Rebuild everything, ignoring what data_imports and the table stamps say
+# was already done (a file the code now reads differently, a doubt):
+#   ATP2OSM_FORCE=1 ./run-pipeline.sh
 
 # Import a fraction of the country instead of the nine extracts: shorten the
 # `geofabrik` list of a configuration file of your own, and point
