@@ -32,6 +32,7 @@ def download_large_file(
     destination: str | Path,
     chunk_size: int = 8192,
     progress_interval: int = 15,
+    session: requests.Session | None = None,
 ) -> None:
     """
     Stream a file from *url* to *destination* while printing a progress
@@ -51,7 +52,7 @@ def download_large_file(
         # ``stream=True`` gives us an iterator over the response body.
         # (connect, read): Geofabrik keeps the socket open but idle when loaded;
         # 30 s of read timeout was enough to kill a multi-GB download.
-        with requests.get(url, stream=True, timeout=(10, 120)) as resp:
+        with (session or requests).get(url, stream=True, timeout=(10, 120)) as resp:
             resp.raise_for_status()
 
             # Try to obtain the total size from the HTTP header.

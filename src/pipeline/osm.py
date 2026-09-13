@@ -31,11 +31,15 @@ from src.utils import delete_file_if_exists, download_large_file
 
 logger = logging.getLogger(__name__)
 
-# Geofabrik hands out 502/503 for a few minutes at a time. Retry with backoff
-# instead of failing the whole nightly run on a transient blip.
+# Geofabrik hands out 502/503 for a few minutes at a time, and sometimes lets
+# a TLS handshake hang. Retry with backoff instead of failing the whole
+# nightly run on a transient blip. Connection errors are retried too; a read
+# timeout mid-stream is not, it would restart a multi-GB download from scratch.
 _session = requests.Session()
 _session.mount("https://", HTTPAdapter(max_retries=Retry(
     total=5,
+    connect=5,
+    read=0,
     backoff_factor=5,          # waits 0, 5, 10, 20, 40s
     status_forcelist=(429, 500, 502, 503, 504),
     allowed_methods=("GET", "HEAD"),
@@ -153,7 +157,7 @@ def download_pbf():
         logger.info("Downloading %s...", name)
         pbf_path.parent.mkdir(parents=True, exist_ok=True)
         try:
-            download_large_file(region["url"], pbf_path)
+            download_large_file(region["url"], pbf_path, session=_session)
         except Exception:
             delete_file_if_exists(pbf_path)
             raise
