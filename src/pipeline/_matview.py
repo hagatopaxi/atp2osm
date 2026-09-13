@@ -18,7 +18,10 @@ that never lands. Whatever an object reads, pass it here.
 
 import hashlib
 
+
 from psycopg import sql
+
+from src.pipeline._db import forced
 
 
 def signature(*inputs) -> str:
@@ -34,6 +37,8 @@ def signature(*inputs) -> str:
 
 def is_current(conn, name: str, sig: str) -> bool:
     """True when `name` exists and was built from this exact signature."""
+    if forced():
+        return False
     with conn.cursor() as cur:
         cur.execute(
             "SELECT obj_description(to_regclass(%s), 'pg_class')", (name,)
