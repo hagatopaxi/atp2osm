@@ -160,7 +160,7 @@ def hide_brands_in_atp(where, args, active=None):
     """Append the "not in ATP" clause unless ?show_in_atp=1 asks for them."""
     if args.get("show_in_atp"):
         if active is not None:
-            active["show_in_atp"] = True
+            active["show_in_atp"] = "1"
         return where
     return (f"{where} AND " if where else "WHERE ") + TODO_NOT_IN_ATP_SQL
 
