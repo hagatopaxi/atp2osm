@@ -83,6 +83,12 @@ def test_every_wave_has_its_own_batch_size():
     assert WAVES_BY_NUMBER[2].batch_size < WAVES_BY_NUMBER[1].batch_size
 
 
+def test_alpha_wave_is_reviewed_in_full():
+    wave = WAVES_BY_NUMBER[2]
+    assert wave.alpha
+    assert wave.sample_size >= wave.batch_size
+
+
 @pytest.fixture
 def brand_waves(migrated_conn):
     """mv_places_brand as the pipeline builds it, with two waves to give."""

@@ -235,7 +235,7 @@ def brands_validate(brand_wikidata):
             osmdb.commit()
         return render_template("brands/:brand_wikidata/empty.html")
 
-    items = sample_for_review(changes)
+    items = sample_for_review(changes, wave.sample_size)
     brand = items[0]["atp_brand"]
     for idx, item in enumerate(items):
         item["title"] = (

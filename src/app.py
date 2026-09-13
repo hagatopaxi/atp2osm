@@ -92,6 +92,11 @@ def internal_error(error):
     return render_template("errors/500.html"), 500
 
 
+@app.errorhandler(502)
+def bad_gateway_error(error):
+    return render_template("errors/500.html"), 502
+
+
 @app.errorhandler(403)
 def not_authorized_error(error):
     return render_template("errors/403.html"), 403

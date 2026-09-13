@@ -1,10 +1,14 @@
 import functools
+import logging
 from urllib.parse import urlparse
 
+import requests
 from flask import Blueprint, session, request, redirect, url_for, abort, Response
 from requests_oauthlib import OAuth2Session
 
 from src.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -69,20 +73,26 @@ def oauth_callback():
     osm = OAuth2Session(
         client_id, redirect_uri=redirect_uri, state=session["oauth_state"]
     )
+    # On every call, not just the token one: the OSM API drops connections
+    # that come in as python-requests.
+    osm.headers["User-Agent"] = f"atp2osm/{_settings.app_version}"
 
     authorization_response = request.url
     if redirect_uri.startswith("https://") and authorization_response.startswith(
         "http://"
     ):
         authorization_response = "https://" + authorization_response[7:]
-    token = osm.fetch_token(
-        token_url,
-        client_secret=client_secret,
-        authorization_response=authorization_response,
-        headers={"User-Agent": f"atp2osm/{_settings.app_version}"},
-    )
-    user_detail_url = f"{api_url}/api/0.6/user/details.json"
-    response = osm.get(user_detail_url)
+    try:
+        token = osm.fetch_token(
+            token_url,
+            client_secret=client_secret,
+            authorization_response=authorization_response,
+        )
+        response = osm.get(f"{api_url}/api/0.6/user/details.json")
+        response.raise_for_status()
+    except requests.RequestException:
+        logger.exception("OSM API unreachable during login")
+        abort(502)
     res_json = response.json()
     user = {"osm_id": res_json["user"]["id"], "name": res_json["user"]["display_name"]}
     del session["oauth_state"]

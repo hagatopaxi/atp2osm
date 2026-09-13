@@ -146,6 +146,9 @@ class Wave(NamedTuple):
     number: int
     flag: str
     batch_size: int
+    # Floor of POIs reviewed per batch — the sample may exceed it to cover
+    # every changed tag. A batch smaller than that is reviewed in full.
+    sample_size: int
     alpha: bool
 
 
@@ -154,10 +157,11 @@ class Wave(NamedTuple):
 # no locale to resolve against; the templates hold them, keyed by number.
 WAVES = (
     # Adding tags an existing POI does not carry.
-    Wave(number=1, flag="is_importable", batch_size=100, alpha=False),
-    # Replacing values an existing POI already carries. One POI per batch while
-    # in alpha, the time it takes to see what the community makes of it.
-    Wave(number=2, flag="is_modifiable", batch_size=1, alpha=True),
+    Wave(number=1, flag="is_importable", batch_size=100, sample_size=3, alpha=False),
+    # Replacing values an existing POI already carries. Small batches while in
+    # alpha, the time it takes to see what the community makes of it — and
+    # reviewed in full, so a contributor sees every value that is overwritten.
+    Wave(number=2, flag="is_modifiable", batch_size=10, sample_size=10, alpha=True),
 )
 
 WAVES_BY_NUMBER = {wave.number: wave for wave in WAVES}
@@ -549,9 +553,9 @@ BATCH_MAX_SIZE = WAVES_BY_NUMBER[1].batch_size
 # beta cap be lowered without the safety nets firing on a legitimate batch.
 MAX_UPLOAD_SIZE = 200
 
-# Floor of POIs reviewed per batch — the sample may exceed it to cover every
-# changed tag. A batch smaller than that is reviewed in full.
-BATCH_SAMPLE_SIZE = 3
+# Sample size of the wave that adds tags — the default the callers that
+# predate the waves still take.
+BATCH_SAMPLE_SIZE = WAVES_BY_NUMBER[1].sample_size
 
 
 def changed_tags(change: dict) -> set[str]:
