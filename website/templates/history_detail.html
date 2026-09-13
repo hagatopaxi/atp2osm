@@ -94,7 +94,7 @@
                 } %}
                 <dt class="muted">{{ _('Status') }}</dt>
                 <dd class="flex flex-col gap-1">
-                    <span class="badge {{ status_classes.get(entry.status, 'badge-info') }}">
+                    <span class="badge badge-soft {{ status_classes.get(entry.status, 'badge-info') }}">
                         {{ status_labels.get(entry.status, entry.status) }}
                         {% if success_rate and entry.status == 'partial' %}
                         — {{ success_rate[0] }}/{{ success_rate[1] }}
@@ -211,7 +211,7 @@
                                 {% endfor %}
                             </td>
                             <td>
-                                <span class="badge badge-sm {{ 'badge-success' if sub.status == 'success' else 'badge-error' }}">
+                                <span class="badge badge-sm badge-soft {{ 'badge-success' if sub.status == 'success' else 'badge-error' }}">
                                     {{ _('Success') if sub.status == 'success' else _('Error') }}
                                 </span>
                             </td>

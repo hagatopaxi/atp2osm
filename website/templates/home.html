@@ -111,11 +111,11 @@
             <div class="card-body">
                 <h3 class="card-title text-sm font-mono">{{ label }}</h3>
                 {% if row %} {% if row.status == "error" %}
-                <div class="badge badge-error badge-sm">{{ _('Error') }}</div>
+                <div class="badge badge-soft badge-error badge-sm">{{ _('Error') }}</div>
                 {% elif row.status == "pending" %}
-                <div class="badge badge-warning badge-sm">{{ _('Syncing') }}</div>
+                <div class="badge badge-soft badge-warning badge-sm">{{ _('Syncing') }}</div>
                 {% else %}
-                <div class="badge badge-success badge-sm">OK</div>
+                <div class="badge badge-soft badge-success badge-sm">OK</div>
                 {% endif %}
                 <p class="text-sm mt-1">
                     <span class="muted">{{ _('Source:') }}</span>
