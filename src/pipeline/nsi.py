@@ -247,7 +247,11 @@ def import_nsi():
         nsi_json = json.load(infile)
 
     rows = select_items(nsi_json)
-    version = _latest_version()
+    # The file names its own version: what is imported is what was
+    # downloaded, not what the registry answers now — a release in between
+    # would stamp the wrong one, and a registry outage would fail an import
+    # that has everything it needs on disk.
+    version = nsi_json["_meta"]["version"]
 
     conn = connect()
     try:
