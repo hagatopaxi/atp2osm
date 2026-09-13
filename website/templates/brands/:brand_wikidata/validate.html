@@ -170,10 +170,13 @@
                 <div class="flex items-start">
                     <i class="iconoir-label mr-2 mt-1"></i>
                     <div>
-                        <strong>{% trans label=_('NSI tags') %}{{ label }}:{% endtrans %}</strong>
-                        <ul class="text-success font-mono text-sm">
+                        <strong>{% trans label=_('Other tags') %}{{ label }}:{% endtrans %}</strong>
+                        <ul class="font-mono text-sm">
                             {% for key, value in item['other_new_tags'].items() %}
-                            <li><i class="iconoir-plus align-middle"></i> {{ key }} = {{ value }}</li>
+                            {% if key in item['replaced_tags_keys'] %}
+                            <li class="text-error">{{ minus() }}{{ key }} = {{ item['old_tag'][key] }}</li>
+                            {% endif %}
+                            <li class="text-success">{{ plus(key, item) }}{{ key }} = {{ value }}</li>
                             {% endfor %}
                         </ul>
                     </div>
