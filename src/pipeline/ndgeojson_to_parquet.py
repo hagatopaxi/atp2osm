@@ -22,9 +22,6 @@ Workflow:
    - Phase 1: Each NDJSON chunk is converted to a mini Parquet file in parallel
    - Phase 2: All mini Parquet files are merged into a single final Parquet file
 
-4. _write_geoparquet_metadata: Adds GeoParquet metadata to the final output for
-   better interoperability with geospatial tools.
-
 The chunk size (MAX_FILE_SIZE) trades off two pressures:
 - Small enough to keep each DuckDB task within its per-worker memory_limit.
 - Large enough to keep the chunk count (and thus merge/filesystem overhead) low.
@@ -94,6 +91,9 @@ def convert_to_parquet(input_dir: Path, output_path: Path) -> None:
         logger.info("Step 2/2 — merging %d parquet parts...", len(parts))
         glob_parts = (duck_temp / "*.parquet").as_posix()
 
+        # The spatial extension writes the GeoParquet metadata itself —
+        # bbox, geometry types, the WKB encoding — so `geom` reads back as a
+        # geometry, which is what import_atp relies on.
         with duckdb.connect() as con:
             con.load_extension("spatial")
             con.execute(f"SET threads={WORKERS}")
@@ -104,25 +104,9 @@ def convert_to_parquet(input_dir: Path, output_path: Path) -> None:
                 (FORMAT PARQUET, COMPRESSION 'ZSTD')
             """)
 
-            bbox_res = con.execute(f"""
-                SELECT
-                    min(ST_XMin(geom)), min(ST_YMin(geom)),
-                    max(ST_XMax(geom)), max(ST_YMax(geom))
-                FROM read_parquet('{str(output_path)}')
-            """).fetchone()
-
-            geom_types = [
-                t[0]
-                for t in con.execute(
-                    f"SELECT DISTINCT ST_GeometryType(geom) FROM read_parquet('{str(output_path)}')"
-                ).fetchall()
-                if t and t[0] is not None
-            ]
-
     finally:
         shutil.rmtree(duck_temp, ignore_errors=True)
 
-    _write_geoparquet_metadata(output_path, bbox_res, geom_types)
     logger.info("Created %s", output_path)
 
 
@@ -153,40 +137,6 @@ def _ndjson_to_parquet(file_path: Path, out_path: Path) -> None:
                 )
             ) TO '{out_path.as_posix()}' (FORMAT PARQUET, COMPRESSION 'ZSTD')
         """)
-
-
-def _write_geoparquet_metadata(output_path: Path, bbox_res, geom_types: list) -> None:
-    try:
-        import pyarrow.parquet as pq
-
-        if not bbox_res or any(v is None for v in bbox_res):
-            return
-
-        table = pq.read_table(str(output_path), memory_map=True)
-        xmin, ymin, xmax, ymax = bbox_res
-        geo_meta = {
-            "version": "1.1.0",
-            "primary_column": "geom",
-            "columns": {
-                "geom": {
-                    "encoding": "WKB",
-                    "geometry_types": geom_types or ["Unknown"],
-                    "crs": "EPSG:4326",
-                }
-            },
-            "bbox": [xmin, ymin, xmax, ymax],
-        }
-        existing_md = table.schema.metadata or {}
-        new_md = {
-            **existing_md,
-            b"geo": json.dumps(geo_meta, ensure_ascii=False).encode(),
-        }
-        pq.write_table(
-            table.replace_schema_metadata(new_md), str(output_path), compression="ZSTD"
-        )
-
-    except ImportError:
-        logger.info("pyarrow not available — skipping GeoParquet metadata")
 
 
 def convert_geojson_to_ndgeojson(geojson_dir: Path, ndgeojson_dir: Path) -> None:
@@ -315,9 +265,11 @@ def _split_ndgeojson_file(in_path: Path, split_dir: Path) -> None:
                 window = f.read(end - start)
                 nl = window.rfind(b"\n")
                 if nl <= 0:
-                    # Single line > MAX_FILE_SIZE — emit it whole rather than hard-split
-                    # (a hard split would corrupt the JSON object). Impossible in theory
-                    boundary = end
+                    # A single line longer than the window: emitted whole,
+                    # up to its own newline, rather than cut in the middle
+                    # of the JSON object. Impossible in theory.
+                    f.seek(end)
+                    boundary = end + len(f.readline())
                 else:
                     boundary = start + nl + 1
             else:

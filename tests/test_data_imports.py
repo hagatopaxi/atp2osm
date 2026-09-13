@@ -72,3 +72,34 @@ def test_a_relaunch_supersedes_the_row_a_crashed_run_left_behind(conn):
 
     # Only the latest row counts, so the stale one needs no cleanup.
     assert _latest(conn, "osm")[0] == "success"
+
+
+def test_an_unreachable_source_is_recorded_skipped_on_its_last_date(conn):
+    """The displayed source date never goes backwards on an outage."""
+    from datetime import datetime, timezone
+
+    from src.pipeline.errors import SourceUnavailable
+
+    when = datetime(2026, 8, 27, tzinfo=timezone.utc)
+    record_import(conn, "osm", when, "success")
+    start_import(conn, "osm")
+
+    record_failure("osm-download", SourceUnavailable("Geofabrik"))
+
+    date, status, comment = conn.execute(
+        "SELECT date, status, comment FROM data_imports WHERE type='osm'"
+        " ORDER BY created_at DESC LIMIT 1"
+    ).fetchone()
+    assert (date, status) == (when, "skipped")
+    assert "Geofabrik" in comment
+
+
+def test_a_shared_step_failing_lands_on_the_pipeline_row(conn):
+    record_failure("mv-brand", RuntimeError("boom"))
+    assert _latest(conn, "pipeline")[0] == "pending"
+
+
+def test_recording_a_failure_never_raises(conn, monkeypatch):
+    """Masking the original error would be worse."""
+    monkeypatch.setattr(dag, "connect", lambda: (_ for _ in ()).throw(RuntimeError("db down")))
+    record_failure("osm-import", RuntimeError("boom"))

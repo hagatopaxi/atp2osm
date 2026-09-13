@@ -48,22 +48,33 @@ def _parse(value) -> datetime | None:
     return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
 
 
-def _get(path: str) -> dict | None:
+class OsmApiUnavailable(Exception):
+    """The OSM API could not answer a read the protection needs.
+
+    Not a value: a read that fails dates nothing, and a tag that cannot be
+    dated cannot be decided on. Answering "keep it" instead would let a batch
+    whose every value went undated drop out whole, and /validate would then
+    close the brand as integrated for the length of a cooldown — a transient
+    outage turned into three months of silence. So the failure is raised, and
+    the page says the API is down.
+    """
+
+
+def _get(path: str) -> dict:
     """One read off the OSM API. Reasonable use: sequential, identified."""
     url = f"{get_settings().api_url}/api/0.6/{path}.json"
     try:
         response = requests.get(url, headers=_headers(), timeout=TIMEOUT)
         response.raise_for_status()
         return response.json()
-    except (requests.exceptions.RequestException, ValueError):
+    except (requests.exceptions.RequestException, ValueError) as exc:
         logger.warning("OSM API read failed: %s", url, exc_info=True)
-        return None
+        raise OsmApiUnavailable(f"{url}: {exc}") from exc
 
 
 def versions(node_type: str, osm_id: int) -> list[dict]:
     """Every version of an object, oldest first."""
-    payload = _get(f"{node_type}/{osm_id}/history")
-    elements = (payload or {}).get("elements") or []
+    elements = _get(f"{node_type}/{osm_id}/history").get("elements") or []
     return sorted(elements, key=lambda v: v.get("version", 0))
 
 
@@ -76,8 +87,7 @@ def is_bot(changeset_id: int) -> bool:
     nature of the edit. A bot that does not declare itself is therefore treated
     as a human and its value is preserved: the doubt benefits what is there.
     """
-    payload = _get(f"changeset/{changeset_id}")
-    elements = (payload or {}).get("elements") or []
+    elements = _get(f"changeset/{changeset_id}").get("elements") or []
     if not elements:
         return False
     return (elements[0].get("tags") or {}).get("bot") == "yes"
@@ -117,6 +127,9 @@ def protect_recent_edits(changes: list[dict]) -> list[dict]:
 
     Returns the changes worth uploading: one whose every tag was protected
     drops out, since it would be an empty changeset.
+
+    Raises OsmApiUnavailable when a date could not be read: the caller must
+    not take an undecided batch for an empty one.
     """
     threshold = _threshold()
     kept = []

@@ -172,3 +172,51 @@ def test_a_new_revision_reimports_without_waiting_for_geofabrik(monkeypatch):
     against a database that had none.
     """
     assert _download_pbf_with(monkeypatch, False) == []
+
+
+# --- Reading the timestamp of a region -------------------------------------------
+
+
+class _Http:
+    """Geofabrik as staged: state.txt text, or the PBF's Last-Modified."""
+
+    def __init__(self, state=None, last_modified=None):
+        self.state, self.last_modified = state, last_modified
+
+    def get(self, url, timeout=None):
+        if self.state is None:
+            raise RuntimeError("404")
+        return type("R", (), {"text": self.state, "raise_for_status": lambda s: None})()
+
+    def head(self, url, timeout=None, allow_redirects=None):
+        headers = {"Last-Modified": self.last_modified} if self.last_modified else {}
+        return type("R", (), {"headers": headers, "raise_for_status": lambda s: None})()
+
+
+REGION = {"state_url": "https://geofabrik.example/state.txt", "url": "https://geofabrik.example/x.pbf"}
+
+
+def test_the_state_file_is_read_with_its_escaped_colons(monkeypatch):
+    monkeypatch.setattr(osm, "_session", _Http(
+        state="# original OSM minutely replication sequence number 6543210\n"
+              "sequenceNumber=4321\ntimestamp=2026-08-27T20\\:21\\:02Z\n"
+    ))
+    assert osm._geofabrik_timestamp(REGION) == datetime(2026, 8, 27, 20, 21, 2, tzinfo=timezone.utc)
+
+
+def test_a_region_without_a_state_file_dates_its_pbf(monkeypatch):
+    monkeypatch.setattr(osm, "_session", _Http(last_modified="Thu, 27 Aug 2026 20:21:02 GMT"))
+    assert osm._geofabrik_timestamp(REGION) == datetime(2026, 8, 27, 20, 21, 2, tzinfo=timezone.utc)
+
+
+def test_a_state_file_without_a_timestamp_falls_back_too(monkeypatch):
+    monkeypatch.setattr(osm, "_session", _Http(state="sequenceNumber=1\n",
+                                                last_modified="Thu, 27 Aug 2026 20:21:02 GMT"))
+    assert osm._geofabrik_timestamp(REGION).day == 27
+
+
+def test_no_date_at_all_is_an_error_the_probe_reports(monkeypatch):
+    """Not a date: the region counts as down, and download_pbf decides."""
+    monkeypatch.setattr(osm, "_session", _Http())
+    with pytest.raises(ValueError):
+        osm._geofabrik_timestamp(REGION)

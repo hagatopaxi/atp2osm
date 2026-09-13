@@ -2,6 +2,7 @@ import logging
 
 import psycopg
 from flask import Blueprint, render_template, request, session, abort, Response
+from flask_babel import gettext as _
 from psycopg.rows import dict_row
 
 from src.db import get_osmdb
@@ -98,10 +99,18 @@ def todo_check():
     return {"matches": matches}
 
 
+def _body() -> dict | None:
+    """The JSON object of the request, or None when there is not one."""
+    data = request.get_json(silent=True)
+    return data if isinstance(data, dict) else None
+
+
 @todo_bp.route("/todo", methods=["POST"])
 @auth_required
 def todo_add():
-    data = request.get_json()
+    data = _body()
+    if data is None:
+        return {"error": _("The request body must be a JSON object")}, 400
     brand_wikidata = (data.get("brand_wikidata") or "").strip() or None
     brand_name = (data.get("brand_name") or "").strip()
     estimation = data.get("estimation")
@@ -109,9 +118,9 @@ def todo_add():
         try:
             estimation = int(estimation)
         except (ValueError, TypeError):
-            return {"error": "estimation doit être un entier"}, 400
+            return {"error": _("The estimation must be a whole number")}, 400
     if not brand_name:
-        return {"error": "brand_name est requis"}, 400
+        return {"error": _("The brand name is required")}, 400
     osm_user_id = session["user"]["osm_id"]
     osmdb = get_osmdb()
     with osmdb.cursor(row_factory=dict_row) as cursor:
@@ -124,18 +133,20 @@ def todo_add():
             osmdb.commit()
         except psycopg.errors.UniqueViolation:
             osmdb.rollback()
-            return {"error": "Cette marque est déjà dans la liste"}, 409
+            return {"error": _("This brand is already in the list")}, 409
         except Exception:
             osmdb.rollback()
             logger.exception("Failed to insert todo brand")
-            return {"error": "Une erreur est survenue, veuillez réessayer."}, 500
+            return {"error": _("Something went wrong, please try again.")}, 500
     return Response(status=201)
 
 
 @todo_bp.route("/todo/<int:entry_id>", methods=["PUT"])
 @auth_required
 def todo_update(entry_id):
-    data = request.get_json()
+    data = _body()
+    if data is None:
+        return {"error": _("The request body must be a JSON object")}, 400
     brand_wikidata = (data.get("brand_wikidata") or "").strip() or None
     brand_name = (data.get("brand_name") or "").strip()
     estimation = data.get("estimation")
@@ -143,9 +154,9 @@ def todo_update(entry_id):
         try:
             estimation = int(estimation)
         except (ValueError, TypeError):
-            return {"error": "estimation doit être un entier"}, 400
+            return {"error": _("The estimation must be a whole number")}, 400
     if not brand_name:
-        return {"error": "brand_name est requis"}, 400
+        return {"error": _("The brand name is required")}, 400
     osmdb = get_osmdb()
     with osmdb.cursor(row_factory=dict_row) as cursor:
         try:
@@ -165,11 +176,11 @@ def todo_update(entry_id):
             osmdb.commit()
         except psycopg.errors.UniqueViolation:
             osmdb.rollback()
-            return {"error": "Cette marque est déjà dans la liste"}, 409
+            return {"error": _("This brand is already in the list")}, 409
         except Exception:
             osmdb.rollback()
             logger.exception("Failed to update todo brand")
-            return {"error": "Une erreur est survenue, veuillez réessayer."}, 500
+            return {"error": _("Something went wrong, please try again.")}, 500
     if updated is None:
         return Response(status=404)
     return Response(status=204)

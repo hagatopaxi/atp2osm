@@ -1,0 +1,7 @@
+{% extends '_base.html' %}
+
+{% block title %}{{ _('503 - Temporarily unavailable') }}{% endblock %}
+
+{% block content %}
+{{ message }} {{ _('Please try again in a few minutes.') }}
+{% endblock %}

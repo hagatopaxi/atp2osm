@@ -15,7 +15,7 @@ import requests
 from src.config import get_country
 from src.pipeline._version import app_version
 from src.pipeline.constants import PROJECT_ROOT
-from src.pipeline.errors import unavailable_if_unreachable
+from src.pipeline.errors import SourceUnavailable, unavailable_if_unreachable
 from src.pipeline._db import (
     connect,
     last_import_comment,
@@ -233,9 +233,25 @@ def download_nsi():
         NSI_DIR.mkdir(parents=True, exist_ok=True)
         with unavailable_if_unreachable("NSI"):
             download_large_file(NSI_CDN_URL.format(version=version), NSI_PATH)
+        # The CDN once served a years-old file under a moving tag. The URL
+        # is pinned now, and the file names its own content: a file that is
+        # not the release asked for is an outage, retried later, never
+        # imported under a stamp that is not its own.
+        served = _file_version(NSI_PATH)
+        if served != version:
+            NSI_PATH.unlink()
+            raise SourceUnavailable(
+                f"NSI: asked for {version}, the CDN served {served}"
+            )
         logger.info("Downloaded NSI %s", version)
     finally:
         conn.close()
+
+
+def _file_version(path) -> str | None:
+    """The release a dist/json/nsi.json file says it is."""
+    with open(path) as infile:
+        return (json.load(infile).get("_meta") or {}).get("version")
 
 
 def import_nsi():
@@ -247,7 +263,11 @@ def import_nsi():
         nsi_json = json.load(infile)
 
     rows = select_items(nsi_json)
-    version = _latest_version()
+    # The file names its own version: what is imported is what was
+    # downloaded, not what the registry answers now — a release in between
+    # would stamp the wrong one, and a registry outage would fail an import
+    # that has everything it needs on disk.
+    version = nsi_json["_meta"]["version"]
 
     conn = connect()
     try:

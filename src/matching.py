@@ -504,13 +504,6 @@ def _change(atp_osm_match: dict, new_tags: dict) -> dict | None:
     }
 
 
-def add_result(nodes_by_brand, brand_wikidata, res):
-    if brand_wikidata in nodes_by_brand:
-        nodes_by_brand[brand_wikidata].append(res)
-    else:
-        nodes_by_brand[brand_wikidata] = [res]
-
-
 def get_changes(cursor: Cursor, wave: int = 1):
     changes = []
     # seen = set()

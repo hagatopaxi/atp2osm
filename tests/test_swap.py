@@ -20,10 +20,12 @@ def conn(db_kwargs):
         with c.cursor() as cur:
             cur.execute("DROP SCHEMA IF EXISTS s CASCADE")
             cur.execute("DROP MATERIALIZED VIEW IF EXISTS v")
+            # `t`, `t_new`, `t_old`, `t_old_<oid>` — and not every table
+            # of the schema whose name starts with a t.
             cur.execute(
                 """SELECT relname FROM pg_class
                     WHERE relnamespace = 'public'::regnamespace
-                      AND relkind = 'r' AND starts_with(relname, 't')"""
+                      AND relkind = 'r' AND (relname = 't' OR starts_with(relname, 't_'))"""
             )
             for (name,) in cur.fetchall():
                 cur.execute(f"DROP TABLE IF EXISTS {name} CASCADE")

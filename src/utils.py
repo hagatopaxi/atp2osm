@@ -3,7 +3,7 @@ import time
 import logging
 import requests
 
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 
@@ -17,14 +17,6 @@ def delete_file_if_exists(file_path):
     if os.path.exists(file_path):
         os.remove(file_path)
 
-
-
-def clean_debug_folder():
-    for file_path in os.listdir("./data/debug"):
-        os.remove(f"./data/debug/{file_path}")
-
-
-print
 
 
 def download_large_file(
@@ -165,6 +157,16 @@ def hide_brands_in_atp(where, args, active=None):
     return (f"{where} AND " if where else "WHERE ") + TODO_NOT_IN_ATP_SQL
 
 
+def _iso_date(value: str) -> str:
+    """The value if it is a YYYY-MM-DD date, else empty."""
+    value = value.strip()
+    try:
+        date.fromisoformat(value)
+    except ValueError:
+        return ""
+    return value
+
+
 def build_filters(args, spec):
     """Build a SQL WHERE clause from the query string.
 
@@ -206,13 +208,15 @@ def build_filters(args, spec):
 
     if "date" in spec:
         column = spec["date"]
-        date_from = args.get("from", "").strip()
+        # A value that is not a date is ignored, like an unknown status: the
+        # query never sees it, so the database never refuses it.
+        date_from = _iso_date(args.get("from", ""))
         if date_from:
             where.append(f"{column} >= %s")
             params.append(date_from)
             active["from"] = date_from
 
-        date_to = args.get("to", "").strip()
+        date_to = _iso_date(args.get("to", ""))
         if date_to:
             # inclusive bound: everything dated on the given day
             where.append(f"{column} < %s::date + 1")

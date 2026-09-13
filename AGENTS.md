@@ -195,7 +195,8 @@ Tests use pytest with `--import-mode=importlib` and pythonpath set to `.` (see `
 A test never reads the development database: its content is nobody's
 guarantee — an interrupted pipeline leaves rows behind, and a test reading
 them fails for reasons of its own. `conftest.py` builds a throwaway
-`atp2osm_test` database instead, dropped when the session ends, and the tests
+`atp2osm_test_<pid>` database instead — one per process, so two worktrees can
+run their suites at once — dropped when the session ends, and the tests
 take one of its two fixtures: `migrated_conn` for the real schema (migrations
 applied, tables emptied before each test), `db_kwargs` for a test that builds
 a schema of its own — a partial migration history, a table shaped like
@@ -206,6 +207,21 @@ run controls nothing, and a suite reporting green on a third of its tests is
 worse than a red one. `podman-compose up -d` is a prerequisite of `pytest`,
 and so is `--env-file .env`: the database password is a secret, and the suite
 has none of its own.
+
+A route is tested through `web_app` — the site's blueprints, real templates,
+filters and globals, a connection per request on the throwaway database —
+and `contributor`, a client signed in on it. Never through `src.app`:
+importing it runs the migrations against the development database. What a
+test controls is what feeds the route (a staged `brand_matches`, a fake
+`mv_places_brand`), what it asserts is the rows written and the page
+rendered, read through Flask's `template_rendered` signal.
+
+No test reaches the network: `conftest.py` refuses every `requests` call,
+and a test that needs an answer stages it on the function that would have
+asked. A pipeline step runs for real (`tests/test_rebuild_guards.py`), with
+osm2pgsql replaced by a function that writes the tables it would, and both
+`connect` and `get_database` of the step's module pointed at the test
+database — DuckDB and osm2pgsql are handed the settings, not a connection.
 
 The OSM API is never called: in development `BulkUpload` drives
 `_FakeOsmApi`, which records the calls and writes their OSC instead of

@@ -1,9 +1,8 @@
-import datetime
 import logging
 
 from io import BytesIO
 
-from flask import Blueprint, render_template, request, Response, url_for, send_from_directory
+from flask import Blueprint, abort, render_template, request, Response, url_for, send_from_directory
 from psycopg.rows import dict_row
 from staticmap import StaticMap, CircleMarker
 
@@ -102,15 +101,23 @@ def llms_txt():
 @misc_bp.route("/staticmap/<long>/<lat>")
 @cache.cached(query_string=True, key_prefix="staticmap/", timeout=300)
 def staticmap(long, lat):
+    # Anything but a point on Earth is no map: 404, before a tile is asked.
+    try:
+        long, lat = float(long), float(lat)
+    except ValueError:
+        abort(404)
+    if not (-180 <= long <= 180 and -90 <= lat <= 90):
+        abort(404)
     m = StaticMap(400, 300, url_template="http://b.tile.osm.org/{z}/{x}/{y}.png")
-
-    marker_outline = CircleMarker((float(long), float(lat)), "white", 18)
-    marker = CircleMarker((float(long), float(lat)), "#0036FF", 12)
-
-    m.add_marker(marker_outline)
-    m.add_marker(marker)
-    datetime.time()
-    image = m.render(zoom=17)
+    m.add_marker(CircleMarker((long, lat), "white", 18))
+    m.add_marker(CircleMarker((long, lat), "#0036FF", 12))
+    try:
+        image = m.render(zoom=17)
+    except Exception:
+        # The tile server, not us. Raised rather than returned, so the
+        # cache above keeps nothing and the next request asks again.
+        logger.warning("Tile server unreachable for %s/%s", long, lat, exc_info=True)
+        abort(502)
 
     # In memory image returned directly to the client
     img_io = BytesIO()

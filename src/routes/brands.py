@@ -15,6 +15,7 @@ from flask import (
     session,
     url_for,
 )
+from flask_babel import gettext as _
 from psycopg.rows import dict_row
 from requests_oauthlib import OAuth2Session
 
@@ -32,7 +33,7 @@ from src.matching import (
     sample_for_review,
     select_batch,
 )
-from src.osm_history import protect_recent_edits
+from src.osm_history import OsmApiUnavailable, protect_recent_edits
 from src.routes.auth import auth_required
 from src.upload import BulkUpload
 from src.utils import (
@@ -173,6 +174,23 @@ def get_batch(brand_wikidata):
     return changes, batch_scope(changes), wave
 
 
+@brands_bp.errorhandler(OsmApiUnavailable)
+def osm_api_unavailable(error):
+    """Wave 2 could not date the values it would overwrite: nothing is decided,
+    nothing is recorded. The reviewer comes back when the API does."""
+    logger.warning("OSM API unavailable: %s", error)
+    if request.method == "POST":
+        return Response(
+            json.dumps({"errors": ["OSM API unavailable"]}),
+            status=503,
+            mimetype="application/json",
+        )
+    return render_template(
+        "errors/503.html",
+        message=_("OpenStreetMap could not be reached: nothing was changed."),
+    ), 503
+
+
 @brands_bp.route("/brands")
 # @cache.cached(key_prefix="brands")
 def brands():
@@ -249,13 +267,17 @@ def brands_validate(brand_wikidata):
             for key in item["replaced_tags_keys"]
             if key == "opening_hours"
         }
-        # Everything the template has no dedicated row for — the NSI tags today,
-        # whatever gets added to the sources tomorrow. A tag the reviewer cannot
-        # see is a tag they cannot invalidate.
+        # Everything the dedicated rows do not show — the NSI tags today,
+        # whatever gets added to the sources tomorrow, and the contact:
+        # variant of a key when both are written: a row shows one of the two.
+        # A tag the reviewer cannot see is a tag they cannot invalidate.
+        shown = {
+            key if key in item["tag"] else f"contact:{key}" for key in _DETAILED_TAGS
+        }
         item["other_new_tags"] = {
             key: item["tag"][key]
-            for key in item["new_tags_keys"]
-            if key not in _DETAILED_TAGS
+            for key in item["written_tags_keys"]
+            if key not in shown
         }
 
     return render_template(
@@ -302,8 +324,10 @@ def brands_rejected(brand_wikidata):
 @brands_bp.route("/brands/<brand_wikidata>/report-error", methods=["POST"])
 @auth_required
 def report_error(brand_wikidata):
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        abort(400)
     _, _, wave = get_batch(brand_wikidata)
-    data = request.get_json()
     comment = data.get("comment", "")
     brand_name = data.get("brand_name", "")
     osmdb = get_osmdb()
@@ -341,7 +365,12 @@ def upload_changes(brand_wikidata):
     osm_session = OAuth2Session(token=session["token"])
     bulk_upload = BulkUpload(changes, session=osm_session, max_size=wave.batch_size)
     errors = bulk_upload.upload()
-    bulk_upload.save_log_file()
+    # The changesets are on OSM now: nothing after this line may stop the
+    # row that records them. The log is a convenience.
+    try:
+        bulk_upload.save_log_file()
+    except OSError:
+        logger.exception("Could not save the log of the run")
     # The uploaded POIs now carry their tags: the next batch must be composed on
     # freshly read matches, not on what we had before sending.
     cache.delete_memoized(brand_matches, brand_wikidata, wave.number)

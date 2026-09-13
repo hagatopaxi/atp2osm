@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-13 22:02+0200\n"
+"POT-Creation-Date: 2026-09-13 23:49+0200\n"
 "PO-Revision-Date: 2026-09-06 17:06+0200\n"
 "Last-Translator: the atp2osm contributors\n"
 "Language: fr\n"
@@ -18,10 +18,39 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
+#: src/templating.py:57
+msgid "The data is being prepared, this instance has not run its first refresh yet."
+msgstr "Les données sont en cours de préparation : cette instance n’a pas encore fait son premier rafraîchissement."
+
 #: src/upload.py:151
 #, python-format
 msgid "ATP data integration (%(subdivision)s; %(brand)s)"
 msgstr "Intégration des données ATP (%(subdivision)s ; %(brand)s)"
+
+#: src/routes/brands.py:190
+msgid "OpenStreetMap could not be reached: nothing was changed."
+msgstr "OpenStreetMap n’a pas pu être joint : rien n’a été modifié."
+
+#: src/routes/todo.py:113 src/routes/todo.py:149
+msgid "The request body must be a JSON object"
+msgstr "Le corps de la requête doit être un objet JSON"
+
+#: src/routes/todo.py:121 src/routes/todo.py:157
+msgid "The estimation must be a whole number"
+msgstr "L’estimation doit être un nombre entier"
+
+#: src/routes/todo.py:123 src/routes/todo.py:159
+msgid "The brand name is required"
+msgstr "Le nom de la marque est requis"
+
+#: src/routes/todo.py:136 src/routes/todo.py:179
+msgid "This brand is already in the list"
+msgstr "Cette marque est déjà dans la liste"
+
+#: src/routes/todo.py:140 src/routes/todo.py:183
+#: website/templates/_js_strings.html:12
+msgid "Something went wrong, please try again."
+msgstr "Une erreur est survenue, veuillez réessayer."
 
 #: website/templates/_aside.html:8
 msgid "Toggle the sidebar"
@@ -212,10 +241,6 @@ msgstr "Réinitialiser"
 #: website/templates/_js_strings.html:11
 msgid "Your session has expired, please sign in again."
 msgstr "Session expirée, veuillez vous reconnecter."
-
-#: website/templates/_js_strings.html:12
-msgid "Something went wrong, please try again."
-msgstr "Une erreur est survenue, veuillez réessayer."
 
 #: website/templates/_js_strings.html:13
 #, python-brace-format
@@ -1455,7 +1480,7 @@ msgstr "Modifier la marque"
 
 #: website/templates/brands/:brand_wikidata/confirm.html:73
 #: website/templates/brands/:brand_wikidata/rejected.html:23
-#: website/templates/brands/:brand_wikidata/validate.html:248
+#: website/templates/brands/:brand_wikidata/validate.html:251
 #: website/templates/todo.html:188
 msgid "Cancel"
 msgstr "Annuler"
@@ -1679,43 +1704,43 @@ msgid "Opening hours"
 msgstr "Horaires"
 
 #: website/templates/brands/:brand_wikidata/validate.html:173
-msgid "NSI tags"
-msgstr "Tags NSI"
+msgid "Other tags"
+msgstr "Autres tags"
 
-#: website/templates/brands/:brand_wikidata/validate.html:196
+#: website/templates/brands/:brand_wikidata/validate.html:199
 #, python-format
 msgid "Map of %(title)s"
 msgstr "Carte de %(title)s"
 
-#: website/templates/brands/:brand_wikidata/validate.html:199
+#: website/templates/brands/:brand_wikidata/validate.html:202
 msgid "View in OSM"
 msgstr "Voir dans OSM"
 
-#: website/templates/brands/:brand_wikidata/validate.html:209
+#: website/templates/brands/:brand_wikidata/validate.html:212
 msgid "Reject"
 msgstr "Invalider"
 
-#: website/templates/brands/:brand_wikidata/validate.html:214
+#: website/templates/brands/:brand_wikidata/validate.html:217
 msgid "Accept"
 msgstr "Valider"
 
-#: website/templates/brands/:brand_wikidata/validate.html:220
+#: website/templates/brands/:brand_wikidata/validate.html:223
 msgid "Check the source before accepting."
 msgstr "Vérifiez la source avant de valider."
 
-#: website/templates/brands/:brand_wikidata/validate.html:231
+#: website/templates/brands/:brand_wikidata/validate.html:234
 msgid "Go to the next step"
 msgstr "Passer à l'étape suivante"
 
-#: website/templates/brands/:brand_wikidata/validate.html:237
+#: website/templates/brands/:brand_wikidata/validate.html:240
 msgid "Why are you rejecting this data?"
 msgstr "Pourquoi invalidez-vous cette donnée ?"
 
-#: website/templates/brands/:brand_wikidata/validate.html:245
+#: website/templates/brands/:brand_wikidata/validate.html:248
 msgid "Explain here…"
 msgstr "Expliquez ici…"
 
-#: website/templates/brands/:brand_wikidata/validate.html:247
+#: website/templates/brands/:brand_wikidata/validate.html:250
 msgid "Submit"
 msgstr "Soumettre"
 
@@ -1742,6 +1767,14 @@ msgstr "500 - Erreur interne"
 #: website/templates/errors/500.html:6
 msgid "Internal error, sorry."
 msgstr "Erreur interne, désolé."
+
+#: website/templates/errors/503.html:3
+msgid "503 - Temporarily unavailable"
+msgstr "503 - Temporairement indisponible"
+
+#: website/templates/errors/503.html:6
+msgid "Please try again in a few minutes."
+msgstr "Réessayez dans quelques minutes."
 
 #~ msgid "Wave 2 — replacing values"
 #~ msgstr "Vague 2 — remplacement de valeurs"
@@ -1822,4 +1855,7 @@ msgstr "Erreur interne, désolé."
 
 #~ msgid "Presence in ATP"
 #~ msgstr "Présence dans ATP"
+
+#~ msgid "NSI tags"
+#~ msgstr "Tags NSI"
 

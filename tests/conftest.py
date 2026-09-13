@@ -93,12 +93,30 @@ for _name, _value in _SECRETS.items():
 import psycopg  # noqa: E402
 import pytest  # noqa: E402
 
-TEST_DB = "atp2osm_test"
+# Named after the process: two suites running at once — one per worktree —
+# must not drop each other's database from under them.
+TEST_DB = f"atp2osm_test_{os.getpid()}"
 
 # A test that does not run controls nothing, so there is no skip here: an
 # unreachable database is an error. `podman-compose up -d` is a prerequisite
 # of the suite, and a CI that lost its service must say so loudly instead of
 # reporting green on a third of the tests.
+
+
+def _drop_orphans(admin_conn):
+    """Drop the databases of suites that died before their teardown."""
+    names = admin_conn.execute(
+        "SELECT datname FROM pg_database WHERE datname LIKE 'atp2osm_test_%'"
+    ).fetchall()
+    for (name,) in names:
+        # atp2osm_test_<pid>, or a test's own atp2osm_test_<pid>_<suffix>.
+        pid = next((int(p) for p in name.split("_") if p.isdigit()), None)
+        if pid is None:
+            continue
+        try:
+            os.kill(pid, 0)  # alive: its suite is still running
+        except (OSError, ProcessLookupError):
+            admin_conn.execute(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
 
 
 @pytest.fixture(scope="session")
@@ -119,7 +137,7 @@ def db_kwargs():
     try:
         admin = get_database().connect_kwargs
         with psycopg.connect(**admin, autocommit=True) as c:
-            c.execute(f'DROP DATABASE IF EXISTS "{TEST_DB}" WITH (FORCE)')
+            _drop_orphans(c)
             c.execute(f'CREATE DATABASE "{TEST_DB}"')
         kwargs = {**admin, "dbname": TEST_DB}
         with psycopg.connect(**kwargs) as c:
@@ -146,8 +164,10 @@ def _migrated(db_kwargs):
     with psycopg.connect(**db_kwargs) as c:
         run_migrations(c)
         # The pipeline's tables the site reads, empty: the cooldown SQL joins
-        # them, and a migration never creates them.
+        # them, and a migration never creates them. Dropped first: a test on
+        # `db_kwargs` alone may have built its own before this ran.
         c.execute("""
+            DROP TABLE IF EXISTS atp_places, atp_spiders;
             CREATE TABLE atp_places (id TEXT, spider_id TEXT, brand_wikidata TEXT, brand TEXT);
             CREATE TABLE atp_spiders (spider TEXT, filename TEXT, errors INT8, features INT8,
                                       elapsed_time FLOAT8, updated_at TIMESTAMPTZ);
@@ -172,3 +192,84 @@ def migrated_conn(_migrated, db_kwargs):
             c.execute(f"TRUNCATE {tables} CASCADE")
         c.commit()
         yield c
+
+
+# --- No test reaches the network -------------------------------------------
+#
+# The OSM API, Geofabrik, ATP and the npm registry are never called from a
+# test: a test that depends on them is green or red on their mood, not on the
+# code. Every HTTP request goes through requests.Session.request — this stops
+# it there. A test that wants a response stages one with monkeypatch on the
+# function that would have asked.
+
+
+class NetworkAccess(AssertionError):
+    """A test tried to reach the network."""
+
+
+@pytest.fixture(autouse=True)
+def no_network(monkeypatch):
+    import requests
+
+    def refused(self, method, url, *args, **kwargs):
+        raise NetworkAccess(f"the test suite never reaches the network: {method} {url}")
+
+    monkeypatch.setattr(requests.Session, "request", refused)
+
+
+# --- The site, on the throwaway database -------------------------------------
+#
+# Never `src.app`: importing it runs the migrations against the development
+# database. This builds the same app — the real blueprints, templates, filters
+# and globals — with every request connecting to the test database, exactly
+# as production connects to its own: a connection per request, closed at the
+# end of it. The tests read the result on `migrated_conn`.
+
+
+@pytest.fixture
+def web_app(migrated_conn, db_kwargs, monkeypatch):
+    from flask import Flask
+
+    import src.db
+    from src import i18n, templating
+    from src.config import STATIC_DIR, TEMPLATE_DIR, get_settings
+    from src.extensions import cache
+    from src.routes.auth import auth_bp
+    from src.routes.brands import brands_bp
+    from src.routes.export import export_bp
+    from src.routes.history import history_bp
+    from src.routes.misc import misc_bp
+    from src.routes.spiders import spiders_bp
+    from src.routes.stats import stats_bp
+    from src.routes.todo import todo_bp
+
+    class _TestDatabase:
+        connect_kwargs = db_kwargs
+
+    monkeypatch.setattr(src.db, "get_database", lambda: _TestDatabase)
+
+    settings = get_settings()
+    app = Flask("atp2osm-test", template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
+    app.secret_key = "test"
+    app.config["CACHE_TYPE"] = "SimpleCache"
+    cache.init_app(app)
+    # No translated path: the pages answer on their bare URL, no language
+    # redirect to follow.
+    i18n.init_app(app, settings.country.locales, (), settings.country.timezone)
+    templating.init_app(app, settings)
+    for blueprint in (auth_bp, brands_bp, spiders_bp, export_bp, history_bp,
+                      misc_bp, stats_bp, todo_bp):
+        app.register_blueprint(blueprint)
+    app.teardown_appcontext(src.db.teardown_osmdb)
+    return app
+
+
+@pytest.fixture
+def contributor(web_app):
+    """A client signed in as OSM user 42."""
+    with web_app.test_client() as client:
+        with client.session_transaction() as sess:
+            # What oauth_callback stores: the pages read the name too.
+            sess["user"] = {"osm_id": 42, "name": "reviewer"}
+            sess["token"] = {"access_token": "x"}
+        yield client

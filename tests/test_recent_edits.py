@@ -134,3 +134,8 @@ def test_the_protection_is_per_tag_not_per_object(api):
         "name": "Babylone",                  # posted by a human three days ago
         "website": "https://babylone.fr",    # untouched for a year
     }
+
+
+def test_an_object_without_history_dates_nothing():
+    """`elements: []` from the API: no version, no date, no changeset."""
+    assert value_set_at([], "phone") == (None, None)

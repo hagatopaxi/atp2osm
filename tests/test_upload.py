@@ -156,3 +156,57 @@ def test_an_unexpected_error_is_told_apart_from_an_api_one():
 def test_nothing_to_upload_sends_nothing():
     bulk, errors = upload([])
     assert errors == [] and bulk.api.calls == []
+
+
+def test_a_changeset_left_open_by_a_failure_is_closed(tmp_path):
+    bulk = BulkUpload([change(1), change(2, sub="33", name="Gironde")], session=None)
+
+    def fail(changes):
+        raise ApiError(400, "Bad Request", b"conflict")
+
+    bulk.api.changeset_upload = fail
+    bulk.upload()
+
+    # One close per changeset opened, failed or not: nothing stays open on OSM.
+    assert len(calls(bulk, "changeset_close")) == 2
+    assert bulk.api._current_changeset_id == 0
+
+
+def test_a_close_that_fails_too_does_not_block_the_next_subdivision():
+    """osmapi refuses to open a changeset while it believes one is open."""
+    bulk = BulkUpload([change(1), change(2, sub="33", name="Gironde")], session=None)
+    real_upload, real_close = bulk.api.changeset_upload, bulk.api.changeset_close
+
+    def fail_on_paris(changes):
+        if changes[0]["data"][0]["id"] == 1:
+            raise ApiError(400, "Bad Request", b"conflict")
+        return real_upload(changes)
+
+    def close_fails_once():
+        if bulk.api._current_changeset_id == 1:
+            raise ApiError(500, "Internal Server Error", b"")
+        return real_close()
+
+    bulk.api.changeset_upload = fail_on_paris
+    bulk.api.changeset_close = close_fails_once
+    bulk.upload()
+
+    assert [r["status"] for r in bulk.results] == ["error_osm_api", "success"]
+
+
+def test_the_run_is_logged_with_its_changes_and_changesets(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    bulk, _ = upload([change(1, brand_wikidata="Q123")])
+    path = bulk.save_log_file()
+    import json
+    log = json.loads(path.read_text())
+    assert [c["id"] for c in log["changes"]] == [1]
+    assert log["changesets"] == bulk.changesets
+    assert path.parent.name == bulk.brand_wikidata
+
+
+def test_an_empty_run_writes_no_log(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    bulk, _ = upload([])
+    assert bulk.save_log_file() is None
+    assert not (tmp_path / "logs").exists()
