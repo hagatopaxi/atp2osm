@@ -79,7 +79,7 @@
         <div class="flex flex-col gap-2">
             <div class="flex flex-wrap items-center gap-2">
                 <span class="font-semibold text-sm">{{ _('Notes from the last integration') }}</span>
-                <span class="badge badge-sm badge-{{ c_ }}">{{ labels.get(last_import.status, last_import.status) }}</span>
+                <span class="badge badge-sm badge-soft badge-{{ c_ }}">{{ labels.get(last_import.status, last_import.status) }}</span>
                 <a class="link text-xs muted" href="/history/{{ last_import.id }}">{% trans date=last_import.import_date | dateformat('long') %}on {{ date }}{% endtrans %}</a>
                 <span class="text-xs muted">{{ _('by') }}
                     {% if last_import.osm_user_name %}

@@ -2,7 +2,7 @@
 {% from '_info_card.html' import info_card %}
 {% from '_export_menu.html' import export_menu %}
 {% from '_sort_th.html' import sort_th with context %}
-{% from '_period_filter.html' import period_filter with context %}
+{% from '_filters.html' import filter_bar with context %}
 
 {% block meta_description %}{{ _('The brands missing from AllThePlaces. Report the ones absent to help enrich OpenStreetMap.') }}{% endblock %}
 {% block page_title %}{{ _('Missing brands') }}{% endblock %}
@@ -77,43 +77,15 @@
   {% if total == 0 %}
   <p class="muted">{{ _('No brand in the list yet.') }}</p>
   {% else %}
-  <form method="get" data-autosubmit class="flex flex-wrap items-end gap-3">
+  <form method="get" data-autosubmit>
     <input type="hidden" name="sort" value="{{ sort }}" />
     <input type="hidden" name="dir" value="{{ direction }}" />
-    <div class="fieldset">
-      <label class="fieldset-legend" for="filter-q">{{ _('Brand') }}</label>
-      <label class="input input-sm w-56">
-        <i class="iconoir-search opacity-50"></i>
-        <input type="search" id="filter-q" name="q" value="{{ filters.q or '' }}" placeholder="{{ _('Name or Wikidata code') }}"
-          {{ 'autofocus' if filters.q }} />
-      </label>
-    </div>
-    <div class="fieldset">
-      <label class="fieldset-legend" for="filter-user">{{ _('Added by') }}</label>
-      <select id="filter-user" name="user" class="select select-sm">
-        <option value="">{{ _('All') }}</option>
-        {% for uid, name in filter_users %}
-        <option value="{{ uid }}" {{ 'selected' if filters.user == uid }}>{{ name }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    {{ period_filter(filters, _('Date added')) }}
-    <div class="fieldset">
-      <label class="fieldset-legend" for="filter-in-atp">{{ _('Presence in ATP') }}</label>
-      <label class="label cursor-pointer gap-2 h-8">
-        <input type="checkbox" id="filter-in-atp" name="show_in_atp" value="1" class="toggle toggle-sm"
-          {{ 'checked' if filters.show_in_atp }} />
-        <span class="label-text">{{ _('Show the ones already in ATP') }}</span>
-      </label>
-    </div>
-    <div class="fieldset">
-      <span class="fieldset-legend">&nbsp;</span>
-      <div class="join">
-        <button type="submit" class="btn btn-sm btn-primary join-item">{{ _('Filter') }}</button>
-        <a href="{{ url_for('todo.todo') }}" class="btn btn-sm btn-soft join-item">{{ _('Reset') }}</a>
-      </div>
-    </div>
-    <div class="ml-auto mb-2">{{ export_menu('todo', filters) }}</div>
+    {% call filter_bar(filters, [
+        ('user', _('Added by'), filter_users),
+        ('from', _('Added after'), 'date'),
+        ('to', _('Added before'), 'date'),
+        ('show_in_atp', _('Brands already in ATP'), [('1', _('Shown'))])
+    ], url_for('todo.todo')) %}{{ export_menu('todo', filters) }}{% endcall %}
   </form>
 
   {% if entries|length == 0 %}

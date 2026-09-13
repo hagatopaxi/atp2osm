@@ -272,3 +272,17 @@ body:has(#sidebar-toggle:not(:checked)) #sidebar .menu a {
 .tabs .tab:not(.tab-active) {
     color: var(--color-base-content);
 }
+
+/* The row of filter chips scrolls horizontally: the scrollbar keeps clear of
+   the fields, and a shadow on the cropped edge shows there is more to see.
+   Pure CSS: the covers scroll with the content (`local`), the shadows stay
+   put (`scroll`), so a cover hides its shadow until the edge is reached. */
+.filter-chips {
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    background:
+        linear-gradient(to right, var(--color-base-200) 30%, transparent) left / 40px 100% no-repeat local,
+        linear-gradient(to left, var(--color-base-200) 30%, transparent) right / 40px 100% no-repeat local,
+        linear-gradient(to right, color-mix(in oklab, var(--color-base-content) 25%, transparent), transparent) left / 14px 100% no-repeat scroll,
+        linear-gradient(to left, color-mix(in oklab, var(--color-base-content) 25%, transparent), transparent) right / 14px 100% no-repeat scroll;
+}

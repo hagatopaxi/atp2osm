@@ -1,7 +1,7 @@
 {% extends '_base.html' %}
 {% from '_sort_th.html' import sort_th with context %}
 {% import '_wave.html' as wave with context %}
-{% from '_period_filter.html' import period_filter with context %}
+{% from '_filters.html' import filter_bar with context %}
 
 {% block meta_description %}{% trans count=total_brands %}The {{ count }} brands available for integration into OpenStreetMap through atp2osm. Data from AllThePlaces, reviewed by OSM contributors.{% endtrans %}{% endblock %}
 {% block page_title %}{{ _('Brands to integrate') }}{% endblock %}
@@ -21,7 +21,6 @@
 {% endblock %}
 
 {% block title %}{{ _('Brands to integrate into OpenStreetMap') }}{% endblock %}
-{% block subtitle %}{% trans count=total_brands %}{{ count }} brand — data from the All The Places database.{% pluralize %}{{ count }} brands — data from the All The Places database.{% endtrans %}{% endblock %}
 
 {% block custom_js %}
 <script src="/static/js/filters.js?v={{ app_version }}"></script>
@@ -43,62 +42,25 @@
 {% endcall %}
 {% endif %}
 
-{# One tab per wave: a link that keeps the other filters and only swaps the
-   wave, so switching tabs is a plain request. #}
-{% set current_wave = filters.wave | default('') | string %}
-<div role="tablist" class="tabs tabs-box tabs-sm w-fit mb-4 shadow-none border border-base-content/20">
-    <a role="tab" class="tab gap-2 {{ 'tab-active' if current_wave == '' }}"
-       href="{{ url_for('brands.brands', **dict(request.args, wave='')) }}">
-        {{ _('All') }} <span class="badge badge-xs badge-soft badge-neutral">{{ total_brands }}</span>
-    </a>
-    {% for number in waves %}
-    <a role="tab" class="tab gap-2 {{ 'tab-active' if current_wave == number | string }}"
-       href="{{ url_for('brands.brands', **dict(request.args, wave=number)) }}">
-        <i class="{{ wave.icon(number) | trim }}"></i> {{ wave.label(number) | trim }}
-        <span class="badge badge-xs badge-soft {{ wave.color(number) | trim }}">{{ wave_counts[number] }}</span>
-    </a>
-    {% endfor %}
-</div>
-
 <form method="get" data-autosubmit>
 <input type="hidden" name="sort" value="{{ sort or '' }}" />
 <input type="hidden" name="dir" value="{{ direction }}" />
-<input type="hidden" name="wave" value="{{ current_wave }}" />
-    <div class="flex flex-wrap items-end gap-3 mb-4">
-        <div class="fieldset">
-            <label class="fieldset-legend" for="filter-q">{{ _('Brand') }}</label>
-            <label class="input input-sm w-56">
-                <i class="iconoir-search opacity-50"></i>
-                <input type="search" id="filter-q" name="q" value="{{ filters.q or '' }}" placeholder="{{ _('Name or Wikidata code') }}"
-                    {{ 'autofocus' if filters.q }} />
-            </label>
-        </div>
-        <fieldset class="fieldset">
-            <legend class="fieldset-legend">{{ _('Previous status') }}</legend>
-            <div class="filter">
-                <input class="btn btn-sm filter-reset" type="radio" name="status" value="" aria-label="{{ _('All') }}" />
-                {% for value, label, color in [
-                    ('none',      _('Never integrated'), ''),
-                    ('success',   _('Success'),          'btn-success'),
-                    ('partial',   _('Partial'),          'btn-warning'),
-                    ('cancelled', _('Cancelled'),        'btn-info'),
-                    ('error',     _('Error'),            'btn-error')
-                ] %}
-                <input class="btn btn-sm {{ color }}" type="radio" name="status" value="{{ value }}"
-                    aria-label="{{ label }}" {{ 'checked' if filters.status == value }} />
-                {% endfor %}
-            </div>
-        </fieldset>
-        {{ period_filter(filters, _('Last integration')) }}
-        <div class="fieldset">
-            <span class="fieldset-legend">&nbsp;</span>
-            <div class="join">
-                <button type="submit" class="btn btn-sm btn-primary join-item">{{ _('Filter') }}</button>
-                <a href="{{ url_for('brands.brands') }}" class="btn btn-sm btn-soft join-item">{{ _('Reset') }}</a>
-            </div>
-        </div>
-        <span class="text-sm muted ml-auto mb-2">{% trans count=shown %}{{ count }} brand{% pluralize %}{{ count }} brands{% endtrans %}</span>
-    </div>
+    {% set wave_options = [] %}
+    {% for number in waves %}{% set _ = wave_options.append((number | string, wave.label(number) | trim ~ ' (' ~ wave_counts[number] ~ ')', wave.color(number) | trim)) %}{% endfor %}
+    {% call filter_bar(filters, [
+        ('wave', _('Wave'), wave_options),
+        ('status', _('Previous status'), [
+            ('none',      _('Never integrated'), 'badge-ghost'),
+            ('success',   _('Success'),          'badge-success'),
+            ('partial',   _('Partial'),          'badge-warning'),
+            ('cancelled', _('Cancelled'),        'badge-info'),
+            ('error',     _('Error'),            'badge-error')
+        ]),
+        ('from', _('Last integration after'), 'date'),
+        ('to', _('Last integration before'), 'date')
+    ], url_for('brands.brands')) %}
+        <span class="text-sm muted">{% trans count=shown %}{{ count }} brand{% pluralize %}{{ count }} brands{% endtrans %}</span>
+    {% endcall %}
 </form>
 
 {% if shown == 0 %}
@@ -152,7 +114,7 @@
                     "error":     "badge-error"
                 } %}
                 {% if row["last_status"] %}
-                <span class="badge {{ status_classes.get(row['last_status'], 'badge-ghost') }}">{{ status_labels.get(row['last_status'], row['last_status']) }}</span>
+                <span class="badge badge-soft {{ status_classes.get(row['last_status'], 'badge-ghost') }}">{{ status_labels.get(row['last_status'], row['last_status']) }}</span>
                 {% else %}
                 <span class="badge badge-ghost">—</span>
                 {% endif %}

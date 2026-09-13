@@ -1,0 +1,87 @@
+{# Filter bar: a search field, a "Filters" button opening the list of the
+   filters the page offers, and under them the row of the filters in use —
+   one chip each, its value picked in a select (or a date field), a cross to
+   drop it, a reset at the end. Every page filtering a list uses this one
+   control (see filters.js for the behaviour).
+
+   `specs` is a list of (name, label, options): options is a list of
+   (value, label) for a select, or the string 'date' for a date field.
+
+   Usage:
+     {% from '_filters.html' import filter_bar with context %}
+     {% call filter_bar(filters, specs, url_for('history.history')) %}
+       … what sits at the right of the search field (export menu, count)
+     {% endcall %}
+#}
+{% macro filter_bar(filters, specs, reset_url) %}
+{% set active = specs | selectattr(0, 'in', filters) | list | length %}
+<div class="flex flex-wrap items-center gap-2 mb-2" data-filter-bar>
+    <label class="input input-sm w-64 border-base-content/20">
+        <i class="iconoir-search opacity-50"></i>
+        <input type="search" name="q" value="{{ filters.q or '' }}" placeholder="{{ _('Name or Wikidata code') }}"
+            {{ 'autofocus' if filters.q }} />
+    </label>
+    {# Split button: the main part toggles the row of filters in use, the
+       arrow opens the list of the filters to add. #}
+    <div class="join">
+        <button type="button" class="btn btn-sm btn-outline border-base-content/20 join-item gap-1" data-filters-toggle>
+            <i class="iconoir-filter"></i> {{ _('Filters') }}
+            {% if active %}<span class="badge badge-xs badge-primary">{{ active }}</span>{% endif %}
+        </button>
+    <details class="dropdown join-item" data-filters-menu>
+        <summary class="btn btn-sm btn-outline border-base-content/20 join-item px-2" aria-label="{{ _('Add a filter') }}">
+            <i class="iconoir-nav-arrow-down"></i>
+        </summary>
+        <ul class="dropdown-content menu menu-sm bg-base-100 rounded-box z-10 w-52 p-2 shadow border border-base-content/20">
+            {% for name, label, options in specs %}
+            <li><button type="button" data-add="{{ name }}" {{ 'hidden' if name in filters }}>{{ label }}</button></li>
+            {% endfor %}
+        </ul>
+    </details>
+    </div>
+    <button type="submit" class="btn btn-sm btn-primary">{{ _('Search') }}</button>
+    <div class="ml-auto">{{ caller() }}</div>
+</div>
+<div class="filter-chips flex items-center gap-2 mb-4" data-filter-chips {{ '' if active else 'hidden' }}>
+    {% for name, label, options in specs %}
+    {% set on = name in filters %}
+    <div class="join shrink-0" data-chip="{{ name }}" {{ '' if on else 'hidden' }}>
+        <span class="join-item btn btn-sm btn-outline border-base-content/20 no-animation pointer-events-none">{{ label }}</span>
+        {% if options == 'date' %}
+        <input type="date" name="{{ name }}" value="{{ filters[name] if on else '' }}"
+            class="input input-sm join-item w-40 bg-transparent border-base-content/20 focus:outline-none focus:border-primary" aria-label="{{ label }}" {{ '' if on else 'disabled' }} />
+        {% elif options[0] | length == 3 %}
+        {# Coloured options: a menu of badges, the same ones the table shows,
+           and a hidden field carrying the value (a native select cannot
+           style its options). #}
+        <input type="hidden" name="{{ name }}" value="{{ filters[name] if on else '' }}" {{ '' if on else 'disabled' }} />
+        <details class="dropdown join-item">
+            <summary class="btn btn-sm btn-outline border-base-content/20 rounded-none w-44 justify-between font-normal">
+                {% set picked = options | selectattr(0, 'eq', filters[name] | string if on else none) | list %}
+                {% if picked %}
+                <span class="badge badge-sm badge-soft {{ picked[0][2] }}">{{ picked[0][1] }}</span>
+                {% else %}{{ _('Choose…') }}{% endif %}
+                <i class="iconoir-nav-arrow-down"></i>
+            </summary>
+            <ul class="dropdown-content menu menu-sm bg-base-100 rounded-box z-10 w-52 p-2 shadow border border-base-content/20">
+                {% for value, option_label, color in options %}
+                <li><button type="button" data-pick="{{ value }}"><span class="badge badge-sm badge-soft {{ color }}">{{ option_label }}</span></button></li>
+                {% endfor %}
+            </ul>
+        </details>
+        {% else %}
+        <select name="{{ name }}" class="select select-sm join-item w-44 bg-transparent border-base-content/20 focus:outline-none focus:border-primary" aria-label="{{ label }}" {{ '' if on else 'disabled' }}>
+            <option value="" disabled {{ '' if on else 'selected' }}>{{ _('Choose…') }}</option>
+            {% for value, option_label in options %}
+            <option value="{{ value }}" {{ 'selected' if on and filters[name] | string == value | string }}>{{ option_label }}</option>
+            {% endfor %}
+        </select>
+        {% endif %}
+        <button type="button" class="btn btn-sm btn-outline border-base-content/20 join-item px-2" data-remove aria-label="{{ _('Remove this filter') }}">
+            <i class="iconoir-xmark"></i>
+        </button>
+    </div>
+    {% endfor %}
+    <a href="{{ reset_url }}" class="btn btn-sm btn-outline border-base-content/20 shrink-0">{{ _('Reset') }}</a>
+</div>
+{% endmacro %}
