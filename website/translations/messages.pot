@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-13 21:51+0200\n"
+"POT-Creation-Date: 2026-09-13 22:12+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -20,6 +20,23 @@ msgstr ""
 #: src/upload.py:151
 #, python-format
 msgid "ATP data integration (%(subdivision)s; %(brand)s)"
+msgstr ""
+
+#: src/routes/todo.py:113 src/routes/todo.py:147
+msgid "The estimation must be a whole number"
+msgstr ""
+
+#: src/routes/todo.py:115 src/routes/todo.py:149
+msgid "The brand name is required"
+msgstr ""
+
+#: src/routes/todo.py:128 src/routes/todo.py:169
+msgid "This brand is already in the list"
+msgstr ""
+
+#: src/routes/todo.py:132 src/routes/todo.py:173
+#: website/templates/_js_strings.html:12
+msgid "Something went wrong, please try again."
 msgstr ""
 
 #: website/templates/_aside.html:8
@@ -210,10 +227,6 @@ msgstr ""
 
 #: website/templates/_js_strings.html:11
 msgid "Your session has expired, please sign in again."
-msgstr ""
-
-#: website/templates/_js_strings.html:12
-msgid "Something went wrong, please try again."
 msgstr ""
 
 #: website/templates/_js_strings.html:13
