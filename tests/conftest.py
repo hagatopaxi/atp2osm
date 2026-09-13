@@ -93,12 +93,27 @@ for _name, _value in _SECRETS.items():
 import psycopg  # noqa: E402
 import pytest  # noqa: E402
 
-TEST_DB = "atp2osm_test"
+# Named after the process: two suites running at once — one per worktree —
+# must not drop each other's database from under them.
+TEST_DB = f"atp2osm_test_{os.getpid()}"
 
 # A test that does not run controls nothing, so there is no skip here: an
 # unreachable database is an error. `podman-compose up -d` is a prerequisite
 # of the suite, and a CI that lost its service must say so loudly instead of
 # reporting green on a third of the tests.
+
+
+def _drop_orphans(admin_conn):
+    """Drop the databases of suites that died before their teardown."""
+    names = admin_conn.execute(
+        "SELECT datname FROM pg_database WHERE datname LIKE 'atp2osm_test_%'"
+    ).fetchall()
+    for (name,) in names:
+        pid = int(name.rsplit("_", 1)[1])
+        try:
+            os.kill(pid, 0)  # alive: its suite is still running
+        except (OSError, ProcessLookupError):
+            admin_conn.execute(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
 
 
 @pytest.fixture(scope="session")
@@ -119,7 +134,7 @@ def db_kwargs():
     try:
         admin = get_database().connect_kwargs
         with psycopg.connect(**admin, autocommit=True) as c:
-            c.execute(f'DROP DATABASE IF EXISTS "{TEST_DB}" WITH (FORCE)')
+            _drop_orphans(c)
             c.execute(f'CREATE DATABASE "{TEST_DB}"')
         kwargs = {**admin, "dbname": TEST_DB}
         with psycopg.connect(**kwargs) as c:
@@ -146,8 +161,10 @@ def _migrated(db_kwargs):
     with psycopg.connect(**db_kwargs) as c:
         run_migrations(c)
         # The pipeline's tables the site reads, empty: the cooldown SQL joins
-        # them, and a migration never creates them.
+        # them, and a migration never creates them. Dropped first: a test on
+        # `db_kwargs` alone may have built its own before this ran.
         c.execute("""
+            DROP TABLE IF EXISTS atp_places, atp_spiders;
             CREATE TABLE atp_places (id TEXT, spider_id TEXT, brand_wikidata TEXT, brand TEXT);
             CREATE TABLE atp_spiders (spider TEXT, filename TEXT, errors INT8, features INT8,
                                       elapsed_time FLOAT8, updated_at TIMESTAMPTZ);

@@ -192,7 +192,8 @@ Tests use pytest with `--import-mode=importlib` and pythonpath set to `.` (see `
 A test never reads the development database: its content is nobody's
 guarantee — an interrupted pipeline leaves rows behind, and a test reading
 them fails for reasons of its own. `conftest.py` builds a throwaway
-`atp2osm_test` database instead, dropped when the session ends, and the tests
+`atp2osm_test_<pid>` database instead — one per process, so two worktrees can
+run their suites at once — dropped when the session ends, and the tests
 take one of its two fixtures: `migrated_conn` for the real schema (migrations
 applied, tables emptied before each test), `db_kwargs` for a test that builds
 a schema of its own — a partial migration history, a table shaped like
