@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 import requests
 from flask import Blueprint, session, request, redirect, url_for, abort, Response
+from oauthlib.oauth2 import OAuth2Error
 from requests_oauthlib import OAuth2Session
 
 from src.config import get_settings
@@ -48,8 +49,8 @@ def login():
     authorization_url, state = osm.authorization_url(authorization_base_url)
     session["oauth_state"] = state
 
-    data = request.get_json(silent=True) or {}
-    next_url = data.get("next", "/")
+    data = request.get_json(silent=True)
+    next_url = data.get("next", "/") if isinstance(data, dict) else "/"
     # Protected against open-redirect attack, see https://owasp.org/www-community/attacks/open_redirect
     parsed = urlparse(next_url)
     if parsed.netloc or parsed.scheme or not next_url.startswith("/"):
@@ -64,8 +65,10 @@ def oauth_callback():
     if "error" in request.args:
         return "Authentication failed: " + request.args["error"], 401
 
-    # Validate state
-    if request.args.get("state") != session.get("oauth_state"):
+    # The state ties the callback to the login that started it — and both
+    # missing is no match either.
+    state = request.args.get("state")
+    if not state or state != session.get("oauth_state"):
         return "Invalid state parameter", 401
 
     redirect_uri = get_oauth_redirect_uri()
@@ -88,13 +91,23 @@ def oauth_callback():
             client_secret=client_secret,
             authorization_response=authorization_response,
         )
-        response = osm.get(f"{api_url}/api/0.6/user/details.json")
-        response.raise_for_status()
+    except OAuth2Error:
+        # A code replayed or expired — the back button, a refresh on this
+        # URL: OSM refused the grant, the contributor signs in again.
+        logger.info("OAuth grant refused", exc_info=True)
+        return "Authentication failed", 401
     except requests.RequestException:
         logger.exception("OSM API unreachable during login")
         abort(502)
-    res_json = response.json()
-    user = {"osm_id": res_json["user"]["id"], "name": res_json["user"]["display_name"]}
+    try:
+        response = osm.get(f"{api_url}/api/0.6/user/details.json")
+        response.raise_for_status()
+        details = response.json()["user"]
+        user = {"osm_id": int(details["id"]), "name": str(details["display_name"])}
+    except (requests.RequestException, ValueError, KeyError, TypeError):
+        # Unreachable, or an answer that is not a user: OSM's side either way.
+        logger.exception("OSM API did not answer the user details")
+        abort(502)
     del session["oauth_state"]
     session["user"] = user
     session["token"] = dict(token)

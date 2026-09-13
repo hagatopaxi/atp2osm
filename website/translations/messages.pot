@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-13 22:12+0200\n"
+"POT-Creation-Date: 2026-09-13 23:37+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,24 +17,36 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
+#: src/templating.py:57
+msgid "The data is being prepared, this instance has not run its first refresh yet."
+msgstr ""
+
 #: src/upload.py:151
 #, python-format
 msgid "ATP data integration (%(subdivision)s; %(brand)s)"
 msgstr ""
 
-#: src/routes/todo.py:113 src/routes/todo.py:147
+#: src/routes/brands.py:190
+msgid "OpenStreetMap could not be reached: nothing was changed."
+msgstr ""
+
+#: src/routes/todo.py:113 src/routes/todo.py:149
+msgid "The request body must be a JSON object"
+msgstr ""
+
+#: src/routes/todo.py:121 src/routes/todo.py:157
 msgid "The estimation must be a whole number"
 msgstr ""
 
-#: src/routes/todo.py:115 src/routes/todo.py:149
+#: src/routes/todo.py:123 src/routes/todo.py:159
 msgid "The brand name is required"
 msgstr ""
 
-#: src/routes/todo.py:128 src/routes/todo.py:169
+#: src/routes/todo.py:136 src/routes/todo.py:179
 msgid "This brand is already in the list"
 msgstr ""
 
-#: src/routes/todo.py:132 src/routes/todo.py:173
+#: src/routes/todo.py:140 src/routes/todo.py:183
 #: website/templates/_js_strings.html:12
 msgid "Something went wrong, please try again."
 msgstr ""
@@ -1757,10 +1769,10 @@ msgid "Internal error, sorry."
 msgstr ""
 
 #: website/templates/errors/503.html:3
-msgid "503 - OpenStreetMap unavailable"
+msgid "503 - Temporarily unavailable"
 msgstr ""
 
 #: website/templates/errors/503.html:6
-msgid "OpenStreetMap could not be reached: nothing was changed. Please try again in a few minutes."
+msgid "Please try again in a few minutes."
 msgstr ""
 

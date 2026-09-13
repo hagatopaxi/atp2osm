@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-13 22:12+0200\n"
+"POT-Creation-Date: 2026-09-13 23:37+0200\n"
 "PO-Revision-Date: 2026-09-06 17:06+0200\n"
 "Last-Translator: the atp2osm contributors\n"
 "Language: fr\n"
@@ -18,24 +18,36 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
+#: src/templating.py:57
+msgid "The data is being prepared, this instance has not run its first refresh yet."
+msgstr "Les données sont en cours de préparation : cette instance n’a pas encore fait son premier rafraîchissement."
+
 #: src/upload.py:151
 #, python-format
 msgid "ATP data integration (%(subdivision)s; %(brand)s)"
 msgstr "Intégration des données ATP (%(subdivision)s ; %(brand)s)"
 
-#: src/routes/todo.py:113 src/routes/todo.py:147
+#: src/routes/brands.py:190
+msgid "OpenStreetMap could not be reached: nothing was changed."
+msgstr "OpenStreetMap n’a pas pu être joint : rien n’a été modifié."
+
+#: src/routes/todo.py:113 src/routes/todo.py:149
+msgid "The request body must be a JSON object"
+msgstr "Le corps de la requête doit être un objet JSON"
+
+#: src/routes/todo.py:121 src/routes/todo.py:157
 msgid "The estimation must be a whole number"
 msgstr "L’estimation doit être un nombre entier"
 
-#: src/routes/todo.py:115 src/routes/todo.py:149
+#: src/routes/todo.py:123 src/routes/todo.py:159
 msgid "The brand name is required"
 msgstr "Le nom de la marque est requis"
 
-#: src/routes/todo.py:128 src/routes/todo.py:169
+#: src/routes/todo.py:136 src/routes/todo.py:179
 msgid "This brand is already in the list"
 msgstr "Cette marque est déjà dans la liste"
 
-#: src/routes/todo.py:132 src/routes/todo.py:173
+#: src/routes/todo.py:140 src/routes/todo.py:183
 #: website/templates/_js_strings.html:12
 msgid "Something went wrong, please try again."
 msgstr "Une erreur est survenue, veuillez réessayer."
@@ -1758,12 +1770,12 @@ msgid "Internal error, sorry."
 msgstr "Erreur interne, désolé."
 
 #: website/templates/errors/503.html:3
-msgid "503 - OpenStreetMap unavailable"
-msgstr "503 - OpenStreetMap indisponible"
+msgid "503 - Temporarily unavailable"
+msgstr "503 - Temporairement indisponible"
 
 #: website/templates/errors/503.html:6
-msgid "OpenStreetMap could not be reached: nothing was changed. Please try again in a few minutes."
-msgstr "OpenStreetMap n’a pas pu être joint : rien n’a été modifié. Réessayez dans quelques minutes."
+msgid "Please try again in a few minutes."
+msgstr "Réessayez dans quelques minutes."
 
 #~ msgid "Wave 2 — replacing values"
 #~ msgstr "Vague 2 — remplacement de valeurs"

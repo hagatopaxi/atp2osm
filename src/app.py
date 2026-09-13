@@ -1,6 +1,6 @@
 import logging
 
-from flask import Flask, render_template
+from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from src.config import TEMPLATE_DIR, STATIC_DIR, CACHE_DIR, get_settings
@@ -63,26 +63,6 @@ templating.init_app(app, settings)
 # deploy step, so the server does it at boot.
 if settings.is_dev:
     migrate.main()
-
-
-@app.errorhandler(500)
-def internal_error(error):
-    return render_template("errors/500.html"), 500
-
-
-@app.errorhandler(502)
-def bad_gateway_error(error):
-    return render_template("errors/500.html"), 502
-
-
-@app.errorhandler(403)
-def not_authorized_error(error):
-    return render_template("errors/403.html"), 403
-
-
-@app.errorhandler(404)
-def not_found_error(error):
-    return render_template("errors/404.html"), 404
 
 
 if __name__ == "__main__":

@@ -99,10 +99,18 @@ def todo_check():
     return {"matches": matches}
 
 
+def _body() -> dict | None:
+    """The JSON object of the request, or None when there is not one."""
+    data = request.get_json(silent=True)
+    return data if isinstance(data, dict) else None
+
+
 @todo_bp.route("/todo", methods=["POST"])
 @auth_required
 def todo_add():
-    data = request.get_json()
+    data = _body()
+    if data is None:
+        return {"error": _("The request body must be a JSON object")}, 400
     brand_wikidata = (data.get("brand_wikidata") or "").strip() or None
     brand_name = (data.get("brand_name") or "").strip()
     estimation = data.get("estimation")
@@ -136,7 +144,9 @@ def todo_add():
 @todo_bp.route("/todo/<int:entry_id>", methods=["PUT"])
 @auth_required
 def todo_update(entry_id):
-    data = request.get_json()
+    data = _body()
+    if data is None:
+        return {"error": _("The request body must be a JSON object")}, 400
     brand_wikidata = (data.get("brand_wikidata") or "").strip() or None
     brand_name = (data.get("brand_name") or "").strip()
     estimation = data.get("estimation")

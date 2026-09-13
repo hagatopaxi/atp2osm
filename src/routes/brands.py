@@ -15,6 +15,7 @@ from flask import (
     session,
     url_for,
 )
+from flask_babel import gettext as _
 from psycopg.rows import dict_row
 from requests_oauthlib import OAuth2Session
 
@@ -184,7 +185,10 @@ def osm_api_unavailable(error):
             status=503,
             mimetype="application/json",
         )
-    return render_template("errors/503.html"), 503
+    return render_template(
+        "errors/503.html",
+        message=_("OpenStreetMap could not be reached: nothing was changed."),
+    ), 503
 
 
 @brands_bp.route("/brands")
@@ -320,8 +324,10 @@ def brands_rejected(brand_wikidata):
 @brands_bp.route("/brands/<brand_wikidata>/report-error", methods=["POST"])
 @auth_required
 def report_error(brand_wikidata):
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        abort(400)
     _, _, wave = get_batch(brand_wikidata)
-    data = request.get_json()
     comment = data.get("comment", "")
     brand_name = data.get("brand_name", "")
     osmdb = get_osmdb()
@@ -359,7 +365,12 @@ def upload_changes(brand_wikidata):
     osm_session = OAuth2Session(token=session["token"])
     bulk_upload = BulkUpload(changes, session=osm_session, max_size=wave.batch_size)
     errors = bulk_upload.upload()
-    bulk_upload.save_log_file()
+    # The changesets are on OSM now: nothing after this line may stop the
+    # row that records them. The log is a convenience.
+    try:
+        bulk_upload.save_log_file()
+    except OSError:
+        logger.exception("Could not save the log of the run")
     # The uploaded POIs now carry their tags: the next batch must be composed on
     # freshly read matches, not on what we had before sending.
     cache.delete_memoized(brand_matches, brand_wikidata, wave.number)
