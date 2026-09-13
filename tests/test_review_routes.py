@@ -1,4 +1,4 @@
-"""What GET /brands/<brand>/validate shows, and what it writes down.
+"""The review of a brand: /brands, then /validate, /confirm, /report-error.
 
 The review page is the one human check before an upload: a tag the reviewer
 cannot see is a tag they cannot invalidate. So the page is rendered for real —
@@ -538,3 +538,200 @@ def test_a_rejection_without_a_body_is_a_bad_request(contributor, brand, monkeyp
                            content_type="text/plain")
     assert res.status_code in (400, 415)
     assert history(brand) == []
+
+
+# --- /brands: the list ---------------------------------------------------------------
+
+
+def integrate(conn, sub, wave, status="success", when="NOW()"):
+    """An integration of one subdivision: `status` is the changeset's, the
+    import's follows from it."""
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""INSERT INTO import_history (brand_wikidata, osm_user_id, status, items_count, wave, import_date)
+                VALUES ('Q1', 42, %s, 1, %s, {when}) RETURNING id""",
+            ("success" if status == "success" else "error", wave),
+        )
+        import_id = cur.fetchone()[0]
+        cur.execute(
+            "INSERT INTO import_subdivisions (import_id, subdivision_code, subdivision_name, items_count, status)"
+            " VALUES (%s, %s, %s, 1, %s)",
+            (import_id, sub, sub, status),
+        )
+    conn.commit()
+
+
+def listed(rendered):
+    """The context of the latest rendering of the list."""
+    return [c for t, c in rendered if t == "brands.html"][-1]
+
+
+def test_the_list_counts_what_is_left_on_the_current_wave(web_app, brand, rendered):
+    give(brand, 1, [("75", 4), ("33", 2)])
+    give(brand, 2, [("75", 3)])
+
+    res = web_app.test_client().get("/brands")
+
+    assert res.status_code == 200
+    (row,) = listed(rendered)["rows"]
+    assert (row["brand_wikidata"], row["wave"], row["total"]) == ("Q1", 1, 6)
+    assert row["last_status"] is None
+    assert listed(rendered)["wave_counts"] == {1: 1}
+
+
+def test_an_integrated_subdivision_leaves_the_count(web_app, brand, rendered):
+    give(brand, 1, [("75", 4), ("33", 2)])
+    integrate(brand, "75", wave=1)
+
+    web_app.test_client().get("/brands")
+
+    (row,) = listed(rendered)["rows"]
+    assert (row["wave"], row["total"], row["last_status"]) == (1, 2, "success")
+
+
+def test_a_brand_done_with_wave_1_moves_to_wave_2(web_app, brand, rendered):
+    give(brand, 1, [("75", 4)])
+    give(brand, 2, [("75", 3)])
+    integrate(brand, "75", wave=1)
+
+    web_app.test_client().get("/brands")
+
+    (row,) = listed(rendered)["rows"]
+    assert (row["wave"], row["total"]) == (2, 3)
+    assert listed(rendered)["wave_counts"] == {2: 1}
+
+
+def test_a_brand_with_nothing_left_is_not_listed(web_app, brand, rendered):
+    give(brand, 1, [("75", 4)])
+    integrate(brand, "75", wave=1)
+    web_app.test_client().get("/brands")
+    assert listed(rendered)["rows"] == []
+    assert listed(rendered)["total_brands"] == 0
+
+
+def test_a_failed_integration_hides_the_subdivision_for_a_shorter_while(web_app, brand, rendered):
+    give(brand, 1, [("75", 4)])
+    integrate(brand, "75", wave=1, status="error_osm_api", when="NOW() - INTERVAL '5 weeks'")
+    web_app.test_client().get("/brands")
+    (row,) = listed(rendered)["rows"]
+    assert row["total"] == 4
+
+    integrate(brand, "75", wave=1, status="error_osm_api", when="NOW() - INTERVAL '3 weeks'")
+    web_app.test_client().get("/brands")
+    assert listed(rendered)["rows"] == []
+
+
+def test_a_rejected_brand_comes_back_when_a_spider_is_edited(web_app, brand, rendered):
+    give(brand, 1, [("75", 4)])
+    with brand.cursor() as cur:
+        cur.execute("INSERT INTO import_history (brand_wikidata, osm_user_id, status, items_count, wave)"
+                    " VALUES ('Q1', 42, 'cancelled', 0, 1)")
+        cur.execute("INSERT INTO atp_spiders (spider, updated_at) VALUES ('babylone_fr', NOW() - INTERVAL '1 day')")
+    brand.commit()
+    web_app.test_client().get("/brands")
+    assert listed(rendered)["rows"] == []
+
+    with brand.cursor() as cur:
+        cur.execute("UPDATE atp_spiders SET updated_at = NOW() + INTERVAL '1 hour'")
+    brand.commit()
+    web_app.test_client().get("/brands")
+    (row,) = listed(rendered)["rows"]
+    assert row["last_status"] == "cancelled"
+
+
+def test_the_filters_narrow_the_rows_but_not_the_counts(web_app, brand, rendered):
+    give(brand, 1, [("75", 4)])
+    with brand.cursor() as cur:
+        cur.execute("INSERT INTO mv_places_brand VALUES ('Nouvelle', 'Q2', '75', 2, 1)")
+    brand.commit()
+
+    web_app.test_client().get("/brands?q=nouv")
+
+    context = listed(rendered)
+    assert [r["brand"] for r in context["rows"]] == ["Nouvelle"]
+    assert (context["shown"], context["total_brands"]) == (1, 2)
+    assert context["wave_counts"] == {1: 1, 2: 1}
+    assert context["filters"] == {"q": "nouv"}
+
+
+def test_the_list_is_sorted_biggest_first_then_on_request(web_app, brand, rendered):
+    give(brand, 1, [("75", 4)])
+    with brand.cursor() as cur:
+        cur.execute("INSERT INTO mv_places_brand VALUES ('Zed', 'Q2', '75', 1, 9)")
+    brand.commit()
+
+    web_app.test_client().get("/brands")
+    assert [r["brand"] for r in listed(rendered)["rows"]] == ["Zed", "Babylone"]
+
+    web_app.test_client().get("/brands?sort=brand&dir=asc")
+    assert [r["brand"] for r in listed(rendered)["rows"]] == ["Babylone", "Zed"]
+
+    web_app.test_client().get("/brands?sort=nonsense")
+    assert [r["brand"] for r in listed(rendered)["rows"]] == ["Zed", "Babylone"]
+    assert listed(rendered)["sort"] == "nonsense"
+
+
+def test_the_review_is_offered_to_contributors_only(web_app, contributor, brand):
+    give(brand, 1, [("75", 4)])
+    assert "/brands/Q1/validate" not in web_app.test_client().get("/brands").text
+    assert "/brands/Q1/validate" in contributor.get("/brands").text
+
+
+# --- /confirm -------------------------------------------------------------------------
+
+
+def test_the_confirmation_sums_up_the_batch(contributor, brand, monkeypatch, rendered):
+    give(brand, 1, [("75", 2), ("33", 1)])
+    stage(monkeypatch, [
+        change(1, {"phone": "+33 1 00 00 00 00", "website": "https://babylone.example"}, {}),
+        change(2, {"phone": "+33 1 00 00 00 01"}, {}),
+        change(3, {"website": "https://babylone.example/33"}, {}, sub="33", name="Gironde"),
+    ])
+
+    res = contributor.get("/brands/Q1/confirm")
+
+    assert res.status_code == 200
+    _, context = next(c for c in rendered if c[0].endswith("confirm.html"))
+    assert context["stats"]["size"] == 3
+    assert context["stats"]["by_tag"] == {"phone": 2, "website": 2}
+    assert context["stats"]["total_tag_updates"] == 4
+    assert context["stats"]["by_subdivision"] == {
+        "33": {"name": "Gironde", "count": 1},
+        "75": {"name": "Paris", "count": 2},
+    }
+    assert context["wave_number"] == 1
+    # The log the page offers is the batch itself.
+    assert '"id": 3' in context["logs"]
+
+
+def test_an_empty_batch_goes_back_to_the_review(contributor, brand, monkeypatch):
+    give(brand, 1, [("75", 1)])
+    stage(monkeypatch, [])
+    res = contributor.get("/brands/Q1/confirm")
+    assert res.status_code == 302
+    assert res.headers["Location"].endswith("/brands/Q1/validate")
+    assert history(brand) == []
+
+
+def test_a_brand_under_cooldown_cannot_be_confirmed(contributor, brand, monkeypatch):
+    """Not in the list: only a forged URL lands here."""
+    give(brand, 1, [("75", 1)])
+    stage(monkeypatch, [change(1, {"phone": "+33 1 00 00 00 00"}, {})])
+    with brand.cursor() as cur:
+        cur.execute("INSERT INTO import_history (brand_wikidata, osm_user_id, status, items_count, wave)"
+                    " VALUES ('Q1', 42, 'cancelled', 0, 1)")
+    brand.commit()
+    assert contributor.get("/brands/Q1/confirm").status_code == 403
+
+
+def test_the_confirmation_cannot_decide_when_the_api_is_down(contributor, brand, monkeypatch):
+    give(brand, 2, [("75", 1)])
+    stage(monkeypatch, [
+        change(1, {"phone": "+33 1 00 00 00 00"}, {"phone": "+33 1 11 11 11 11"}, edited=RECENT),
+    ], wave=2)
+    api_down(monkeypatch)
+    assert contributor.get("/brands/Q1/confirm").status_code == 503
+
+
+def test_an_anonymous_visitor_cannot_confirm(web_app, brand):
+    assert web_app.test_client().get("/brands/Q1/confirm").status_code == 403
