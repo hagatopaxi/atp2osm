@@ -71,8 +71,7 @@
 <table data-infinite-scroll class="table table-compact bg-base-100 rounded-2">
     <thead>
         <tr>
-            {{ sort_th('brands.brands', 'wikidata', _('Wikidata code')) }}
-            {{ sort_th('brands.brands', 'brand', _('Name')) }}
+            {{ sort_th('brands.brands', 'brand', _('Brand (Wikidata)')) }}
             {{ sort_th('brands.brands', 'total', _('POIs to integrate')) }}
             <th>{{ _('Proposed wave') }}</th>
             {{ sort_th('brands.brands', 'status', _('Previous status')) }}
@@ -83,13 +82,10 @@
     <tbody>
         {% for row in rows %}
          <tr class="group">
-             <td>
-                 <a class="link font-mono" href="https://www.wikidata.org/wiki/{{ row['brand_wikidata'] }}"
-                    target="_blank" rel="noopener">{{ row["brand_wikidata"] }}</a>
-             </td>
-
             <td class="whitespace-nowrap md:w-1/2 md:max-w-0 md:truncate" title="{{ row['brand'] }}">
                 {{ row["brand"] }}
+                <br><a class="link text-xs font-mono muted" href="https://www.wikidata.org/wiki/{{ row['brand_wikidata'] }}"
+                   target="_blank" rel="noopener">{{ row["brand_wikidata"] }}</a>
             </td>
 
             <td>

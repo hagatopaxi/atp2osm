@@ -68,7 +68,6 @@
             <th>{{ _('Wave') }}</th>
             {{ sort_th('history.history', 'user', _('OSM user')) }}
             {{ sort_th('history.history', 'items', _('POIs integrated')) }}
-            {{ sort_th('history.history', 'subdivisions', _('Changesets')) }}
             <th>{{ _('Action') }}</th>
         </tr>
     </thead>
@@ -117,7 +116,6 @@
                 {% endif %}
             </td>
             <td>{{ entry.items_count if entry.items_count is not none else '—' }}</td>
-            <td>{{ entry.subdivisions_count if entry.subdivisions_count else '—' }}</td>
             <td>
                 <div class="row-actions">
                     <a class="btn btn-sm btn-soft btn-primary rounded-md whitespace-nowrap" href="{{ url_for('history.history_detail', entry_id=entry.id, page=page, **filters) }}">{{ _('See more') }}</a>
