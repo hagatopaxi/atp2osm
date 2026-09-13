@@ -25,7 +25,7 @@ import requests
 
 from src.config import Database
 from src.phone import ensure_normalize_phone
-from src.pipeline import _matview, _version, atp, nsi, osm
+from src.pipeline import _matview, _version, atp, atp2osm, nsi, osm
 from src.pipeline._db import last_import_comment, last_import_date, record_import, start_import
 from src.pipeline.errors import SourceUnavailable
 from src.pipeline.ndgeojson_to_parquet import convert_to_parquet
@@ -899,3 +899,128 @@ def test_a_release_replaces_the_previous_one_whole(pipeline, registry):
     _nsi_file(nsi.NSI_PATH, "8.0.20260801", [("Nouvelle", "Q2")])
     nsi.import_nsi()
     assert nsi_brands(pipeline) == [("Nouvelle",)]
+
+
+# =============================================================================
+# mv-brand: the last step, and the disposal of the retired chain
+# =============================================================================
+
+
+@pytest.fixture
+def refreshed(pipeline, parquet, monkeypatch):
+    """A full first refresh: the OSM views and the ATP table are in, mv-brand
+    has not run yet."""
+    monkeypatch.setattr(atp2osm, "connect", osm.connect)
+    nsi_imported(pipeline)
+    geofabrik(monkeypatch, TS)
+    osm.setup_mv_places()
+    atp.import_atp()
+    return pipeline
+
+
+def relations(conn, pattern):
+    conn.rollback()
+    return {
+        r[0] for r in conn.execute(
+            "SELECT relname FROM pg_class WHERE relnamespace = 'public'::regnamespace"
+            " AND relkind IN ('r', 'm') AND relname ~ %s ORDER BY relname",
+            (pattern,),
+        ).fetchall()
+    }
+
+
+def test_the_brand_view_counts_the_matches_per_wave(refreshed):
+    atp2osm.create_mv_places_brand()
+
+    rows = refreshed.execute(
+        "SELECT brand_wikidata, subdivision_code, wave, total FROM mv_places_brand ORDER BY wave"
+    ).fetchall()
+    # The Paris point carries Q1 and no phone; the ATP POI 500 m away brings
+    # one: wave 1. Nothing to replace: no wave 2.
+    assert rows == [("Q1", "75", 1, 1)]
+    assert refreshed.execute("SELECT spider_id, matched FROM mv_places_spider").fetchall() == [
+        ("babylone_fr", 1)
+    ]
+
+
+def test_unchanged_inputs_skip_the_brand_view(refreshed):
+    atp2osm.create_mv_places_brand()
+    built = oid(refreshed, "mv_places_brand")
+    atp2osm.create_mv_places_brand()
+    assert oid(refreshed, "mv_places_brand") == built
+
+
+@pytest.mark.parametrize(
+    "move",
+    [
+        lambda conn, mp: record_import(conn, "osm", LATER, "success"),
+        # The ATP date is the parquet's mtime, today's: only a later one moves it.
+        lambda conn, mp: record_import(
+            conn, "atp", datetime.now(timezone.utc) + timedelta(days=1), "success", _version.app_version()
+        ),
+        lambda conn, mp: nsi_imported(conn, "8.0.20260801"),
+        lambda conn, mp: mp.setattr(atp2osm, "app_version", lambda: "next-deploy"),
+    ],
+    ids=["osm-data", "atp-data", "nsi-release", "revision"],
+)
+def test_any_input_moving_rebuilds_the_brand_view(refreshed, monkeypatch, move):
+    atp2osm.create_mv_places_brand()
+    built = oid(refreshed, "mv_places_brand")
+
+    move(refreshed, monkeypatch)
+    atp2osm.create_mv_places_brand()
+
+    assert oid(refreshed, "mv_places_brand") != built
+
+
+def test_the_whole_retired_chain_goes_once_the_brand_view_is_swapped(refreshed, osm2pgsql, monkeypatch):
+    """A full second refresh retires points, polygons, subdivisions, mv_places,
+    atp_places and atp_spiders; nothing reads them once the brand view is
+    rebuilt, and mv-brand disposes of them all."""
+    atp2osm.create_mv_places_brand()
+    osm.run_osm2pgsql()
+    geofabrik(monkeypatch, LATER)
+    osm.setup_mv_places()
+    monkeypatch.setattr(atp, "app_version", lambda: "next-deploy")
+    atp.import_atp()
+    monkeypatch.setattr(atp2osm, "app_version", lambda: "next-deploy")
+    assert relations(refreshed, "_old") == {
+        "points_old", "polygons_old", "subdivisions_old",
+        "mv_places_old", "atp_places_old", "atp_spiders_old",
+    }
+
+    atp2osm.create_mv_places_brand()
+
+    assert relations(refreshed, "_old") == set()
+    # The live chain is whole.
+    assert refreshed.execute("SELECT count(*) FROM mv_places_brand").fetchone()[0] == 1
+
+
+def test_a_retired_table_still_read_is_kept(refreshed, osm2pgsql, monkeypatch):
+    """points reimported, mv_places not rebuilt yet: the view still reads
+    points_old and polygons_old, which must survive the disposal. The
+    boundaries, which nothing reads, go."""
+    atp2osm.create_mv_places_brand()
+    osm.run_osm2pgsql()
+    monkeypatch.setattr(atp2osm, "app_version", lambda: "next-deploy")
+
+    atp2osm.create_mv_places_brand()
+
+    assert relations(refreshed, "_old") == {"points_old", "polygons_old"}
+    assert refreshed.execute("SELECT count(*) FROM mv_places").fetchone()[0] == 2
+
+
+def test_a_failed_brand_view_leaves_the_live_one_and_the_retired_chain(refreshed, osm2pgsql, monkeypatch):
+    atp2osm.create_mv_places_brand()
+    built = oid(refreshed, "mv_places_brand")
+    osm.run_osm2pgsql()
+    retired = relations(refreshed, "_old")
+    monkeypatch.setattr(atp2osm, "app_version", lambda: "next-deploy")
+    monkeypatch.setattr(atp2osm, "_mv_places_spider_sql",
+                        lambda name: f"CREATE MATERIALIZED VIEW {name} AS SELECT 1/0")
+
+    with pytest.raises(psycopg.Error):
+        atp2osm.create_mv_places_brand()
+
+    assert oid(refreshed, "mv_places_brand") == built
+    assert relations(refreshed, "_old") == retired

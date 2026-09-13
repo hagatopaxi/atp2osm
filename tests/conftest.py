@@ -109,7 +109,10 @@ def _drop_orphans(admin_conn):
         "SELECT datname FROM pg_database WHERE datname LIKE 'atp2osm_test_%'"
     ).fetchall()
     for (name,) in names:
-        pid = int(name.rsplit("_", 1)[1])
+        # atp2osm_test_<pid>, or a test's own atp2osm_test_<pid>_<suffix>.
+        pid = next((int(p) for p in name.split("_") if p.isdigit()), None)
+        if pid is None:
+            continue
         try:
             os.kill(pid, 0)  # alive: its suite is still running
         except (OSError, ProcessLookupError):
