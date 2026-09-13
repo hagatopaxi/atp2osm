@@ -28,7 +28,9 @@ MATCHED_POI_SQL = """
         osm.tags as old_tags,
         ST_X(ST_Centroid(osm.geom)) AS lon,
         ST_Y(ST_Centroid(osm.geom)) AS lat,
-        atp.opening_hours as atp_opening_hours,
+        -- Written the way OSM writes it (normalize_opening_hours): what is
+        -- compared below is also what gets written.
+        normalize_opening_hours(atp.opening_hours) AS atp_opening_hours,
         atp.phone as atp_phone,
         atp.email as atp_email,
         atp.website as atp_website,
@@ -66,13 +68,16 @@ MATCHED_POI_SQL = """
         (
             SELECT COALESCE(jsonb_object_agg(t.key, t.atp_value), '{{}}'::jsonb)
             FROM (VALUES
-                -- Whitespace carries no meaning in the opening_hours syntax:
-                -- "08:00-12:00, 14:00-18:00" and "08:00-12:00,14:00-18:00"
-                -- are the same value, and must not make a changeset that
-                -- changes nothing. Compared with every space removed.
-                ('opening_hours', atp.opening_hours,
-                    REGEXP_REPLACE(osm.tags->>'opening_hours', '\\s', '', 'g')
-                        <> REGEXP_REPLACE(atp.opening_hours, '\\s', '', 'g')),
+                -- Compared on the weekday rules alone, both sides in the
+                -- same writing: spaces, `closed`/`off`, `24/7`, day lists
+                -- are spellings, not differences. What ATP never scrapes —
+                -- `PH off`, comments — is neither compared nor lost:
+                -- merge_opening_hours writes it back. A value with no
+                -- readable week (NULL: seasonal, commented, lowercase…) is
+                -- left to humans, never overwritten.
+                ('opening_hours', normalize_opening_hours(atp.opening_hours),
+                    normalize_opening_hours(osm.tags->>'opening_hours')
+                        <> normalize_opening_hours(atp.opening_hours)),
                 ('email', atp.email,
                     LOWER(osm.tags->>'email') <> LOWER(atp.email)
                     OR LOWER(osm.tags->>'contact:email') <> LOWER(atp.email)),
@@ -332,6 +337,52 @@ def apply_tag(tags: dict, key: str, value: Any) -> None:
         tags[key] = value
 
 
+# The rules normalize_opening_hours reads, mirrored: weekdays (or none) then
+# times, off/closed or 24/7. The other rules of a value are what ATP never
+# scrapes. `PH` may sit in the day list: the holiday is kept as a rule of
+# its own, the weekdays are what got replaced.
+_DAY = r"(?:Mo|Tu|We|Th|Fr|Sa|Su)"
+_SPEC = r"(?:\d{1,2}:\d{2}-\d{1,2}:\d{2}(?:,\d{1,2}:\d{2}-\d{1,2}:\d{2})*|off|closed|24/7)"
+_WEEKDAY_RULE = re.compile(rf"^({_DAY}(?:-{_DAY})?(?:,{_DAY}(?:-{_DAY})?)*)? ?{_SPEC}$")
+_WEEKDAY_AND_PH_RULE = re.compile(
+    rf"^((?:{_DAY}(?:-{_DAY})?|PH)(?:,(?:{_DAY}(?:-{_DAY})?|PH))*) ?({_SPEC})$"
+)
+_PH_RULE = re.compile(rf"^PH ?{_SPEC}$")
+# A comma where the syntax wants a semicolon, between two rules.
+_COMMA_BETWEEN_RULES = re.compile(rf"(\d|off|closed)\s*,\s*(?=(?:{_DAY}|PH)\b)")
+# What makes an unreadable rule speak of the week — the SQL function then
+# returns NULL and the value is never proposed. Checked again here: a rule
+# like that written back after ATP's week would override it.
+_SPEAKS_OF_WEEK = re.compile(rf"\b{_DAY}\b|\d{{1,2}}:\d{{2}}")
+
+
+def merge_opening_hours(old: str, weekdays: str) -> str:
+    """*old* with its weekday rules replaced by *weekdays*, the rest kept.
+
+    ATP knows the week and nothing else: `PH off`, a `"sur rendez-vous"`
+    comment, the `||` fallback were written by a contributor and stay where
+    they are, after the new week. Mirrors normalize_opening_hours, which
+    left those very rules out of the comparison.
+    """
+    head, *fallback = old.split("||")
+    rest = []
+    for rule in _COMMA_BETWEEN_RULES.sub(r"\1;", head).split(";"):
+        rule = rule.strip()
+        if not rule:
+            continue
+        tidy = re.sub(r"\s*([,-])\s*", r"\1", re.sub(r"\s+", " ", rule))
+        if _WEEKDAY_RULE.match(tidy):
+            continue
+        if (m := _WEEKDAY_AND_PH_RULE.match(tidy)) and "PH" in m[1].split(","):
+            rest.append(f"PH {m[2]}")
+        elif _SPEAKS_OF_WEEK.search(tidy) and not _PH_RULE.match(tidy):
+            raise ValueError(f"opening_hours rule not read as a week, would override it: {rule!r}")
+        else:
+            rest.append(rule)
+    merged = "; ".join([weekdays, *rest])
+    return " || ".join([merged, *(f.strip() for f in fallback)])
+
+
 def apply_on_node(atp_osm_match: dict, wave: int = 1) -> dict:
     new_tags = dict(atp_osm_match["tags"])
 
@@ -346,9 +397,14 @@ def apply_on_node(atp_osm_match: dict, wave: int = 1) -> dict:
         # its spelling, one tagged both must not come out holding two
         # contradictory numbers.
         for key, value in (atp_osm_match.get("modifiable_tags") or {}).items():
-            value = format_phone(value) if key == "phone" else value
             for written in (key, f"contact:{key}"):
-                if written in new_tags:
+                if written not in new_tags:
+                    continue
+                if key == "phone":
+                    new_tags[written] = format_phone(value)
+                elif key == "opening_hours":
+                    new_tags[written] = merge_opening_hours(new_tags[written], value)
+                else:
                     new_tags[written] = value
         return _change(atp_osm_match, new_tags)
 
