@@ -785,8 +785,15 @@ def registry(monkeypatch, tmp_path):
             raise state["latest"]
         return _Json({"dist-tags": {"latest": state["latest"]}})
 
+    def download(url, path):
+        state["fetched"].append(url)
+        # What the CDN serves under that URL: the release asked for, unless
+        # a test says otherwise.
+        served = state.get("served") or url.split("@")[1].split("/")[0]
+        _nsi_file(Path(path), served, [])
+
     monkeypatch.setattr(nsi.requests, "get", get)
-    monkeypatch.setattr(nsi, "download_large_file", lambda url, path: state["fetched"].append(url))
+    monkeypatch.setattr(nsi, "download_large_file", download)
     monkeypatch.setattr(nsi, "NSI_DIR", tmp_path / "nsi")
     monkeypatch.setattr(nsi, "NSI_PATH", tmp_path / "nsi" / "nsi.json")
     return state
@@ -811,6 +818,15 @@ def test_a_new_revision_downloads_the_same_release(pipeline, registry):
     record_import(pipeline, "nsi", TS, "success", "8.0.20260729+a-previous-revision")
     nsi.download_nsi()
     assert len(registry["fetched"]) == 1
+
+
+def test_a_stale_file_from_the_cdn_is_an_outage_not_an_import(pipeline, registry):
+    """jsDelivr once answered a moving tag from a years-old cache."""
+    registry["latest"] = "8.0.20260801"
+    registry["served"] = "6.0.20250817"
+    with pytest.raises(SourceUnavailable, match="served 6.0.20250817"):
+        nsi.download_nsi()
+    assert not nsi.NSI_PATH.exists()
 
 
 def test_the_registry_unreachable_is_a_source_outage(pipeline, registry):
