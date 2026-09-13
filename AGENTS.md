@@ -116,6 +116,18 @@ In development the version is a constant, so nothing rebuilds on its own: rerun 
 - `src/upload.py` — `BulkUpload` class that creates OSM changesets grouped by subdivision, uploads via `osmapi`
 - `src/migrate.py` — Simple sequential SQL migration runner
 
+**Pipeline tables and the site (read before touching a pipeline table).**
+`points`, `atp_places`, `atp_spiders`, `subdivisions`, `mv_places*` are built
+by the pipeline, not by migrations — so a deploy that adds a column the site
+reads breaks production until the next refresh rebuilds the table (once a
+night at best). Every column the web app reads from a pipeline table ships
+with a migration that adds it to the live table when it is missing, with a
+value the SQL already tolerates:
+`ALTER TABLE IF EXISTS atp_spiders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;`
+(`migrations/027`). Same for a renamed or dropped column: the migration
+bridges, the pipeline then overwrites. No exception for "it will be rebuilt
+tonight".
+
 **Key database objects:**
 - `points`, `polygons` — Raw OSM data (from osm2pgsql)
 - `mv_places` — Materialized view joining both with normalized columns, restricted to objects a match can key on (same filter as `generic.lua`, kept as a safety net)

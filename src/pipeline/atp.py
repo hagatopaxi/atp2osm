@@ -407,6 +407,9 @@ def import_atp():
                 _matview.create_indexes(cur, "atp_places_new", ATP_PLACES_INDEXES)
             conn.commit()
 
+            # A column the site reads from here needs a bridging migration too
+            # (AGENTS.md, "Pipeline tables and the site"): production keeps the
+            # old table until this step runs again.
             logger.info("Creating atp_spiders table...")
             ddb.execute(f"""
                 CREATE TABLE pg.atp_spiders_new AS
@@ -416,6 +419,12 @@ def import_atp():
             """)
 
             with conn.cursor() as cur:
+                # The columns come from the JSON: a spiders.json written before
+                # the dating existed has no updated_at, and the site reads it.
+                cur.execute(
+                    "ALTER TABLE atp_spiders_new"
+                    " ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ"
+                )
                 _matview.swap(
                     cur, "TABLE", "atp_places", "atp_places_new", ATP_PLACES_INDEXES
                 )
