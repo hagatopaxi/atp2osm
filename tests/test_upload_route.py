@@ -1,9 +1,8 @@
 """What POST /brands/<brand>/upload writes down, and what it answers.
 
 The route is exercised on the real schema — the history rows are the point —
-but not on `src.app`: importing it runs the migrations against the development
-database. A Flask app holding the blueprint alone is enough, with `get_osmdb`
-pointed at the throwaway database.
+through the `contributor` client of conftest: the site's blueprints on the
+throwaway database, never `src.app`.
 
 `BulkUpload` is the real one: in development it drives `_FakeOsmApi`, so a
 success here goes through the code production runs. Only the failures are
@@ -13,36 +12,19 @@ staged, through a stand-in that reports what an unreachable OSM would.
 import json
 
 import pytest
-from flask import Flask
-from flask_babel import Babel
 from psycopg.rows import dict_row
 
 import src.routes.brands as brands
-from src.extensions import cache
 from src.matching import WAVES_BY_NUMBER
 from src.upload import BulkUpload
 
 
 @pytest.fixture
-def client(migrated_conn, monkeypatch):
-    app = Flask(__name__, template_folder="website/templates")
-    app.secret_key = "test"
-    # The changeset comment goes through gettext.
-    Babel(app)
-    app.config["CACHE_TYPE"] = "SimpleCache"
-    cache.init_app(app)
-    app.register_blueprint(brands.brands_bp)
-
-    monkeypatch.setattr(brands, "get_osmdb", lambda: migrated_conn)
+def client(contributor, monkeypatch):
     # The logs of a run are a production artefact, not a test one.
     monkeypatch.setattr(BulkUpload, "save_log_file", lambda self: None)
     monkeypatch.setattr(BulkUpload, "_write_osc", lambda *a, **k: None)
-
-    with app.test_client() as c:
-        with c.session_transaction() as sess:
-            sess["user"] = {"osm_id": 42}
-            sess["token"] = {"access_token": "x"}
-        yield c
+    return contributor
 
 
 def change(id, sub="75", name="Paris"):

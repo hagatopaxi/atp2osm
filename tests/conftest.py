@@ -172,3 +172,84 @@ def migrated_conn(_migrated, db_kwargs):
             c.execute(f"TRUNCATE {tables} CASCADE")
         c.commit()
         yield c
+
+
+# --- No test reaches the network -------------------------------------------
+#
+# The OSM API, Geofabrik, ATP and the npm registry are never called from a
+# test: a test that depends on them is green or red on their mood, not on the
+# code. Every HTTP request goes through requests.Session.request — this stops
+# it there. A test that wants a response stages one with monkeypatch on the
+# function that would have asked.
+
+
+class NetworkAccess(AssertionError):
+    """A test tried to reach the network."""
+
+
+@pytest.fixture(autouse=True)
+def no_network(monkeypatch):
+    import requests
+
+    def refused(self, method, url, *args, **kwargs):
+        raise NetworkAccess(f"the test suite never reaches the network: {method} {url}")
+
+    monkeypatch.setattr(requests.Session, "request", refused)
+
+
+# --- The site, on the throwaway database -------------------------------------
+#
+# Never `src.app`: importing it runs the migrations against the development
+# database. This builds the same app — the real blueprints, templates, filters
+# and globals — with every request connecting to the test database, exactly
+# as production connects to its own: a connection per request, closed at the
+# end of it. The tests read the result on `migrated_conn`.
+
+
+@pytest.fixture
+def web_app(migrated_conn, db_kwargs, monkeypatch):
+    from flask import Flask
+
+    import src.db
+    from src import i18n, templating
+    from src.config import STATIC_DIR, TEMPLATE_DIR, get_settings
+    from src.extensions import cache
+    from src.routes.auth import auth_bp
+    from src.routes.brands import brands_bp
+    from src.routes.export import export_bp
+    from src.routes.history import history_bp
+    from src.routes.misc import misc_bp
+    from src.routes.spiders import spiders_bp
+    from src.routes.stats import stats_bp
+    from src.routes.todo import todo_bp
+
+    class _TestDatabase:
+        connect_kwargs = db_kwargs
+
+    monkeypatch.setattr(src.db, "get_database", lambda: _TestDatabase)
+
+    settings = get_settings()
+    app = Flask("atp2osm-test", template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
+    app.secret_key = "test"
+    app.config["CACHE_TYPE"] = "SimpleCache"
+    cache.init_app(app)
+    # No translated path: the pages answer on their bare URL, no language
+    # redirect to follow.
+    i18n.init_app(app, settings.country.locales, (), settings.country.timezone)
+    templating.init_app(app, settings)
+    for blueprint in (auth_bp, brands_bp, spiders_bp, export_bp, history_bp,
+                      misc_bp, stats_bp, todo_bp):
+        app.register_blueprint(blueprint)
+    app.teardown_appcontext(src.db.teardown_osmdb)
+    return app
+
+
+@pytest.fixture
+def contributor(web_app):
+    """A client signed in as OSM user 42."""
+    with web_app.test_client() as client:
+        with client.session_transaction() as sess:
+            # What oauth_callback stores: the pages read the name too.
+            sess["user"] = {"osm_id": 42, "name": "reviewer"}
+            sess["token"] = {"access_token": "x"}
+        yield client

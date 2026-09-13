@@ -1,5 +1,4 @@
 import logging
-import json
 
 from flask import Flask, render_template
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -9,14 +8,13 @@ from src.db import teardown_osmdb
 from src.extensions import cache
 from src import i18n
 from src import migrate
+from src import templating
 from src.routes.auth import auth_bp
 from src.routes.brands import brands_bp
-from src.error_reasons import ERROR_REASONS
-from src.matching import WAVES_BY_NUMBER
 from src.routes.export import export_bp
 from src.routes.history import history_bp
 from src.routes.misc import misc_bp
-from src.routes.spiders import SPIDERS_PAGE_LINKED, spiders_bp
+from src.routes.spiders import spiders_bp
 from src.routes.stats import stats_bp
 from src.routes.todo import todo_bp
 
@@ -57,14 +55,7 @@ app.register_blueprint(stats_bp)
 app.register_blueprint(todo_bp)
 
 app.teardown_appcontext(teardown_osmdb)
-
-
-@app.template_filter("parse_comment")
-def parse_comment(value):
-    try:
-        return json.loads(value)
-    except (json.JSONDecodeError, TypeError):
-        return value
+templating.init_app(app, settings)
 
 
 # Production migrates once per deploy, before the container restarts (see
@@ -72,22 +63,6 @@ def parse_comment(value):
 # deploy step, so the server does it at boot.
 if settings.is_dev:
     migrate.main()
-
-
-@app.context_processor
-def inject_globals():
-    return {
-        "api_url": settings.api_url,
-        "app_version": settings.app_version,
-        "is_dev": settings.is_dev,
-        "country_code": settings.country.code.upper(),
-        "source_repo_url": settings.source_repo_url,
-        "error_reasons": ERROR_REASONS,
-        # The waves themselves — numbers and batch sizes are data; their
-        # labels are in _wave.html, where a locale exists to resolve them.
-        "waves": WAVES_BY_NUMBER,
-        "spiders_page_linked": SPIDERS_PAGE_LINKED,
-    }
 
 
 @app.errorhandler(500)
