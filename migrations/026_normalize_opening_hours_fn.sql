@@ -14,9 +14,10 @@
 -- write time (see merge_opening_hours): ATP never scrapes it, so it is
 -- neither compared nor overwritten.
 --
--- Two frequent liberties are read too: a comma between rules where the
--- syntax wants a semicolon (`Mo-Fr 10:30-19:30, Sa 09:45-19:30`), and `PH`
--- in a day list (`Su,PH 09:00-12:00`) — the weekdays are compared, the
+-- A comma between two rules makes the second one additional: it adds its
+-- hours to the days it names instead of overriding them, as the wiki
+-- reads `Mo-Fr 08:00-12:00, Tu-Sa 18:00-22:00`. An explicit `open` says
+-- nothing. `PH` may sit in a day list (`Su,PH 09:00-12:00`) — the weekdays are compared, the
 -- holiday is the contributor's and merge_opening_hours keeps it as a rule
 -- of its own. A rule about `PH` alone says nothing about the week.
 --
@@ -41,6 +42,7 @@ DECLARE
   -- Per day, the open ranges as "start-end" minutes, comma-joined ("" = closed).
   hours     TEXT[] := ARRAY['','','','','','',''];
   rule      TEXT;
+  additional BOOLEAN;
   m         TEXT[];
   spec      TEXT;
   d         INT;
@@ -66,12 +68,14 @@ BEGIN
 
   spec_re := time_re || '(?:,' || time_re || ')*|off|closed|24/7';
   rule_re := '^(' || day_re || '(?:-' || day_re || ')?(?:,' || day_re || '(?:-' || day_re || ')?)*)?'
-          || ' ?(' || spec_re || ')$';
+          || ' ?(' || spec_re || ')(?: open)?$';
 
   FOREACH rule IN ARRAY regexp_split_to_array(
-      regexp_replace(split_part(oh, '||', 1), '(\d|off|closed)\s*,\s*(?=(?:' || day_re || '|PH)\M)', '\1;', 'g'),
+      regexp_replace(split_part(oh, '||', 1), '(\d|off|closed|open)\s*,\s*(?=(?:' || day_re || '|PH)\M)', '\1;+', 'g'),
       ';') LOOP
     rule := regexp_replace(regexp_replace(btrim(rule), '\s*([,-])\s*', '\1', 'g'), '\s+', ' ', 'g');
+    additional := rule LIKE '+%';
+    rule := ltrim(rule, '+');
     rule := regexp_replace(regexp_replace(rule, '^PH,', ''), ',PH(?=[ ,])', '', 'g');
     m := regexp_match(rule, rule_re);
     IF m IS NULL THEN
@@ -82,45 +86,47 @@ BEGIN
       CONTINUE;
     END IF;
 
-    -- The ranges in minutes, sorted, those that touch merged: ATP writes
-    -- `00:00-12:30,12:30-24:00` for a full day.
+    -- The ranges in minutes; one over midnight ends past 1440.
     spec := '';
     IF m[2] = '24/7' THEN
       spec := '0-1440';
     ELSIF m[2] NOT IN ('off', 'closed') THEN
-      ranges := '{}';
       FOREACH tr IN ARRAY string_to_array(m[2], ',') LOOP
         s := split_part(split_part(tr, '-', 1), ':', 1)::INT * 60 + split_part(split_part(tr, '-', 1), ':', 2)::INT;
         e := split_part(split_part(tr, '-', 2), ':', 1)::INT * 60 + split_part(split_part(tr, '-', 2), ':', 2)::INT;
         IF e <= s THEN e := e + 1440; END IF;
-        ranges := ranges || (s || '-' || e);
-      END LOOP;
-      s := NULL;
-      FOREACH tr IN ARRAY (SELECT array_agg(r ORDER BY split_part(r, '-', 1)::INT) FROM unnest(ranges) AS r)
-                       || ARRAY['9999-9999'] LOOP
-        IF s IS NOT NULL AND split_part(tr, '-', 1)::INT <> e THEN
-          spec := spec || CASE WHEN spec = '' THEN '' ELSE ',' END || s || '-' || e;
-          s := NULL;
-        END IF;
-        IF s IS NULL THEN s := split_part(tr, '-', 1)::INT; END IF;
-        e := split_part(tr, '-', 2)::INT;
+        spec := spec || CASE WHEN spec = '' THEN '' ELSE ',' END || s || '-' || e;
       END LOOP;
     END IF;
 
-    IF m[1] IS NULL THEN
-      hours := ARRAY[spec, spec, spec, spec, spec, spec, spec];
-    ELSE
-      FOREACH tr IN ARRAY string_to_array(m[1], ',') LOOP
-        d_from := array_position(day_names, split_part(tr, '-', 1));
-        d_to := COALESCE(array_position(day_names, NULLIF(split_part(tr, '-', 2), '')), d_from);
-        d := d_from;
-        LOOP
-          hours[d] := spec;
-          EXIT WHEN d = d_to;
-          d := d % 7 + 1;
-        END LOOP;
+    FOREACH tr IN ARRAY string_to_array(COALESCE(m[1], 'Mo-Su'), ',') LOOP
+      d_from := array_position(day_names, split_part(tr, '-', 1));
+      d_to := COALESCE(array_position(day_names, NULLIF(split_part(tr, '-', 2), '')), d_from);
+      d := d_from;
+      LOOP
+        hours[d] := CASE WHEN additional AND hours[d] <> '' AND spec <> ''
+                         THEN hours[d] || ',' || spec ELSE spec END;
+        EXIT WHEN d = d_to;
+        d := d % 7 + 1;
       END LOOP;
-    END IF;
+    END LOOP;
+  END LOOP;
+
+  -- Each day's ranges sorted, those that touch merged: ATP writes
+  -- `00:00-12:30,12:30-24:00` for a full day.
+  FOR d IN 1..7 LOOP
+    spec := '';
+    s := NULL;
+    FOREACH tr IN ARRAY (SELECT array_agg(r ORDER BY split_part(r, '-', 1)::INT)
+                         FROM unnest(string_to_array(hours[d], ',')) AS r) || ARRAY['9999-9999'] LOOP
+      IF s IS NOT NULL AND split_part(tr, '-', 1)::INT > e THEN
+        spec := spec || CASE WHEN spec = '' THEN '' ELSE ',' END || s || '-' || e;
+        s := NULL;
+      END IF;
+      IF s IS NULL THEN s := split_part(tr, '-', 1)::INT; e := 0; END IF;
+      e := GREATEST(e, split_part(tr, '-', 2)::INT);
+    END LOOP;
+    hours[d] := spec;
   END LOOP;
 
   -- A range ending at midnight followed, the next day, by one starting at
@@ -176,8 +182,7 @@ BEGIN
     END LOOP;
 
     ranges := '{}';
-    FOREACH tr IN ARRAY (SELECT array_agg(r ORDER BY split_part(r, '-', 1)::INT)
-                         FROM unnest(string_to_array(hours[d], ',')) AS r) LOOP
+    FOREACH tr IN ARRAY string_to_array(hours[d], ',') LOOP
       s := split_part(tr, '-', 1)::INT;
       e := split_part(tr, '-', 2)::INT;
       ranges := ranges || (

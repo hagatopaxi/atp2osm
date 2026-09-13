@@ -62,6 +62,23 @@ def test_one_writing_per_week(normalize, canonical, spellings):
         assert normalize(spelling) == canonical, spelling
 
 
+def test_a_rule_after_a_comma_adds_to_the_days_it_names(normalize):
+    """The wiki's own example: Tu-Fr open morning and evening both."""
+    assert normalize("Mo-Fr 08:00-12:00, Tu-Sa 18:00-22:00") == "Mo 08:00-12:00; Tu-Fr 08:00-12:00,18:00-22:00; Sa 18:00-22:00"
+    assert normalize("Mo-Fr 08:00-12:00; Tu-Sa 18:00-22:00") == "Mo 08:00-12:00; Tu-Sa 18:00-22:00"
+    assert normalize("Mo 20:00-24:00, Tu 00:00-02:00") == "Mo 20:00-02:00"
+
+
+def test_overlapping_ranges_are_one(normalize):
+    assert normalize("Mo-Fr 08:00-14:00, Mo-Fr 12:00-18:00") == "Mo-Fr 08:00-18:00"
+    assert normalize("Mo-Fr 08:00-18:00, Mo-Fr 12:00-14:00") == "Mo-Fr 08:00-18:00"
+
+
+def test_an_explicit_open_says_nothing(normalize):
+    assert normalize("Mo-Fr 09:00-12:00 open") == "Mo-Fr 09:00-12:00"
+    assert normalize("Mo-Fr 09:00-12:00 open; PH off") == "Mo-Fr 09:00-12:00"
+
+
 def test_a_later_rule_overrides_the_days_it_names(normalize):
     assert normalize("Mo-Sa 07:30-21:00; Fr,Su 07:30-21:30") == "Mo-Th,Sa 07:30-21:00; Fr,Su 07:30-21:30"
     assert normalize("Mo-Sa 09:00-19:00; Th off") == "Mo-We,Fr-Sa 09:00-19:00"
@@ -97,7 +114,6 @@ UNREADABLE = [
     "Jan-Mar Mo-Fr 09:00-12:00; Apr-Dec Mo-Fr 09:00-18:00",
     "week 1-26 Mo-Fr 09:00-12:00",
     'Mo-Fr 09:00-12:00 "sur rendez-vous"',
-    "Mo-Fr 09:00-12:00 open",
     "Mo-Fr 09:00+",
     "Mo-Fr 09:00-sunset",
     "mo-fr 09:00-12:00",
@@ -127,7 +143,13 @@ def test_merge_refuses_what_the_comparison_could_not_read(value):
     "old, written",
     [
         ("Mo-Fr 08:00-18:00; Su off; PH off", "Mo-Sa 08:00-19:00; PH off"),
-        ("PH off; Mo-Fr 08:00-18:00", "Mo-Sa 08:00-19:00; PH off"),
+        # The rightmost rule wins: a `PH off` written before the week was
+        # overridden by it, and stays so.
+        ("PH off; Mo-Fr 08:00-18:00", "PH off; Mo-Sa 08:00-19:00"),
+        ("Mo-Fr 08:00-18:00; PH off; Sa 09:00-12:00", "Mo-Sa 08:00-19:00; PH off"),
+        ("Mo-Fr 08:00-18:00 open; PH off", "Mo-Sa 08:00-19:00; PH off"),
+        ("Mo-Fr 08:00-12:00, Tu-Sa 18:00-22:00; PH off", "Mo-Sa 08:00-19:00; PH off"),
+        ('"sur rendez-vous"', 'Mo-Sa 08:00-19:00; "sur rendez-vous"'),
         ('Mo-Fr 08:00-18:00; "sur rendez-vous"', 'Mo-Sa 08:00-19:00; "sur rendez-vous"'),
         ("Mo-Fr 08:00-18:00 || Mo-Su 06:00-23:00 open", "Mo-Sa 08:00-19:00 || Mo-Su 06:00-23:00 open"),
         ("Mo-Fr 08:00-18:00;PH off;", "Mo-Sa 08:00-19:00; PH off"),
@@ -158,6 +180,8 @@ READABLE = [
     "Mo-Fr 08:00-18:00, Sa 09:00-12:00, PH off",
     "Mo-Fr 08:00-18:00; Su,PH 10:00-12:00",
     "Mo-Su,PH 09:00-21:30",
+    "PH off; Mo-Fr 08:00-18:00",
+    "Mo-Fr 08:00-12:00, Tu-Sa 18:00-22:00 open",
 ]
 
 
