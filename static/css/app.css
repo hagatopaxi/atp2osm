@@ -262,3 +262,8 @@ body:has(#sidebar-toggle:not(:checked)) #sidebar .menu a {
    is the lightest that still clears 4.5:1 on either theme — one class, so a
    change of ratio is a change here, not in eighty templates. */
 .muted { color: color-mix(in oklab, var(--color-base-content) 70%, transparent); }
+
+/* daisyUI dims inactive tabs to 50% base-content, under the 4.5:1 axe threshold */
+.tabs .tab:not(.tab-active) {
+    color: var(--color-base-content);
+}
