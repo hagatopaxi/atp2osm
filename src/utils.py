@@ -126,6 +126,7 @@ def status_group(status: str | None) -> str:
 HISTORY_FILTERS = {
     "q": ("brand_name", "brand_wikidata"),
     "status": "status",
+    "wave": "wave",
     "user": "osm_user_id",
     "date": "import_date",
 }
@@ -174,6 +175,7 @@ def build_filters(args, spec):
 
         {"q":      ("brand_name", "brand_wikidata"),  # ILIKE search
          "status": "status",                          # one of IMPORT_STATUSES
+         "wave":   "wave",                            # integer equality
          "user":   "osm_user_id",                     # integer equality
          "date":   "import_date"}                     # ?from= and ?to= bounds
 
@@ -198,6 +200,13 @@ def build_filters(args, spec):
             where.append(f"{spec['status']} = %s")
             params.append(status)
             active["status"] = status
+
+    if "wave" in spec:
+        wave = args.get("wave", type=int)
+        if wave:
+            where.append(f"{spec['wave']} = %s")
+            params.append(wave)
+            active["wave"] = wave
 
     if "user" in spec:
         user = args.get("user", type=int)

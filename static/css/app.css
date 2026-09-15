@@ -303,3 +303,137 @@ a[target="_blank"] > .iconoir-open-new-window {
     margin-left: 0.2em;
     vertical-align: -0.05em;
 }
+
+/* Tables that become a list on a phone: the header goes and each row is laid
+   out as a card, a column of text on the left and a badge and the button on
+   the right. Without the header a bare number says nothing, so a cell can
+   carry a label shown only there, and a detail the phone has no room for can
+   be hidden there. */
+.list-only {
+    display: none;
+}
+
+@media (max-width: 639px) {
+    .table-list thead {
+        display: none;
+    }
+
+    .table-list .list-only {
+        display: inline;
+    }
+
+    .table-list .list-hide {
+        display: none;
+    }
+
+    .table-list,
+    .table-list tbody {
+        display: block;
+    }
+
+    /* One block, its rows finely separated, rounded at both ends. */
+    .table-list tr {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        column-gap: 1rem;
+        row-gap: 0.25rem;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--color-base-300);
+    }
+
+    .table-list tr:first-child {
+        border-radius: var(--radius-box) var(--radius-box) 0 0;
+    }
+
+    .table-list tr:last-child {
+        border-bottom: none;
+        border-radius: 0 0 var(--radius-box) var(--radius-box);
+    }
+
+    .table-list td {
+        display: block;
+        padding: 0;
+        border: none;
+    }
+
+    /* The button sits at the bottom right, beside the last lines of text,
+       with some air between the badge and it. */
+    .table-list td:last-child {
+        justify-self: end;
+        align-self: end;
+        margin: 1.25rem 0 0;
+    }
+
+    /* The Wikidata code under the brand name says nothing to a reader on a
+       phone; the next page still has it. */
+    .history-list td:nth-child(2) br,
+    .history-list td:nth-child(2) br + a,
+    .brands-list td:nth-child(1) br,
+    .brands-list td:nth-child(1) br + a {
+        display: none;
+    }
+
+    /* History: brand, date, contributor, count on the left, status on the
+       right. The wave is not what a reader looks for here. */
+    .history-list td:nth-child(1) {
+        grid-area: 2 / 1;
+        font-size: 0.75rem;
+        color: color-mix(in oklab, var(--color-base-content) 70%, transparent);
+    }
+
+    .history-list td:nth-child(2) {
+        grid-area: 1 / 1;
+        font-weight: 600;
+    }
+
+    .history-list td:nth-child(3) {
+        grid-area: 1 / 2;
+        justify-self: end;
+    }
+
+    .history-list td:nth-child(4) {
+        display: none;
+    }
+
+    .history-list td:nth-child(5) {
+        grid-area: 3 / 1;
+    }
+
+    .history-list td:nth-child(6) {
+        grid-area: 4 / 1;
+    }
+
+    .history-list td:nth-child(7) {
+        grid-area: 3 / 2 / 5 / 3;
+    }
+
+    /* Brands: brand, last integration, count on the left, wave on the right.
+       The previous status is not shown: the next step recalls it. */
+    .brands-list td:nth-child(1) {
+        grid-area: 1 / 1;
+        font-weight: 600;
+    }
+
+    .brands-list td:nth-child(2) {
+        grid-area: 3 / 1;
+    }
+
+    .brands-list td:nth-child(3) {
+        grid-area: 1 / 2;
+        justify-self: end;
+    }
+
+    .brands-list td:nth-child(4) {
+        display: none;
+    }
+
+    .brands-list td:nth-child(5) {
+        grid-area: 2 / 1;
+        font-size: 0.75rem;
+        color: color-mix(in oklab, var(--color-base-content) 70%, transparent);
+    }
+
+    .brands-list td:nth-child(6) {
+        grid-area: 2 / 2 / 4 / 3;
+    }
+}

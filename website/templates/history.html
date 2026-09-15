@@ -33,6 +33,8 @@
 <form method="get" data-autosubmit>
     <input type="hidden" name="sort" value="{{ sort }}" />
     <input type="hidden" name="dir" value="{{ direction }}" />
+    {% set wave_options = [] %}
+    {% for number in waves %}{% set _ = wave_options.append((number | string, wave.label(number) | trim, wave.color(number) | trim)) %}{% endfor %}
     {% call filter_bar(filters, [
         ('status', _('Status'), [
             ('success',   _('Success'),   'badge-success'),
@@ -40,6 +42,7 @@
             ('cancelled', _('Cancelled'), 'badge-info'),
             ('error',     _('Error'),     'badge-error')
         ]),
+        ('wave', _('Wave'), wave_options),
         ('user', _('User'), filter_users),
         ('from', _('Start date'), 'date'),
         ('to', _('End date'), 'date')
@@ -59,7 +62,7 @@
 {% else %}
 <p class="text-sm muted mb-2">{% trans count=total %}{{ count }} integration{% pluralize %}{{ count }} integrations{% endtrans %}</p>
 <div class="overflow-x-auto shrink-0">
-<table class="table table-compact bg-base-100 rounded-2">
+<table class="table table-list history-list table-compact bg-base-100 rounded-2">
     <thead>
         <tr>
             {{ sort_th('history.history', 'date', _('Date')) }}
@@ -115,7 +118,7 @@
                 {{ entry.osm_user_id }}
                 {% endif %}
             </td>
-            <td>{{ entry.items_count if entry.items_count is not none else '—' }}</td>
+            <td>{{ entry.items_count if entry.items_count is not none else '—' }} <span class="list-only text-xs muted">{{ _('POIs integrated') }}</span></td>
             <td>
                 <div class="row-actions">
                     <a class="btn btn-sm btn-soft btn-primary rounded-md whitespace-nowrap" href="{{ url_for('history.history_detail', entry_id=entry.id, page=page, **filters) }}">{{ _('See more') }}</a>
