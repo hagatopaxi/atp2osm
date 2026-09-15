@@ -45,6 +45,20 @@ body:has(#sidebar-toggle:not(:checked)) .sidebar-row {
     padding-inline: 0;
 }
 
+/* Collapsed, the sidebar is too narrow for the language menu: it opens to
+   the right of the globe, and the sidebar stops clipping its overflow, which
+   is then that menu alone, every label being hidden. */
+@media (min-width: 768px) {
+    body:has(#sidebar-toggle:not(:checked)) #sidebar {
+        overflow: visible;
+    }
+    body:has(#sidebar-toggle:not(:checked)) .lang-menu {
+        left: 100%;
+        bottom: 0;
+        margin-left: 0.5rem;
+    }
+}
+
 /* The theme row names the current theme: one word shown, the other hidden. */
 .theme-name-dark,
 [data-theme="dark"] .theme-name-light {

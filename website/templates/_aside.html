@@ -62,7 +62,7 @@
             {{ locale_name(get_locale()) }}<i class="iconoir-nav-arrow-right" aria-hidden="true"></i>
           </span>
         </summary>
-        <ul class="menu dropdown-content bg-base-100 rounded-md shadow-sm border border-base-300 w-full">
+        <ul class="lang-menu menu dropdown-content bg-base-100 rounded-md shadow-sm border border-base-300 w-48">
           {% for code in locales %}
           <li><a href="{{ lang_url(code) }}" hreflang="{{ code }}"
                  {% if code == get_locale()|string %}aria-current="true"{% endif %}>
