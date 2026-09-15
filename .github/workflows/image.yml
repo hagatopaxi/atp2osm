@@ -17,7 +17,7 @@ jobs:
       - id: meta
         run: echo "short=$(git rev-parse --short=6 HEAD)" >> "$GITHUB_OUTPUT"
 
-      - uses: redhat-actions/buildah-build@v2
+      - uses: redhat-actions/buildah-build@v3
         id: build
         with:
           containerfiles: Containerfile
