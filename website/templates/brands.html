@@ -68,7 +68,7 @@
 {% endif %}
 
 <div class="overflow-x-auto shrink-0">
-<table data-infinite-scroll class="table table-compact bg-base-100 rounded-2">
+<table data-infinite-scroll class="table table-list brands-list table-compact bg-base-100 rounded-2">
     <thead>
         <tr>
             {{ sort_th('brands.brands', 'brand', _('Brand (Wikidata)')) }}
@@ -89,7 +89,7 @@
             </td>
 
             <td>
-                {{ row["total"] }}
+                {{ row["total"] }} <span class="list-only text-xs muted">{{ _('POIs to integrate') }}</span>
             </td>
 
             <td>
@@ -117,6 +117,7 @@
             </td>
 
             <td>
+                <span class="list-only">{{ _('Last integration') }}</span>
                 {% if row["last_import"] %}
                 {{ row["last_import"] | dateformat('short') }}
                 {% if row["last_status"] == "cancelled" and row["spider_updated"] %}

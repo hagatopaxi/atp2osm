@@ -10,15 +10,19 @@
 
 {% macro label(number) %}{% if number == 1 %}{{ _('Adding tags') }}{% elif number == 2 %}{{ _('Modifying tags') }}{% else %}{% trans number=number %}Wave {{ number }}{% endtrans %}{% endif %}{% endmacro %}
 
+{# What the badge says when a phone turns the table into a list. #}
+{% macro short_label(number) %}{% if number == 1 %}{{ _('Adding') }}{% elif number == 2 %}{{ _('Modifying') }}{% else %}{{ label(number) }}{% endif %}{% endmacro %}
+
 {% macro icon(number) %}{{ 'iconoir-edit-pencil' if number == 2 else 'iconoir-plus-circle' }}{% endmacro %}
 
 {% macro color(number) %}{{ {1: 'badge-info', 2: 'badge-warning'}.get(number, 'badge-ghost') }}{% endmacro %}
 
 {% macro badge(number) %}
 <span class="badge badge-soft join-item {{ color(number) | trim }} whitespace-nowrap">
-    <i class="{{ icon(number) | trim }}"></i> {{ label(number) | trim }}
+    <i class="{{ icon(number) | trim }}"></i>
+    <span class="list-hide">{{ label(number) | trim }}</span><span class="list-only">{{ short_label(number) | trim }}</span>
 </span>
 {% if waves and waves.get(number) and waves[number].alpha %}
-<span class="badge badge-soft join-item badge-error whitespace-nowrap" title="{{ _('This wave is in alpha: it goes out in very small batches while the community has its say.') }}">{{ _('alpha') }}</span>
+<span class="badge badge-soft join-item badge-error whitespace-nowrap list-hide" title="{{ _('This wave is in alpha: it goes out in very small batches while the community has its say.') }}">{{ _('alpha') }}</span>
 {% endif %}
 {% endmacro %}

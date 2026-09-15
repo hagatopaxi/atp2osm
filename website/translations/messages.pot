@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-15 11:42+0200\n"
+"POT-Creation-Date: 2026-09-15 11:58+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -297,12 +297,12 @@ msgstr ""
 msgid "Wave %(number)s"
 msgstr ""
 
-#: website/templates/_wave.html:22
-msgid "This wave is in alpha: it goes out in very small batches while the community has its say."
+#: website/templates/_wave.html:14
+msgid "Adding"
 msgstr ""
 
-#: website/templates/_wave.html:22
-msgid "alpha"
+#: website/templates/_wave.html:14
+msgid "Modifying"
 msgstr ""
 
 #: website/templates/brands.html:6
@@ -393,7 +393,7 @@ msgstr ""
 msgid "Brand (Wikidata)"
 msgstr ""
 
-#: website/templates/brands.html:75
+#: website/templates/brands.html:75 website/templates/brands.html:92
 msgid "POIs to integrate"
 msgstr ""
 
@@ -401,7 +401,8 @@ msgstr ""
 msgid "Proposed wave"
 msgstr ""
 
-#: website/templates/brands.html:78 website/templates/spiders.html:80
+#: website/templates/brands.html:78 website/templates/brands.html:120
+#: website/templates/spiders.html:80
 msgid "Last integration"
 msgstr ""
 
@@ -409,19 +410,19 @@ msgstr ""
 msgid "Actions"
 msgstr ""
 
-#: website/templates/brands.html:123 website/templates/spiders.html:71
+#: website/templates/brands.html:124 website/templates/spiders.html:71
 msgid "Spider"
 msgstr ""
 
-#: website/templates/brands.html:126 website/templates/spiders.html:114
+#: website/templates/brands.html:127 website/templates/spiders.html:114
 msgid "Never"
 msgstr ""
 
-#: website/templates/brands.html:133
+#: website/templates/brands.html:134
 msgid "You must sign in"
 msgstr ""
 
-#: website/templates/brands.html:140 website/templates/docs.html:190
+#: website/templates/brands.html:141 website/templates/docs.html:190
 msgid "Integrate"
 msgstr ""
 
@@ -832,8 +833,9 @@ msgstr ""
 msgid "OSM user"
 msgstr ""
 
-#: website/templates/history.html:70 website/templates/history_detail.html:125
-#: website/templates/home.html:90 website/templates/stats.html:83
+#: website/templates/history.html:70 website/templates/history.html:118
+#: website/templates/history_detail.html:125 website/templates/home.html:90
+#: website/templates/stats.html:83
 msgid "POIs integrated"
 msgstr ""
 
