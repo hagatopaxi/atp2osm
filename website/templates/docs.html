@@ -42,7 +42,7 @@
             <div class="card-body gap-4">
 
                 <p class="text-sm text-base-content/80 leading-relaxed">
-                    {% trans atp='https://alltheplaces.xyz', wikidata='https://www.wikidata.org', zara='https://www.wikidata.org/wiki/Q37158' %}The notion of a <strong>brand</strong> comes straight from <a href="{{ atp }}" target="_blank" rel="noopener" class="link link-primary">All The Places</a> (ATP). ATP is a collaborative database built around <strong>national and international chains</strong>: retail chains, restaurant networks, banks, pharmacy chains… Every chain is identified there by a unique <a href="{{ wikidata }}" target="_blank" rel="noopener" class="link link-primary">Wikidata</a> code — for instance <a href="{{ zara }}" target="_blank" rel="noopener" class="link font-mono text-xs">Q37158</a> for Zara. <strong>Independent shops</strong> (the bakery around the corner, a local restaurant…) are not part of it.{% endtrans %}
+                    {% trans atp='https://alltheplaces.xyz', wikidata='https://www.wikidata.org', zara='https://www.wikidata.org/wiki/Q37158' %}The notion of a <strong>brand</strong> comes straight from <a href="{{ atp }}" target="_blank" rel="noopener" class="link link-primary">All The Places<i class="iconoir-open-new-window"></i></a> (ATP). ATP is a collaborative database built around <strong>national and international chains</strong>: retail chains, restaurant networks, banks, pharmacy chains… Every chain is identified there by a unique <a href="{{ wikidata }}" target="_blank" rel="noopener" class="link link-primary">Wikidata<i class="iconoir-open-new-window"></i></a> code — for instance <a href="{{ zara }}" target="_blank" rel="noopener" class="link font-mono text-xs">Q37158<i class="iconoir-open-new-window"></i></a> for Zara. <strong>Independent shops</strong> (the bakery around the corner, a local restaurant…) are not part of it.{% endtrans %}
                 </p>
 
                 <div class="flex flex-col gap-2">
@@ -113,7 +113,7 @@
     <section>
         <h2 class="text-lg font-semibold mb-3">{{ _('How it works') }}</h2>
         <p class="text-sm text-base-content/80 leading-relaxed mb-3">
-            {% trans atp='https://alltheplaces.xyz' %}<strong>atp2osm</strong> enriches OpenStreetMap from the <a href="{{ atp }}" target="_blank" rel="noopener" class="link link-primary">All The Places</a> (ATP) data. ATP automatically collects the information of points of interest (opening hours, phone, website, email) straight from the official websites of the chains.{% endtrans %}
+            {% trans atp='https://alltheplaces.xyz' %}<strong>atp2osm</strong> enriches OpenStreetMap from the <a href="{{ atp }}" target="_blank" rel="noopener" class="link link-primary">All The Places<i class="iconoir-open-new-window"></i></a> (ATP) data. ATP automatically collects the information of points of interest (opening hours, phone, website, email) straight from the official websites of the chains.{% endtrans %}
         </p>
         <p class="text-sm text-base-content/80 leading-relaxed">
             {{ _('The tool compares that data against the existing OSM nodes, finds the missing tags, and lets you review then integrate them into OSM through your own account. <strong>No node is ever created or deleted</strong> — only missing tags are added.') }}
@@ -295,19 +295,19 @@
             <div class="card bg-base-100 shadow-sm">
                 <div class="card-body gap-1 py-3">
                     <h3 class="font-semibold">OpenStreetMap</h3>
-                    <p class="muted">{% trans odbl='https://opendatacommons.org/licenses/odbl/', terms='https://osmfoundation.org/wiki/Licence/Contributor_Terms' %}The OSM data is published under the <a href="{{ odbl }}" target="_blank" rel="noopener" class="link link-primary">ODbL 1.0</a> (Open Database License). Every contribution made through this tool falls under the OpenStreetMap <a href="{{ terms }}" target="_blank" rel="noopener" class="link link-primary">Contributor Terms</a>.{% endtrans %}</p>
+                    <p class="muted">{% trans odbl='https://opendatacommons.org/licenses/odbl/', terms='https://osmfoundation.org/wiki/Licence/Contributor_Terms' %}The OSM data is published under the <a href="{{ odbl }}" target="_blank" rel="noopener" class="link link-primary">ODbL 1.0<i class="iconoir-open-new-window"></i></a> (Open Database License). Every contribution made through this tool falls under the OpenStreetMap <a href="{{ terms }}" target="_blank" rel="noopener" class="link link-primary">Contributor Terms<i class="iconoir-open-new-window"></i></a>.{% endtrans %}</p>
                 </div>
             </div>
             <div class="card bg-base-100 shadow-sm">
                 <div class="card-body gap-1 py-3">
                     <h3 class="font-semibold">All The Places</h3>
-                    <p class="muted">{% trans cc0='https://creativecommons.org/publicdomain/zero/1.0/' %}The ATP data is published under <a href="{{ cc0 }}" target="_blank" rel="noopener" class="link link-primary">CC0 1.0</a> (public domain). It can be used freely, without restriction.{% endtrans %}</p>
+                    <p class="muted">{% trans cc0='https://creativecommons.org/publicdomain/zero/1.0/' %}The ATP data is published under <a href="{{ cc0 }}" target="_blank" rel="noopener" class="link link-primary">CC0 1.0<i class="iconoir-open-new-window"></i></a> (public domain). It can be used freely, without restriction.{% endtrans %}</p>
                 </div>
             </div>
             <div class="card bg-base-100 shadow-sm">
                 <div class="card-body gap-1 py-3">
                     <h3 class="font-semibold">atp2osm</h3>
-                    <p class="muted">{% trans gpl='https://www.gnu.org/licenses/gpl-3.0.html', github='https://github.com/hagatopaxi/atp2osm-import' %}The source code of this tool is published under the <a href="{{ gpl }}" target="_blank" rel="noopener" class="link link-primary">GPL-3.0</a> licence. Contributions are welcome on <a href="{{ github }}" target="_blank" rel="noopener" class="link link-primary">GitHub</a>.{% endtrans %}</p>
+                    <p class="muted">{% trans gpl='https://www.gnu.org/licenses/gpl-3.0.html', github='https://github.com/hagatopaxi/atp2osm-import' %}The source code of this tool is published under the <a href="{{ gpl }}" target="_blank" rel="noopener" class="link link-primary">GPL-3.0<i class="iconoir-open-new-window"></i></a> licence. Contributions are welcome on <a href="{{ github }}" target="_blank" rel="noopener" class="link link-primary">GitHub<i class="iconoir-open-new-window"></i></a>.{% endtrans %}</p>
                 </div>
             </div>
         </div>
@@ -319,7 +319,7 @@
             <div class="card-body gap-4">
 
                 <p class="text-sm text-base-content/80 leading-relaxed">
-                    {% trans atp='https://alltheplaces.xyz', osm='https://www.openstreetmap.org' %}The data <strong>produced by atp2osm</strong> can be exported freely, as CSV or JSON, without signing in. It is only the trace of the integrations and the list of the missing brands: the source data stays with the projects that produce it (<a href="{{ atp }}" target="_blank" rel="noopener" class="link link-primary">All The Places</a> and <a href="{{ osm }}" target="_blank" rel="noopener" class="link link-primary">OpenStreetMap</a>).{% endtrans %}
+                    {% trans atp='https://alltheplaces.xyz', osm='https://www.openstreetmap.org' %}The data <strong>produced by atp2osm</strong> can be exported freely, as CSV or JSON, without signing in. It is only the trace of the integrations and the list of the missing brands: the source data stays with the projects that produce it (<a href="{{ atp }}" target="_blank" rel="noopener" class="link link-primary">All The Places<i class="iconoir-open-new-window"></i></a> and <a href="{{ osm }}" target="_blank" rel="noopener" class="link link-primary">OpenStreetMap<i class="iconoir-open-new-window"></i></a>).{% endtrans %}
                 </p>
 
                 <dl class="flex flex-col gap-2 text-sm">
@@ -351,19 +351,19 @@
             <li>
                 <a href="https://alltheplaces.xyz" target="_blank" rel="noopener" class="link link-primary">
                     <i class="iconoir-open-in-browser"></i> All The Places
-                </a>
+                <i class="iconoir-open-new-window"></i></a>
                 — {{ _('the source of the POI data') }}
             </li>
             <li>
                 <a href="https://wiki.openstreetmap.org/wiki/atp2osm" target="_blank" rel="noopener" class="link link-primary">
                     <i class="icown-wikipedia"></i> {{ _('OSM wiki page') }}
-                </a>
+                <i class="iconoir-open-new-window"></i></a>
                 — {{ _('documentation of the automated integrations') }}
             </li>
             <li>
                 <a href="https://github.com/hagatopaxi/atp2osm-import" target="_blank" rel="noopener" class="link link-primary">
                     <i class="iconoir-github"></i> {{ _('Source code') }}
-                </a>
+                <i class="iconoir-open-new-window"></i></a>
                 — {{ _('contributions welcome') }}
             </li>
         </ul>

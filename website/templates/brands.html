@@ -85,7 +85,7 @@
             <td class="whitespace-nowrap md:w-1/2 md:max-w-0 md:truncate" title="{{ row['brand'] }}">
                 {{ row["brand"] }}
                 <br><a class="link text-xs font-mono muted" href="https://www.wikidata.org/wiki/{{ row['brand_wikidata'] }}"
-                   target="_blank" rel="noopener">{{ row["brand_wikidata"] }}</a>
+                   target="_blank" rel="noopener">{{ row["brand_wikidata"] }}<i class="iconoir-open-new-window"></i></a>
             </td>
 
             <td>
@@ -135,7 +135,7 @@
                     {% set disabled = tooltip is defined %}
                     <div class="{{ 'tooltip tooltip-left' if disabled }}" {{ ('data-tip="' + tooltip + '"') | safe if disabled }}>
                         <a {% if not disabled %}href="/brands/{{ row['brand_wikidata'] }}/validate"{% endif %}
-                        {{ 'disabled' if disabled }} class="btn btn-sm rounded-md whitespace-nowrap {{ 'btn-soft btn-accent' if not disabled }}">
+                        {{ 'disabled' if disabled }} class="btn btn-sm rounded-md whitespace-nowrap {{ 'btn-soft btn-primary' if not disabled }}">
                         <i class="iconoir-double-check"></i>
                         {{ _('Integrate') }}
                         </a>

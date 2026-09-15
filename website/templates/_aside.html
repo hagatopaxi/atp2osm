@@ -67,9 +67,9 @@
     <a href="{{ source_repo_url }}" class="link link-primary text-xs" target="_blank"
       rel="noopener">
       <i class="iconoir-github"></i> GitHub
-    </a>
+    <i class="iconoir-open-new-window"></i></a>
     <p class="mt-1 text-xs opacity-70">{{ _('GPL-3.0 licence') }}</p>
-    <p class="mt-1 text-xs opacity-70">{% trans link='https://www.openstreetmap.org/copyright' %}Data © <a href="{{ link }}" target="_blank" rel="noopener" class="link">OpenStreetMap contributors</a>, ODbL{% endtrans %}</p>
+    <p class="mt-1 text-xs opacity-70">{% trans link='https://www.openstreetmap.org/copyright' %}Data © <a href="{{ link }}" target="_blank" rel="noopener" class="link">OpenStreetMap contributors<i class="iconoir-open-new-window"></i></a>, ODbL{% endtrans %}</p>
     <p class="mt-1 text-xs opacity-70 font-mono">{{ app_version }}</p>
   </div>
 
@@ -84,7 +84,7 @@
       <div class="flex-1 min-w-0 sidebar-hide">
         <a href="{{ api_url }}/user/{{ session['user']['name'] }}"
           class="text-sm font-semibold truncate link link-hover tooltip tooltip-top"
-          data-tip="{{ session['user']['name'] }}" target="_blank" rel="noopener">{{ session['user']['name'] }}</a>
+          data-tip="{{ session['user']['name'] }}" target="_blank" rel="noopener">{{ session['user']['name'] }}<i class="iconoir-open-new-window"></i></a>
         <p class="text-xs opacity-70">OpenStreetMap</p>
       </div>
       <button class="btn btn-ghost btn-sm btn-square text-error sidebar-hide" onclick="logout()" title="{{ _('Log out') }}">

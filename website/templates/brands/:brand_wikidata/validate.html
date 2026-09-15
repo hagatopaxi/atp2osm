@@ -3,7 +3,7 @@
 
 {% from '_info_card.html' import info_card %}
 {% import '_wave.html' as wave with context %}
-{% block title %}{% trans brand=brand %}1/2 - Reviewing the data of {{ brand }}{% endtrans %} (<a href="https://www.wikidata.org/wiki/{{ brand_wikidata }}" target="_blank" rel="noopener" class="link font-mono">{{ brand_wikidata }}</a>){% endblock %}
+{% block title %}{% trans brand=brand %}1/2 - Reviewing the data of {{ brand }}{% endtrans %} (<a href="https://www.wikidata.org/wiki/{{ brand_wikidata }}" target="_blank" rel="noopener" class="link font-mono">{{ brand_wikidata }}<i class="iconoir-open-new-window"></i></a>){% endblock %}
 {% block subtitle %}{% trans shown=items | length, size=size %}Review {{ shown }} of the {{ size }} points of interest of this batch, drawn at random. A value marked <span class="text-success"><i class="iconoir-plus align-middle"></i> in green</span> will be written, coming from ATP or from the name-suggestion-index{% endtrans %}{% if wave_number == 2 %}{% trans %}; a value marked <span class="text-error"><i class="iconoir-minus align-middle"></i> in red</span> is the one it replaces in OSM{% endtrans %}{% endif %}. {{ _('Every other tag is already in OSM and will not be updated.') }}{% endblock %}
 
 {% block custom_js %}
@@ -34,19 +34,19 @@
            sign both say which is which — red −, green + — so the reading does
            not rest on colour alone. #}
         {% if k in item['replaced_tags_keys'] %}
-        <p class="text-error break-words">{{ minus() }}{% if key == 'website' %}<a href="{{ item['old_tag'][k] }}" target="_blank" class="link">{% endif %}{% if k in item['diff'] %}{{ pieces(item['diff'][k][0]) }}{% else %}{{ item["old_tag"][k] }}{% endif %}{% if key == 'website' %}</a>{% endif %}</p>
+        <p class="text-error break-words">{{ minus() }}{% if key == 'website' %}<a href="{{ item['old_tag'][k] }}" target="_blank" class="link">{% endif %}{% if k in item['diff'] %}{{ pieces(item['diff'][k][0]) }}{% else %}{{ item["old_tag"][k] }}{% endif %}{% if key == 'website' %}<i class="iconoir-open-new-window"></i></a>{% endif %}</p>
         {% endif %}
 
         {% if key == 'website' %}
         <p class="{{'text-success' if k in item['written_tags_keys']}}">{{ plus(k, item) }}<a href="{{ item['tag'][k] }}" target="_blank"
                 class="link">{{
                 item["tag"][k]
-                }}</a></p>
+                }}<i class="iconoir-open-new-window"></i></a></p>
         {% elif key == 'brand:wikidata' %}
         <p class="{{'text-success' if k in item['written_tags_keys']}}">{{ plus(k, item) }}<a href="https://www.wikidata.org/wiki/{{ item['tag'][k] }}" target="_blank"
                 class="link font-mono">{{
                 item["tag"][k]
-                }}</a></p>
+                }}<i class="iconoir-open-new-window"></i></a></p>
         {% elif k in item['diff'] %}
         <p class="text-success break-words">{{ plus(k, item) }}{{ pieces(item['diff'][k][1]) }}</p>
         {% else %}
@@ -83,7 +83,7 @@
                 <a class="link text-xs muted" href="/history/{{ last_import.id }}">{% trans date=last_import.import_date | dateformat('long') %}on {{ date }}{% endtrans %}</a>
                 <span class="text-xs muted">{{ _('by') }}
                     {% if last_import.osm_user_name %}
-                    <a class="link" href="{{ api_url }}/user/{{ last_import.osm_user_name }}" target="_blank">{{ last_import.osm_user_name }}</a>
+                    <a class="link" href="{{ api_url }}/user/{{ last_import.osm_user_name }}" target="_blank">{{ last_import.osm_user_name }}<i class="iconoir-open-new-window"></i></a>
                     {% else %}{{ last_import.osm_user_id }}{% endif %}
                 </span>
             </div>
@@ -96,7 +96,7 @@
                 <li class="border-l-2 border-{{ c_ }}/60 pl-3">
                     <p class="text-sm italic">{{ c.comment or _('No comment') }}</p>
                     <p class="text-xs muted font-mono">
-                        <a class="link" href="{{ api_url }}/{{ c.osm_type }}/{{ c.osm_id }}" target="_blank">{{ c.osm_type }}/{{ c.osm_id }}</a>
+                        <a class="link" href="{{ api_url }}/{{ c.osm_type }}/{{ c.osm_id }}" target="_blank">{{ c.osm_type }}/{{ c.osm_id }}<i class="iconoir-open-new-window"></i></a>
                         {% if c.atp_id %}· ATP {{ c.spider_id ~ "/" if c.spider_id }}{{ c.atp_id }}{% endif %}
                     </p>
                 </li>
@@ -132,7 +132,7 @@
                 <span>{{ _('The data comes straight from an official API.') }}</span>
                 {% endcall %}
                 {% elif item['source_uri'] %}
-                <a class="btn btn-accent btn-sm" href="{{ item['source_uri'] }}" target="_blank"
+                <a class="btn btn-primary btn-sm" href="{{ item['source_uri'] }}" target="_blank"
                     data-source-btn="{{ item['node_type'] }}-{{ item['id'] }}"
                     onclick="markSourceChecked(`{{ item['node_type'] }}-{{ item['id'] }}`)">
                     {{ _('Open the data source') }} <i class="iconoir-open-new-window ml-1"></i>
@@ -199,7 +199,7 @@
                             src="/staticmap/{{item['lon']}}/{{item['lat']}}" alt="{% trans title=item['title'] %}Map of {{ title }}{% endtrans %}" />
                         <div class="map-hover-overlay"></div>
                         <span class="map-badge">
-                            <i class="iconoir-open-new-window"></i> {{ _('View in OSM') }}
+                            {{ _('View in OSM') }} <i class="iconoir-open-new-window"></i>
                         </span>
                     </a>
                 </div>

@@ -1,3 +1,12 @@
+/* Colour grammar — every daisyUI colour class carries one meaning:
+ *   primary (violet)  the user's action: the button to press, the link to follow
+ *   success (green)   done, valid, OK
+ *   error (red)       failure, danger, destructive action
+ *   warning (amber)   attention, something to check before going on
+ *   info (blue)       information, a second series next to the primary one
+ *   neutral (grey)    no meaning: counts, disabled, secondary text
+ * `secondary` and `accent` carry no meaning here and are never used. */
+
 /* Sidebar width */
 #sidebar {
     width: 256px;
@@ -285,4 +294,12 @@ body:has(#sidebar-toggle:not(:checked)) #sidebar .menu a {
         linear-gradient(to left, var(--color-base-200) 30%, transparent) right / 40px 100% no-repeat local,
         linear-gradient(to right, color-mix(in oklab, var(--color-base-content) 25%, transparent), transparent) left / 14px 100% no-repeat scroll,
         linear-gradient(to left, color-mix(in oklab, var(--color-base-content) 25%, transparent), transparent) right / 14px 100% no-repeat scroll;
+}
+
+/* External links end with Iconoir's "open new window" glyph, an <i> in the
+ * markup: the lib only draws on an element bearing its class. */
+a[target="_blank"] > .iconoir-open-new-window {
+    font-size: 0.85em;
+    margin-left: 0.2em;
+    vertical-align: -0.05em;
 }
