@@ -20,7 +20,7 @@
 {% endblock %}
 
 {% block title %}{{ _('AllThePlaces spiders') }}{% endblock %}
-{% block subtitle %}{% trans count=total_spiders %}{{ count }} spider producing POIs of the country — what it scrapes here, what matches OpenStreetMap, what was integrated.{% pluralize %}{{ count }} spiders producing POIs of the country — what they scrape here, what matches OpenStreetMap, what was integrated.{% endtrans %}{% endblock %}
+{% block subtitle %}{% trans count=total_spiders %}{{ count }} spider producing POIs of the country: what it scrapes here, what matches OpenStreetMap, what was integrated.{% pluralize %}{{ count }} spiders producing POIs of the country: what they scrape here, what matches OpenStreetMap, what was integrated.{% endtrans %}{% endblock %}
 
 {% block custom_js %}
 <script src="/static/js/filters.js?v={{ app_version }}"></script>

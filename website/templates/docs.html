@@ -34,33 +34,55 @@
 {% block subtitle %}{{ _('How atp2osm works, and how to contribute.') }}{% endblock %}
 
 {% block content %}
+{% set toc = {
+    'brand': _('What is a “brand”?'),
+    'summary': _('Summary'),
+    'how': _('How it works'),
+    'process': _('The process in detail'),
+    'contribute': _('How to contribute'),
+    'review': _('Reviewing a brand'),
+    'statuses': _('Integration statuses'),
+    'spiders': _('Reading the spider figures'),
+    'licences': _('Licences'),
+    'export': _('Exporting the data'),
+    'resources': _('Resources'),
+} %}
+<div class="flex flex-col lg:flex-row lg:items-start gap-8">
+<nav class="lg:order-last lg:sticky lg:top-0 lg:w-60 shrink-0 bg-base-100 rounded-md shadow-sm p-4 lg:bg-transparent lg:shadow-none lg:p-0 lg:pl-4 lg:border-l-2 lg:border-base-300" aria-label="{{ _('On this page') }}">
+    <p class="text-xs font-semibold uppercase tracking-wide muted mb-2 flex items-center gap-2"><i class="iconoir-list"></i> {{ _('On this page') }}</p>
+    <ol class="text-sm flex flex-col">
+        {% for id, label in toc.items() if id != "spiders" or spiders_page_linked %}
+        <li><a href="#{{ id }}" class="flex gap-2 py-1 hover:text-primary"><span class="font-mono text-xs muted w-5 shrink-0 text-right">{{ loop.index }}</span>{{ label }}</a></li>
+        {% endfor %}
+    </ol>
+</nav>
 <div class="max-w-3xl flex flex-col gap-8">
 
     <section>
-        <h2 class="text-lg font-semibold mb-3">{{ _('What is a “brand”?') }}</h2>
+        <h2 id="brand" class="text-lg font-semibold mb-3">{{ toc['brand'] }}</h2>
         <div class="card bg-base-100 shadow-sm">
             <div class="card-body gap-4">
 
                 <p class="text-sm text-base-content/80 leading-relaxed">
-                    {% trans atp='https://alltheplaces.xyz', wikidata='https://www.wikidata.org', zara='https://www.wikidata.org/wiki/Q37158' %}The notion of a <strong>brand</strong> comes straight from <a href="{{ atp }}" target="_blank" rel="noopener" class="link link-primary">All The Places<i class="iconoir-open-new-window"></i></a> (ATP). ATP is a collaborative database built around <strong>national and international chains</strong>: retail chains, restaurant networks, banks, pharmacy chains… Every chain is identified there by a unique <a href="{{ wikidata }}" target="_blank" rel="noopener" class="link link-primary">Wikidata<i class="iconoir-open-new-window"></i></a> code — for instance <a href="{{ zara }}" target="_blank" rel="noopener" class="link font-mono text-xs">Q37158<i class="iconoir-open-new-window"></i></a> for Zara. <strong>Independent shops</strong> (the bakery around the corner, a local restaurant…) are not part of it.{% endtrans %}
+                    {% trans atp='https://alltheplaces.xyz', wikidata='https://www.wikidata.org', zara='https://www.wikidata.org/wiki/Q37158' %}The notion of a <strong>brand</strong> comes straight from <a href="{{ atp }}" target="_blank" rel="noopener" class="link link-primary">All The Places<i class="iconoir-open-new-window"></i></a> (ATP). ATP is a collaborative database built around <strong>national and international chains</strong>: retail chains, restaurant networks, banks, pharmacy chains… Every chain is identified there by a unique <a href="{{ wikidata }}" target="_blank" rel="noopener" class="link link-primary">Wikidata<i class="iconoir-open-new-window"></i></a> code, for instance <a href="{{ zara }}" target="_blank" rel="noopener" class="link font-mono text-xs">Q37158<i class="iconoir-open-new-window"></i></a> for Zara. <strong>Independent shops</strong> (the bakery around the corner, a local restaurant…) are not part of it.{% endtrans %}
                 </p>
 
                 <div class="flex flex-col gap-2">
                     <p class="text-sm font-semibold">{{ _('A few key terms') }}</p>
                     <dl class="flex flex-col gap-2 text-sm">
-                        <div class="flex gap-3 items-start">
-                            <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">spider</dt>
+                        <div class="flex flex-col sm:flex-row gap-1 sm:gap-3 sm:items-start">
+                            <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded self-start shrink-0 mt-0.5">spider</dt>
                             <dd class="muted">{{ _('A program dedicated to a single chain, which automatically collects its data from its official website (opening hours, phone, address…).') }}</dd>
                         </div>
-                        <div class="flex gap-3 items-start">
-                            <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">scraping</dt>
+                        <div class="flex flex-col sm:flex-row gap-1 sm:gap-3 sm:items-start">
+                            <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded self-start shrink-0 mt-0.5">scraping</dt>
                             <dd class="muted">{{ _('The technique of automatically extracting information from web pages. It is what every ATP spider does to gather the data of a chain.') }}</dd>
                         </div>
                     </dl>
                 </div>
 
                 <p class="text-sm text-base-content/80 leading-relaxed">
-                    {{ _('atp2osm follows that structure and integrates the data <strong>chain by chain</strong>, faithfully to the ATP spiders. This guarantees that all the data of one chain comes from a single, homogeneous source — which is what makes it possible to judge the quality of a spider by reviewing a random sample of 3 POIs per integrated batch, and to extend that confidence to the whole dataset.') }}
+                    {{ _('atp2osm follows that structure and integrates the data <strong>chain by chain</strong>, faithfully to the ATP spiders. This guarantees that all the data of one chain comes from a single, homogeneous source, which is what makes it possible to judge the quality of a spider by reviewing a random sample of 3 POIs per integrated batch, and to extend that confidence to the whole dataset.') }}
                 </p>
 
                 {% call info_card('info', 'p-3') %}
@@ -83,7 +105,7 @@
     </section>
 
     <section>
-        <h2 class="text-lg font-semibold mb-3">{{ _('Summary') }}</h2>
+        <h2 id="summary" class="text-lg font-semibold mb-3">{{ toc['summary'] }}</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="card bg-base-100 shadow-sm">
                 <div class="card-body gap-2">
@@ -111,17 +133,17 @@
     </section>
 
     <section>
-        <h2 class="text-lg font-semibold mb-3">{{ _('How it works') }}</h2>
+        <h2 id="how" class="text-lg font-semibold mb-3">{{ toc['how'] }}</h2>
         <p class="text-sm text-base-content/80 leading-relaxed mb-3">
             {% trans atp='https://alltheplaces.xyz' %}<strong>atp2osm</strong> enriches OpenStreetMap from the <a href="{{ atp }}" target="_blank" rel="noopener" class="link link-primary">All The Places<i class="iconoir-open-new-window"></i></a> (ATP) data. ATP automatically collects the information of points of interest (opening hours, phone, website, email) straight from the official websites of the chains.{% endtrans %}
         </p>
         <p class="text-sm text-base-content/80 leading-relaxed">
-            {{ _('The tool compares that data against the existing OSM nodes, finds the missing tags, and lets you review then integrate them into OSM through your own account. <strong>No node is ever created or deleted</strong> — only missing tags are added.') }}
+            {{ _('The tool compares that data against the existing OSM nodes, finds the missing tags, and lets you review then integrate them into OSM through your own account. <strong>No node is ever created or deleted</strong>: only missing tags are added.') }}
         </p>
     </section>
 
     <section>
-        <h2 class="text-lg font-semibold mb-3">{{ _('The process in detail') }}</h2>
+        <h2 id="process" class="text-lg font-semibold mb-3">{{ toc['process'] }}</h2>
         <ul class="steps steps-vertical text-sm">
             <li class="step step-primary">
                 <div class="text-left ml-3">
@@ -139,14 +161,14 @@
                 <div class="text-left ml-3">
                     <p class="font-semibold">{{ _('Spatial and attribute matching') }}</p>
                     <p class="muted">
-                        {% trans %}Every ATP POI is matched against the OSM nodes within <strong>500 m</strong>, checking that at least one attribute is shared among <span class="font-mono text-xs">brand:wikidata</span>, <span class="font-mono text-xs">brand</span>, <span class="font-mono text-xs">name</span>, <span class="font-mono text-xs">phone</span>, <span class="font-mono text-xs">website</span>, <span class="font-mono text-xs">email</span>. Ambiguous matches — several OSM nodes for one ATP POI — are dropped.{% endtrans %}
+                        {% trans %}Every ATP POI is matched against the OSM nodes within <strong>500 m</strong>, checking that at least one attribute is shared among <span class="font-mono text-xs">brand:wikidata</span>, <span class="font-mono text-xs">brand</span>, <span class="font-mono text-xs">name</span>, <span class="font-mono text-xs">phone</span>, <span class="font-mono text-xs">website</span>, <span class="font-mono text-xs">email</span>. Ambiguous matches (several OSM nodes for one ATP POI) are dropped.{% endtrans %}
                     </p>
                 </div>
             </li>
             <li class="step step-primary">
                 <div class="text-left ml-3">
                     <p class="font-semibold">{{ _('Computing the missing tags') }}</p>
-                    <p class="muted">{{ _('For every match kept, the tool computes which tags exist in ATP but not in OSM. Only the missing ones are offered — <strong>an existing tag is never changed.</strong>') }}</p>
+                    <p class="muted">{{ _('For every match kept, the tool computes which tags exist in ATP but not in OSM. Only the missing ones are offered: <strong>an existing tag is never changed.</strong>') }}</p>
                 </div>
             </li>
             <li class="step">
@@ -159,7 +181,7 @@
     </section>
 
     <section>
-        <h2 class="text-lg font-semibold mb-3">{{ _('How to contribute') }}</h2>
+        <h2 id="contribute" class="text-lg font-semibold mb-3">{{ toc['contribute'] }}</h2>
         <ol class="flex flex-col gap-4 text-sm">
             <li class="flex gap-3">
                 <span class="badge badge-primary badge-sm mt-0.5 shrink-0">1</span>
@@ -195,7 +217,7 @@
     </section>
 
     <section>
-        <h2 class="text-lg font-semibold mb-3">{{ _('Reviewing a brand') }}</h2>
+        <h2 id="review" class="text-lg font-semibold mb-3">{{ toc['review'] }}</h2>
         {% call info_card('warning', 'mb-4') %}
         <p class="text-sm">{{ _('Only <strong>3 items at the very least</strong> are reviewed by hand per batch, drawn at random among the places of that batch.') }}</p>
         {% endcall %}
@@ -211,14 +233,14 @@
     </section>
 
     <section>
-        <h2 class="text-lg font-semibold mb-3">{{ _('Integration statuses') }}</h2>
+        <h2 id="statuses" class="text-lg font-semibold mb-3">{{ toc['statuses'] }}</h2>
         <p class="text-sm text-base-content/80 leading-relaxed mb-4">
             {% trans link='/history' %}Every integration recorded in the <a href="{{ link }}" class="link link-primary">history</a> is given a status reflecting its outcome.{% endtrans %}
         </p>
         <div class="flex flex-col gap-3">
             <div class="card bg-base-100 shadow-sm">
-                <div class="card-body flex-row items-start gap-4 py-4">
-                    <span class="badge badge-soft badge-success mt-0.5 shrink-0">{{ _('Success') }}</span>
+                <div class="card-body sm:flex-row sm:items-start gap-2 sm:gap-4 py-4">
+                    <span class="badge badge-soft badge-success sm:mt-0.5 shrink-0 w-24 justify-center">{{ _('Success') }}</span>
                     <div class="flex flex-col gap-1">
                         <p class="text-sm font-semibold">{{ _('Integration succeeded') }}</p>
                         <p class="text-sm muted">
@@ -229,8 +251,8 @@
             </div>
 
             <div class="card bg-base-100 shadow-sm">
-                <div class="card-body flex-row items-start gap-4 py-4">
-                    <span class="badge badge-soft badge-warning mt-0.5 shrink-0">{{ _('Partial') }}</span>
+                <div class="card-body sm:flex-row sm:items-start gap-2 sm:gap-4 py-4">
+                    <span class="badge badge-soft badge-warning sm:mt-0.5 shrink-0 w-24 justify-center">{{ _('Partial') }}</span>
                     <div class="flex flex-col gap-1">
                         <p class="text-sm font-semibold">
                             {{ _('Integration partly succeeded') }}
@@ -243,11 +265,11 @@
             </div>
 
             <div class="card bg-base-100 shadow-sm">
-                <div class="card-body flex-row items-start gap-4 py-4">
-                    <span class="badge badge-soft badge-info mt-0.5 shrink-0">{{ _('Cancelled') }}</span>
+                <div class="card-body sm:flex-row sm:items-start gap-2 sm:gap-4 py-4">
+                    <span class="badge badge-soft badge-info sm:mt-0.5 shrink-0 w-24 justify-center">{{ _('Cancelled') }}</span>
                     <div class="flex flex-col gap-1">
                         <p class="text-sm font-semibold">
-                            {{ _('Integration cancelled — data reported') }}
+                            {{ _('Integration cancelled, data reported') }}
                         </p>
                         <p class="text-sm muted">
                             {{ _('The integration was stopped after a contributor found errors in the ATP data. Nothing was sent to OpenStreetMap.') }}
@@ -257,8 +279,8 @@
             </div>
 
             <div class="card bg-base-100 shadow-sm">
-                <div class="card-body flex-row items-start gap-4 py-4">
-                    <span class="badge badge-soft badge-error mt-0.5 shrink-0">{{ _('Error') }}</span>
+                <div class="card-body sm:flex-row sm:items-start gap-2 sm:gap-4 py-4">
+                    <span class="badge badge-soft badge-error sm:mt-0.5 shrink-0 w-24 justify-center">{{ _('Error') }}</span>
                     <div class="flex flex-col gap-1">
                         <p class="text-sm font-semibold">{{ _('Technical error') }}</p>
                         <p class="text-sm muted">
@@ -272,7 +294,7 @@
 
     {% if spiders_page_linked %}
     <section>
-        <h2 class="text-lg font-semibold mb-3">{{ _('Reading the spider figures') }}</h2>
+        <h2 id="spiders" class="text-lg font-semibold mb-3">{{ toc['spiders'] }}</h2>
         <p class="text-sm text-base-content/80 leading-relaxed mb-4">
             {% trans link='/spiders' %}The <a href="{{ link }}" class="link link-primary">spiders</a> page counts what each AllThePlaces spider brings, step by step. Each figure is a subset of the one before it.{% endtrans %}
         </p>
@@ -281,8 +303,8 @@
             <tbody>
                 <tr><th class="whitespace-nowrap">{{ _('Scraped here') }}</th><td>{{ _('The POIs the spider produced inside the country and its territories.') }}</td></tr>
                 <tr><th class="whitespace-nowrap">{{ _('Matched') }}</th><td>{{ _('Those with an OpenStreetMap object within 500 m sharing a brand, a name, an email, a phone or a website. The rest is either missing from OSM, or present without any attribute to recognise it by.') }}</td></tr>
-                <tr><th class="whitespace-nowrap">{{ _('To integrate') }}</th><td>{{ _('The matches with something left to do — a tag to add (wave 1) or to replace (wave 2), minus the subdivisions under cooldown. A POI on both waves counts twice, as two integrations. The brands page shows one wave at a time and only the brands carrying a Wikidata code, so its totals are lower.') }}</td></tr>
-                <tr><th class="whitespace-nowrap">{{ _('Integrated') }}</th><td>{{ _('The POIs actually written to OpenStreetMap through the brands the spider produces — a brand two spiders share counts for both.') }}</td></tr>
+                <tr><th class="whitespace-nowrap">{{ _('To integrate') }}</th><td>{{ _('The matches with something left to do: a tag to add (wave 1) or to replace (wave 2), minus the subdivisions under cooldown. A POI on both waves counts twice, as two integrations. The brands page shows one wave at a time and only the brands carrying a Wikidata code, so its totals are lower.') }}</td></tr>
+                <tr><th class="whitespace-nowrap">{{ _('Integrated') }}</th><td>{{ _('The POIs actually written to OpenStreetMap through the brands the spider produces; a brand two spiders share counts for both.') }}</td></tr>
             </tbody>
         </table>
         </div>
@@ -290,7 +312,7 @@
     {% endif %}
 
     <section>
-        <h2 class="text-lg font-semibold mb-3">{{ _('Licences') }}</h2>
+        <h2 id="licences" class="text-lg font-semibold mb-3">{{ toc['licences'] }}</h2>
         <div class="flex flex-col gap-3 text-sm">
             <div class="card bg-base-100 shadow-sm">
                 <div class="card-body gap-1 py-3">
@@ -313,8 +335,8 @@
         </div>
     </section>
 
-    <section id="export">
-        <h2 class="text-lg font-semibold mb-3">{{ _('Exporting the data') }}</h2>
+    <section>
+        <h2 id="export" class="text-lg font-semibold mb-3">{{ toc['export'] }}</h2>
         <div class="card bg-base-100 shadow-sm">
             <div class="card-body gap-4">
 
@@ -322,27 +344,27 @@
                     {% trans atp='https://alltheplaces.xyz', osm='https://www.openstreetmap.org' %}The data <strong>produced by atp2osm</strong> can be exported freely, as CSV or JSON, without signing in. It is only the trace of the integrations and the list of the missing brands: the source data stays with the projects that produce it (<a href="{{ atp }}" target="_blank" rel="noopener" class="link link-primary">All The Places<i class="iconoir-open-new-window"></i></a> and <a href="{{ osm }}" target="_blank" rel="noopener" class="link link-primary">OpenStreetMap<i class="iconoir-open-new-window"></i></a>).{% endtrans %}
                 </p>
 
-                <dl class="flex flex-col gap-2 text-sm">
-                    <div class="flex gap-3 items-start">
-                        <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">/api/export/history.csv</dt>
+                <dl class="flex flex-col gap-3 text-sm">
+                    <div class="border border-base-300 rounded-md p-3 flex flex-col gap-1">
+                        <dt class="flex items-center gap-2 font-mono text-xs"><span class="badge badge-soft badge-sm font-mono">GET</span><a href="/api/export/history.csv" class="link link-primary" target="_blank" rel="noopener">/api/export/history.csv<i class="iconoir-open-new-window"></i></a></dt>
                         <dd class="muted">{{ _('One row per integration: brand, contributor, date, status, number of objects and of tags.') }}</dd>
                     </div>
-                    <div class="flex gap-3 items-start">
-                        <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">/api/export/subdivisions.csv</dt>
+                    <div class="border border-base-300 rounded-md p-3 flex flex-col gap-1">
+                        <dt class="flex items-center gap-2 font-mono text-xs"><span class="badge badge-soft badge-sm font-mono">GET</span><a href="/api/export/subdivisions.csv" class="link link-primary" target="_blank" rel="noopener">/api/export/subdivisions.csv<i class="iconoir-open-new-window"></i></a></dt>
                         <dd class="muted">{{ _('The detail per changeset: administrative subdivision, number of objects, OSM changeset identifier and status.') }}</dd>
                     </div>
-                    <div class="flex gap-3 items-start">
-                        <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">/api/export/todo.csv</dt>
+                    <div class="border border-base-300 rounded-md p-3 flex flex-col gap-1">
+                        <dt class="flex items-center gap-2 font-mono text-xs"><span class="badge badge-soft badge-sm font-mono">GET</span><a href="/api/export/todo.csv" class="link link-primary" target="_blank" rel="noopener">/api/export/todo.csv<i class="iconoir-open-new-window"></i></a></dt>
                         <dd class="muted">{% trans %}The brands reported as missing from ATP. The ones ATP now knows are left out, unless <code class="font-mono text-xs">?show_in_atp=1</code> is passed.{% endtrans %}</dd>
                     </div>
-                    <div class="flex gap-3 items-start">
-                        <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">/api/stats.json</dt>
+                    <div class="border border-base-300 rounded-md p-3 flex flex-col gap-1">
+                        <dt class="flex items-center gap-2 font-mono text-xs"><span class="badge badge-soft badge-sm font-mono">GET</span><a href="/api/stats.json" class="link link-primary" target="_blank" rel="noopener">/api/stats.json<i class="iconoir-open-new-window"></i></a></dt>
                         <dd class="muted">{{ _('The figures of the statistics page: totals, series per period, top tags, brands and contributors, spider reliability. Takes the same filters as the page.') }}</dd>
                     </div>
                 </dl>
 
                 <p class="text-sm text-base-content/80 leading-relaxed">
-                    {% trans %}Replace <code class="font-mono text-xs">.csv</code> with <code class="font-mono text-xs">.json</code> for the same content as JSON. The <code class="font-mono text-xs">history</code> and <code class="font-mono text-xs">todo</code> exports take the same filters as their pages (<code class="font-mono text-xs">q</code>, <code class="font-mono text-xs">status</code>, <code class="font-mono text-xs">user</code>, <code class="font-mono text-xs">from</code>, <code class="font-mono text-xs">to</code>) — the “Export” button above each table carries the active filters over anyway.{% endtrans %}
+                    {% trans %}Replace <code class="font-mono text-xs">.csv</code> with <code class="font-mono text-xs">.json</code> for the same content as JSON. The <code class="font-mono text-xs">history</code> and <code class="font-mono text-xs">todo</code> exports take the same filters as their pages (<code class="font-mono text-xs">q</code>, <code class="font-mono text-xs">status</code>, <code class="font-mono text-xs">user</code>, <code class="font-mono text-xs">from</code>, <code class="font-mono text-xs">to</code>); the “Export” button above each table carries the active filters over anyway.{% endtrans %}
                 </p>
 
             </div>
@@ -350,7 +372,7 @@
     </section>
 
     <section>
-        <h2 class="text-lg font-semibold mb-3">{{ _('Resources') }}</h2>
+        <h2 id="resources" class="text-lg font-semibold mb-3">{{ toc['resources'] }}</h2>
         <ul class="flex flex-col gap-2 text-sm">
             <li>
                 <a href="https://alltheplaces.xyz" target="_blank" rel="noopener" class="link link-primary">
@@ -373,5 +395,6 @@
         </ul>
     </section>
 
+</div>
 </div>
 {% endblock %}

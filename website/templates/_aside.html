@@ -61,16 +61,16 @@
   </nav>
   {% endif %}
 
-  <div class="shrink-0 mt-6 mb-4 p-3 bg-base-100 rounded-md text-sm shadow-sm sidebar-hide">
-    <p class="font-bold mb-1 flex gap-2 items-center"><i class="iconoir-info-circle"></i> {{ _('About') }}</p>
-    <p class="mb-2">{{ _('Open-source project. Contributions welcome!') }}</p>
-    <a href="{{ source_repo_url }}" class="link link-primary text-xs" target="_blank"
+  <div class="shrink-0 mt-6 mb-4 px-1 text-xs muted sidebar-hide">
+    <p class="font-semibold mb-1 flex gap-2 items-center"><i class="iconoir-info-circle"></i> {{ _('About') }}</p>
+    <p class="mb-1">{{ _('Open-source project. Contributions welcome!') }}</p>
+    <a href="{{ source_repo_url }}" class="link link-hover" target="_blank"
       rel="noopener">
       <i class="iconoir-github"></i> GitHub
     <i class="iconoir-open-new-window"></i></a>
-    <p class="mt-1 text-xs opacity-70">{{ _('GPL-3.0 licence') }}</p>
-    <p class="mt-1 text-xs opacity-70">{% trans link='https://www.openstreetmap.org/copyright' %}Data © <a href="{{ link }}" target="_blank" rel="noopener" class="link">OpenStreetMap contributors<i class="iconoir-open-new-window"></i></a>, ODbL{% endtrans %}</p>
-    <p class="mt-1 text-xs opacity-70 font-mono">{{ app_version }}</p>
+    <p class="mt-1">{{ _('GPL-3.0 licence') }}</p>
+    <p class="mt-1">{% trans link='https://www.openstreetmap.org/copyright' %}Data © <a href="{{ link }}" target="_blank" rel="noopener" class="link link-hover">OpenStreetMap contributors<i class="iconoir-open-new-window"></i></a>, ODbL{% endtrans %}</p>
+    <p class="mt-1 font-mono">{{ app_version }}</p>
   </div>
 
   <div class="w-full shrink-0">
