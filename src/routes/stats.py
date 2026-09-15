@@ -1,7 +1,9 @@
 import logging
 from datetime import date
 
-from flask import Blueprint, render_template, request
+import json
+
+from flask import Blueprint, Response, render_template, request
 from psycopg.rows import dict_row
 
 from src.db import get_osmdb
@@ -155,8 +157,23 @@ CHANGESETS_SQL = """
 
 @stats_bp.route("/stats")
 def stats():
+    return render_template("stats.html", **compute(request.args))
+
+
+@stats_bp.route("/api/stats.json")
+def stats_api():
+    """The figures of the statistics page, as JSON, same filters."""
+    return Response(
+        json.dumps(compute(request.args), default=str, ensure_ascii=False),
+        mimetype="application/json",
+        headers={"Access-Control-Allow-Origin": "*", "X-Robots-Tag": "noindex"},
+    )
+
+
+def compute(args):
+    """Everything the statistics page shows, filtered by the request args."""
     osmdb = get_osmdb()
-    where, params, filters = build_filters(request.args, FILTERS)
+    where, params, filters = build_filters(args, FILTERS)
 
     unit, start, end = _period(filters.get("from"), filters.get("to"))
 
@@ -228,8 +245,7 @@ def stats():
         total += row["pois"]
         row["cumulative"] = total
 
-    return render_template(
-        "stats.html",
+    return dict(
         kpi=kpi,
         # Same definition as the contributors panels below, filters included.
         contributors=len(users),

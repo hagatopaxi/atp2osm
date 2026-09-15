@@ -116,3 +116,12 @@ def test_the_language_free_resources_answer(web_app, seeded, path, mimetype):
 
 def test_an_unknown_page_is_not_found(web_app, seeded):
     assert web_app.test_client().get("/no-such-page").status_code == 404
+
+
+def test_the_stats_api_answers_json_to_any_origin(web_app, seeded):
+    response = web_app.test_client().get("/api/stats.json?from=2020-01-01")
+    assert response.status_code == 200
+    assert response.headers["Access-Control-Allow-Origin"] == "*"
+    body = response.get_json()
+    assert body["kpi"]["pois"] == 12
+    assert body["unit"] == "month"
