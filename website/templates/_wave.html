@@ -4,8 +4,8 @@
    locale.
 
    Each wave keeps a colour of its own, so a row is read before it is spelled
-   out: blue adds, amber replaces. The badges come out as `join-item`s without
-   a wrapper — the caller puts them in a `join`, alone or beside the status
+   out: blue adds, amber replaces. The badge comes out as a `join-item` without
+   a wrapper — the caller puts it in a `join`, alone or beside the status
    badge of the same row. #}
 
 {% macro label(number) %}{% if number == 1 %}{{ _('Adding tags') }}{% elif number == 2 %}{{ _('Modifying tags') }}{% else %}{% trans number=number %}Wave {{ number }}{% endtrans %}{% endif %}{% endmacro %}
@@ -22,7 +22,4 @@
     <i class="{{ icon(number) | trim }}"></i>
     <span class="list-hide">{{ label(number) | trim }}</span><span class="list-only">{{ short_label(number) | trim }}</span>
 </span>
-{% if waves and waves.get(number) and waves[number].alpha %}
-<span class="badge badge-soft join-item badge-error whitespace-nowrap list-hide" title="{{ _('This wave is in alpha: it goes out in very small batches while the community has its say.') }}">{{ _('alpha') }}</span>
-{% endif %}
 {% endmacro %}
