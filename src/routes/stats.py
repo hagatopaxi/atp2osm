@@ -5,7 +5,8 @@ from flask import Blueprint, render_template, request
 from psycopg.rows import dict_row
 
 from src.db import get_osmdb
-from src.utils import build_filters, fetch_osm_users
+from src.matching import BLOCKED_BRANDS_SQL
+from src.utils import TODO_NOT_IN_ATP_SQL, build_filters, fetch_osm_users
 
 logger = logging.getLogger(__name__)
 
@@ -152,6 +153,16 @@ CHANGESETS_SQL = """
     ORDER BY p.period
 """
 
+# Two counts of the present, not of the period: the brands reported missing
+# that ATP still lacks, and the brands turned down that no spider has fixed
+# since — the same readings as the todo list and the brands list.
+MISSING_SQL = f"SELECT COUNT(*) FROM todo_brands WHERE {TODO_NOT_IN_ATP_SQL}"
+AWAITING_FIX_SQL = f"""
+    SELECT COUNT(DISTINCT brand_wikidata)
+    FROM ({BLOCKED_BRANDS_SQL}) b
+    WHERE b.status = 'cancelled'
+"""
+
 
 @stats_bp.route("/stats")
 def stats():
@@ -185,6 +196,8 @@ def stats():
             ),
             params,
         ).fetchall()
+        missing = cursor.execute(MISSING_SQL).fetchone()["count"]
+        awaiting_fix = cursor.execute(AWAITING_FIX_SQL).fetchone()["count"]
         all_user_ids = [
             r["osm_user_id"]
             for r in cursor.execute(
@@ -233,6 +246,8 @@ def stats():
         kpi=kpi,
         # Same definition as the contributors panels below, filters included.
         contributors=len(users),
+        missing=missing,
+        awaiting_fix=awaiting_fix,
         by_imports=rank("imports"),
         by_pois=rank("pois"),
         reporters=rank("todos"),

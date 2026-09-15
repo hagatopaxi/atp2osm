@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-15 11:33+0200\n"
+"POT-Creation-Date: 2026-09-15 11:42+0200\n"
 "PO-Revision-Date: 2026-09-06 17:06+0200\n"
 "Last-Translator: the atp2osm contributors\n"
 "Language: fr\n"
@@ -672,7 +672,7 @@ msgstr "Une erreur indépendante de votre action a empêché l'intégration de s
 
 #: website/templates/docs.html:275
 msgid "Reading the spider figures"
-msgstr "Lire les chiffres des spiders"
+msgstr "Marques en attente de correction"
 
 #: website/templates/docs.html:277
 #, python-format
@@ -817,7 +817,7 @@ msgstr "Aucune intégration ne correspond à ces filtres."
 msgid "No integration recorded yet."
 msgstr "Aucune intégration enregistrée pour le moment."
 
-#: website/templates/history.html:60 website/templates/stats.html:121
+#: website/templates/history.html:60 website/templates/stats.html:123
 #, python-format
 msgid "%(count)s integration"
 msgid_plural "%(count)s integrations"
@@ -1029,7 +1029,7 @@ msgstr "Tout voir"
 msgid "Tags added"
 msgstr "Tags ajoutés"
 
-#: website/templates/home.html:92 website/templates/stats.html:174
+#: website/templates/home.html:92 website/templates/stats.html:176
 msgid "Brands integrated"
 msgstr "Marques intégrées"
 
@@ -1190,7 +1190,7 @@ msgstr "Aucune donnée sur cette période."
 msgid "Impact"
 msgstr "Impact"
 
-#: website/templates/stats.html:85 website/templates/stats.html:149
+#: website/templates/stats.html:85 website/templates/stats.html:151
 msgid "Integrations"
 msgstr "Intégrations"
 
@@ -1202,142 +1202,150 @@ msgstr "Qualité & communauté"
 msgid "Spider reliability"
 msgstr "Fiabilité spiders"
 
-#: website/templates/stats.html:100
+#: website/templates/stats.html:96
+msgid "Brands still missing from ATP"
+msgstr "Marques encore absentes d'ATP"
+
+#: website/templates/stats.html:97
+msgid "Brands awaiting a spider fix"
+msgstr "Marques en attente de correction"
+
+#: website/templates/stats.html:102
 msgid "day"
 msgstr "jour"
 
-#: website/templates/stats.html:100
+#: website/templates/stats.html:102
 msgid "week"
 msgstr "semaine"
 
-#: website/templates/stats.html:100
+#: website/templates/stats.html:102
 msgid "month"
 msgstr "mois"
 
-#: website/templates/stats.html:102
+#: website/templates/stats.html:104
 msgid "Pace and progress"
 msgstr "Rythme et progression"
 
-#: website/templates/stats.html:104
+#: website/templates/stats.html:106
 #, python-format
 msgid "What each %(unit)s brought to OpenStreetMap, and what it all adds up to. Both series share one scale: the height of a bar reads directly as the share of that period in the total."
 msgstr "Ce que chaque %(unit)s a apporté à OpenStreetMap, et ce que l'ensemble totalise. Les deux séries partagent la même échelle : la hauteur d'une barre se lit directement comme la part de cette période dans le total."
 
-#: website/templates/stats.html:107
+#: website/templates/stats.html:109
 #, python-format
 msgid "POIs integrated per %(unit)s"
 msgstr "POIs intégrés par %(unit)s"
 
-#: website/templates/stats.html:108
+#: website/templates/stats.html:110
 msgid "Running total"
 msgstr "Total cumulé"
 
-#: website/templates/stats.html:116
+#: website/templates/stats.html:118
 #, python-format
 msgid "%(period)s: %(pois)s POIs, running total %(cumulative)s. "
 msgstr "%(period)s : %(pois)s POIs, cumul %(cumulative)s. "
 
-#: website/templates/stats.html:121
+#: website/templates/stats.html:123
 #, python-format
 msgid "running total %(cumulative)s"
 msgstr "cumul %(cumulative)s"
 
-#: website/templates/stats.html:145
+#: website/templates/stats.html:147
 msgid "Integrations per contributor"
 msgstr "Intégrations par contributeur"
 
-#: website/templates/stats.html:146
+#: website/templates/stats.html:148
 msgid "OSM contributors ranked by integration volume."
 msgstr "Classement des contributeurs OSM par volume d'intégration."
 
-#: website/templates/stats.html:156
+#: website/templates/stats.html:158
 msgid "Missing brands added"
 msgstr "Marques manquantes ajoutées"
 
-#: website/templates/stats.html:157
+#: website/templates/stats.html:159
 msgid "OSM contributors ranked by the number of brands missing from ATP they added."
 msgstr "Classement des contributeurs OSM par nombre de marques absentes d'ATP ajoutées."
 
-#: website/templates/stats.html:163
+#: website/templates/stats.html:165
 msgid "Tags enriched"
 msgstr "Tags enrichis"
 
-#: website/templates/stats.html:167
+#: website/templates/stats.html:169
 msgid "Most integrated brands"
 msgstr "Marques les plus intégrées"
 
-#: website/templates/stats.html:171
+#: website/templates/stats.html:173
 msgid "Reliability of the ATP data"
 msgstr "Fiabilité des données ATP"
 
-#: website/templates/stats.html:172
+#: website/templates/stats.html:174
 #, python-format
 msgid "Share of the brands whose integration was accepted, per %(unit)s. A brand counts once, whatever the volume behind it; a period without data is empty."
 msgstr "Part des marques dont l'intégration a été validée, par %(unit)s. Une marque compte une fois, quel que soit le volume derrière ; une période sans données est vide."
 
-#: website/templates/stats.html:175
+#: website/templates/stats.html:177
 msgid "Brands rejected"
 msgstr "Marques rejetées"
 
-#: website/templates/stats.html:181
+#: website/templates/stats.html:183
 #, python-format
 msgid "%(period)s: %(rate)s %% reliability. "
 msgstr "%(period)s : %(rate)s %% de fiabilité. "
 
-#: website/templates/stats.html:185
+#: website/templates/stats.html:187
 #, python-format
 msgid "%(count)s brand integrated"
 msgid_plural "%(count)s brands integrated"
 msgstr[0] "%(count)s marque intégrée"
 msgstr[1] "%(count)s marques intégrées"
 
-#: website/templates/stats.html:185
+#: website/templates/stats.html:187
 #, python-format
 msgid "%(count)s rejected"
 msgid_plural "%(count)s rejected"
 msgstr[0] "%(count)s rejetée"
 msgstr[1] "%(count)s rejetées"
 
-#: website/templates/stats.html:200
+#: website/templates/stats.html:202
 msgid "No review over this period."
 msgstr "Aucune relecture sur cette période."
 
-#: website/templates/stats.html:203
+#: website/templates/stats.html:205
 msgid "Reliability of the OSM data"
 msgstr "Fiabilité des données OSM"
 
-#: website/templates/stats.html:203
+#: website/templates/stats.html:205
 msgid "A changeset is almost always refused because the local copy of OpenStreetMap has aged: one of the POIs no longer carries the same version in OSM and in the atp2osm database. The API then rejects the changeset as a whole."
 msgstr "Un changeset refusé l'est presque toujours parce que la copie locale d'OpenStreetMap a vieilli : l'un des POI n'a plus la même version entre OSM et la base atp2osm. L'API rejette le changeset dans son intégralité à ce moment."
 
-#: website/templates/stats.html:205
+#: website/templates/stats.html:207
 msgid "Accepted"
 msgstr "Acceptés"
 
-#: website/templates/stats.html:206
+#: website/templates/stats.html:208
 msgid "Refused"
 msgstr "Refusés"
 
-#: website/templates/stats.html:214
+#: website/templates/stats.html:216
 #, python-format
 msgid "%(period)s: %(rate)s %% of changesets accepted. "
 msgstr "%(period)s : %(rate)s %% de changesets acceptés. "
 
-#: website/templates/stats.html:219
+#: website/templates/stats.html:221
 #, python-format
 msgid "%(count)s accepted"
 msgid_plural "%(count)s accepted"
 msgstr[0] "%(count)s accepté"
 msgstr[1] "%(count)s acceptés"
 
-#: website/templates/stats.html:219
+#: website/templates/stats.html:221
 #, python-format
 msgid "%(count)s refused"
 msgid_plural "%(count)s refused"
 msgstr[0] "%(count)s refusé"
 msgstr[1] "%(count)s refusés"
 
-#: website/templates/stats.html:234
+#: website/templates/stats.html:236
 msgid "No changeset over this period."
 msgstr "Aucun changeset sur cette période."
 
@@ -1347,7 +1355,7 @@ msgstr "Liste des marques absentes d'AllThePlaces. Contribuez en signalant les e
 
 #: website/templates/todo.html:9
 msgid "Brands missing from AllThePlaces"
-msgstr "Marques manquantes dans AllThePlaces"
+msgstr "Marques encore absentes d'ATP"
 
 #: website/templates/todo.html:25
 msgid "The brands identified for which no AllThePlaces spider exists. This list gives the AllThePlaces contributors a view of what is missing."

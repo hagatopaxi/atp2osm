@@ -93,6 +93,8 @@
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
     {{ kpi_card("iconoir-check-circle", (spiders_reliability ~ ' %') if spiders_reliability is not none else '—', _('Spider reliability'), compact=true) }}
     {{ kpi_card("iconoir-community", contributors, _('Contributors'), compact=true) }}
+    {{ kpi_card("iconoir-list", missing, _('Brands still missing from ATP'), compact=true) }}
+    {{ kpi_card("iconoir-warning-triangle", awaiting_fix, _('Brands awaiting a spider fix'), compact=true) }}
 </div>
 
 {% if series_max > 0 %}
