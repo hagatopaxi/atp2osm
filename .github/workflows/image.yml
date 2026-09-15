@@ -21,11 +21,11 @@ jobs:
         id: build
         with:
           containerfiles: Containerfile
-          image: ghcr.io/${{ github.repository }}
+          image: ${{ github.repository }}
           tags: latest ${{ steps.meta.outputs.short }}
           build-args: GIT_COMMIT=${{ steps.meta.outputs.short }}
 
-      - uses: redhat-actions/push-to-registry@v2
+      - uses: redhat-actions/push-to-registry@v3
         with:
           image: ${{ steps.build.outputs.image }}
           tags: ${{ steps.build.outputs.tags }}
