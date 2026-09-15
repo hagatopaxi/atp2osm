@@ -48,9 +48,9 @@
 {% endblock %}
 
 {% block title %}{{ _('Enrich OpenStreetMap with the AllThePlaces data') }}{% endblock %}
-{% block subtitle %}{{ _('Identify → verify → integrate') }}{% endblock %}
 
 {% block content %}
+<p class="text-2xl sm:text-3xl font-semibold tracking-tight mb-6">{{ _('Identify → verify → integrate') }}</p>
 <section class="mb-6 flex flex-wrap gap-4 items-center">
     {% if 'user' in session %}
     <a href="/brands" class="btn btn-primary rounded-full">
