@@ -14,7 +14,7 @@ import re
 
 from babel import Locale, UnknownLocaleError
 from flask import request
-from flask_babel import Babel, get_locale
+from flask_babel import Babel, format_date, format_datetime, get_locale
 from werkzeug.utils import redirect
 from werkzeug.wrappers import Request
 
@@ -139,6 +139,10 @@ def static_url(filename, external=False):
     return f"{base}/static/{filename}"
 
 
+DATE_FORMATS = {"short": "dd/MM/yyyy", "medium": "d MMM yyyy"}
+DATETIME_FORMATS = {"short": "dd/MM/yyyy HH:mm", "medium": "d MMM yyyy HH:mm"}
+
+
 def init_app(app, locales, translated, timezone="UTC", extra_translations=""):
     """Wire the prefix middleware, Babel, the cookie and the Jinja globals."""
     app.wsgi_app = LanguagePrefix(app.wsgi_app, locales, translated)
@@ -164,6 +168,16 @@ def init_app(app, locales, translated, timezone="UTC", extra_translations=""):
                 COOKIE_NAME, chosen, max_age=COOKIE_MAX_AGE, samesite="Lax"
             )
         return response
+
+    # Day-month-year whatever the language: CLDR's `en` is en_US, and its
+    # `M/d/yy` reads as a US date to every reader of the country served. The
+    # locale still provides the month names and the timezone.
+    app.jinja_env.filters["dateformat"] = lambda d, f="short": format_date(
+        d, DATE_FORMATS.get(f, f)
+    )
+    app.jinja_env.filters["datetimeformat"] = lambda d, f="short": format_datetime(
+        d, DATETIME_FORMATS.get(f, f)
+    )
 
     app.jinja_env.globals.update(
         get_locale=get_locale,

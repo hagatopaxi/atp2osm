@@ -212,3 +212,14 @@ def test_a_mounted_catalog_wins_over_the_shipped_one(tmp_path):
         assert gettext("Statistics") == "Chiffres"
         # A string the mounted catalog says nothing about keeps its own.
         assert gettext("Documentation") == "Documentation"
+
+
+def test_dates_read_day_first_in_every_language(app):
+    """Every language gets the same day/month/year slashes, not CLDR's own short form."""
+    import datetime
+
+    day = datetime.datetime(2026, 9, 5, 14, 30, tzinfo=datetime.timezone.utc)
+    with app.test_request_context("/", environ_base={i18n.ENVIRON_KEY: "de"}):  # CLDR de: dd.MM.yy
+        render = lambda src, **kw: app.jinja_env.from_string(src).render(**kw)
+        assert render("{{ d | dateformat('short') }}", d=day.date()) == "05/09/2026"
+        assert render("{{ d | datetimeformat('short') }}", d=day) == "05/09/2026 16:30"
