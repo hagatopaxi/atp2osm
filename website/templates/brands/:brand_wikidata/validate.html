@@ -34,23 +34,23 @@
            sign both say which is which — red −, green + — so the reading does
            not rest on colour alone. #}
         {% if k in item['replaced_tags_keys'] %}
-        <p class="text-error break-words">{{ minus() }}{% if key == 'website' %}<a href="{{ item['old_tag'][k] }}" target="_blank" class="link">{% endif %}{% if k in item['diff'] %}{{ pieces(item['diff'][k][0]) }}{% else %}{{ item["old_tag"][k] }}{% endif %}{% if key == 'website' %}<i class="iconoir-open-new-window"></i></a>{% endif %}</p>
+        <p class="text-error opacity-75 break-words">{{ minus() }}{% if key == 'website' %}<a href="{{ item['old_tag'][k] }}" target="_blank" class="link">{% endif %}{% if k in item['diff'] %}{{ pieces(item['diff'][k][0]) }}{% else %}{{ item["old_tag"][k] }}{% endif %}{% if key == 'website' %}<i class="iconoir-open-new-window"></i></a>{% endif %}</p>
         {% endif %}
 
         {% if key == 'website' %}
-        <p class="{{'text-success' if k in item['written_tags_keys']}}">{{ plus(k, item) }}<a href="{{ item['tag'][k] }}" target="_blank"
+        <p class="{{'text-success font-semibold' if k in item['written_tags_keys']}}">{{ plus(k, item) }}<a href="{{ item['tag'][k] }}" target="_blank"
                 class="link">{{
                 item["tag"][k]
                 }}<i class="iconoir-open-new-window"></i></a></p>
         {% elif key == 'brand:wikidata' %}
-        <p class="{{'text-success' if k in item['written_tags_keys']}}">{{ plus(k, item) }}<a href="https://www.wikidata.org/wiki/{{ item['tag'][k] }}" target="_blank"
+        <p class="{{'text-success font-semibold' if k in item['written_tags_keys']}}">{{ plus(k, item) }}<a href="https://www.wikidata.org/wiki/{{ item['tag'][k] }}" target="_blank"
                 class="link font-mono">{{
                 item["tag"][k]
                 }}<i class="iconoir-open-new-window"></i></a></p>
         {% elif k in item['diff'] %}
-        <p class="text-success break-words">{{ plus(k, item) }}{{ pieces(item['diff'][k][1]) }}</p>
+        <p class="text-success font-semibold break-words">{{ plus(k, item) }}{{ pieces(item['diff'][k][1]) }}</p>
         {% else %}
-        <p class="{{'text-success' if k in item['written_tags_keys']}}">{{ plus(k, item) }}{{ item["tag"][k] }}</p>
+        <p class="{{'text-success font-semibold' if k in item['written_tags_keys']}}">{{ plus(k, item) }}{{ item["tag"][k] }}</p>
         {% endif %}
     </div>
 </div>
@@ -177,9 +177,9 @@
                         <ul class="font-mono text-sm">
                             {% for key, value in item['other_new_tags'].items() %}
                             {% if key in item['replaced_tags_keys'] %}
-                            <li class="text-error">{{ minus() }}{{ key }} = {{ item['old_tag'][key] }}</li>
+                            <li class="text-error opacity-75">{{ minus() }}{{ key }} = {{ item['old_tag'][key] }}</li>
                             {% endif %}
-                            <li class="text-success">{{ plus(key, item) }}{{ key }} = {{ value }}</li>
+                            <li class="text-success font-semibold">{{ plus(key, item) }}{{ key }} = {{ value }}</li>
                             {% endfor %}
                         </ul>
                     </div>
