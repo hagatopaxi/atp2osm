@@ -25,7 +25,9 @@ COPY config.schema.json ./
 RUN uv run --no-sync pybabel compile -d website/translations
 
 ARG GIT_COMMIT
-LABEL git-commit=${GIT_COMMIT}
+LABEL org.opencontainers.image.source=https://github.com/hagatopaxi/atp2osm \
+      org.opencontainers.image.revision=${GIT_COMMIT} \
+      org.opencontainers.image.licenses=GPL-3.0-only
 ENV GIT_COMMIT=${GIT_COMMIT}
 
 ARG PORT=8000
