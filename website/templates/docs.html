@@ -51,7 +51,7 @@
 <nav class="lg:order-last lg:sticky lg:top-0 lg:w-60 shrink-0 bg-base-100 rounded-md shadow-sm p-4 lg:bg-transparent lg:shadow-none lg:p-0 lg:pl-4 lg:border-l-2 lg:border-base-300" aria-label="{{ _('On this page') }}">
     <p class="text-xs font-semibold uppercase tracking-wide muted mb-2 flex items-center gap-2"><i class="iconoir-list"></i> {{ _('On this page') }}</p>
     <ol class="text-sm flex flex-col">
-        {% for id, label in toc.items() %}
+        {% for id, label in toc.items() if id != "spiders" or spiders_page_linked %}
         <li><a href="#{{ id }}" class="flex gap-2 py-1 hover:text-primary"><span class="font-mono text-xs muted w-5 shrink-0 text-right">{{ loop.index }}</span>{{ label }}</a></li>
         {% endfor %}
     </ol>
