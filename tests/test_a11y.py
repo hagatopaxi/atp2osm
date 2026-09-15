@@ -227,7 +227,7 @@ def test_every_get_route_is_visited(server):
     excluded = {
         "/favicon.ico", "/robots.txt", "/sitemap.xml", "/llms.txt",
         "/google1387dd4d6e23b123.html", "/staticmap/<long>/<lat>",
-        "/api/export/departements.<fmt>", "/api/export/<dataset>.<fmt>",
+        "/api/export/departements.<fmt>", "/api/export/<dataset>.<fmt>", "/api/stats.json",
         "/todo/check", "/oauth-callback",
     }
     forgotten = [

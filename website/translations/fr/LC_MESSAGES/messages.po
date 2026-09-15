@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-15 11:18+0200\n"
+"POT-Creation-Date: 2026-09-15 11:35+0200\n"
 "PO-Revision-Date: 2026-09-06 17:06+0200\n"
 "Last-Translator: the atp2osm contributors\n"
 "Language: fr\n"
@@ -751,31 +751,35 @@ msgstr "Le détail par changeset : subdivision administrative, nombre d'objets, 
 msgid "The brands reported as missing from ATP. The ones ATP now knows are left out, unless <code class=\"font-mono text-xs\">?show_in_atp=1</code> is passed."
 msgstr "Les marques signalées comme absentes d'ATP. Celles qu'ATP connaît désormais sont exclues, sauf avec <code class=\"font-mono text-xs\">?show_in_atp=1</code>."
 
-#: website/templates/docs.html:341
+#: website/templates/docs.html:340
+msgid "The figures of the statistics page: totals, series per period, top tags, brands and contributors, spider reliability. Takes the same filters as the page."
+msgstr "Les chiffres de la page de statistiques : totaux, séries par période, principaux tags, marques et contributeurs, fiabilité des spiders. Prend les mêmes filtres que la page."
+
+#: website/templates/docs.html:345
 msgid "Replace <code class=\"font-mono text-xs\">.csv</code> with <code class=\"font-mono text-xs\">.json</code> for the same content as JSON. The <code class=\"font-mono text-xs\">history</code> and <code class=\"font-mono text-xs\">todo</code> exports take the same filters as their pages (<code class=\"font-mono text-xs\">q</code>, <code class=\"font-mono text-xs\">status</code>, <code class=\"font-mono text-xs\">user</code>, <code class=\"font-mono text-xs\">from</code>, <code class=\"font-mono text-xs\">to</code>) — the “Export” button above each table carries the active filters over anyway."
 msgstr "Remplacez <code class=\"font-mono text-xs\">.csv</code> par <code class=\"font-mono text-xs\">.json</code> pour obtenir le même contenu en JSON. Les exports <code class=\"font-mono text-xs\">history</code> et <code class=\"font-mono text-xs\">todo</code> acceptent les mêmes filtres que les pages correspondantes (<code class=\"font-mono text-xs\">q</code>, <code class=\"font-mono text-xs\">status</code>, <code class=\"font-mono text-xs\">user</code>, <code class=\"font-mono text-xs\">from</code>, <code class=\"font-mono text-xs\">to</code>) — le bouton « Exporter » situé au-dessus de chaque tableau reprend d'ailleurs les filtres actifs."
 
-#: website/templates/docs.html:349 website/templates/llms.txt:22
+#: website/templates/docs.html:353 website/templates/llms.txt:22
 msgid "Resources"
 msgstr "Ressources"
 
-#: website/templates/docs.html:355
+#: website/templates/docs.html:359
 msgid "the source of the POI data"
 msgstr "source des données POI"
 
-#: website/templates/docs.html:359
+#: website/templates/docs.html:363
 msgid "OSM wiki page"
 msgstr "Page wiki OSM"
 
-#: website/templates/docs.html:361
+#: website/templates/docs.html:365
 msgid "documentation of the automated integrations"
 msgstr "documentation des intégrations automatisées"
 
-#: website/templates/docs.html:365 website/templates/llms.txt:24
+#: website/templates/docs.html:369 website/templates/llms.txt:24
 msgid "Source code"
 msgstr "Code source"
 
-#: website/templates/docs.html:367
+#: website/templates/docs.html:371
 msgid "contributions welcome"
 msgstr "contributions bienvenues"
 
@@ -1126,12 +1130,14 @@ msgid "With errors"
 msgstr "En erreur"
 
 #: website/templates/spiders.html:43
+#, fuzzy
 msgid "Integrated since"
-msgstr "Intégré depuis le"
+msgstr "Intégrés"
 
 #: website/templates/spiders.html:44
+#, fuzzy
 msgid "Integrated until"
-msgstr "Intégré jusqu'au"
+msgstr "Intégrés"
 
 #: website/templates/spiders.html:45
 msgid "Spider, brand or Wikidata code"

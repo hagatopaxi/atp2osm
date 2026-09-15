@@ -335,6 +335,10 @@
                         <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">/api/export/todo.csv</dt>
                         <dd class="muted">{% trans %}The brands reported as missing from ATP. The ones ATP now knows are left out, unless <code class="font-mono text-xs">?show_in_atp=1</code> is passed.{% endtrans %}</dd>
                     </div>
+                    <div class="flex gap-3 items-start">
+                        <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">/api/stats.json</dt>
+                        <dd class="muted">{{ _('The figures of the statistics page: totals, series per period, top tags, brands and contributors, spider reliability. Takes the same filters as the page.') }}</dd>
+                    </div>
                 </dl>
 
                 <p class="text-sm text-base-content/80 leading-relaxed">

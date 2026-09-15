@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-15 11:18+0200\n"
+"POT-Creation-Date: 2026-09-15 11:35+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -750,31 +750,35 @@ msgstr ""
 msgid "The brands reported as missing from ATP. The ones ATP now knows are left out, unless <code class=\"font-mono text-xs\">?show_in_atp=1</code> is passed."
 msgstr ""
 
-#: website/templates/docs.html:341
+#: website/templates/docs.html:340
+msgid "The figures of the statistics page: totals, series per period, top tags, brands and contributors, spider reliability. Takes the same filters as the page."
+msgstr ""
+
+#: website/templates/docs.html:345
 msgid "Replace <code class=\"font-mono text-xs\">.csv</code> with <code class=\"font-mono text-xs\">.json</code> for the same content as JSON. The <code class=\"font-mono text-xs\">history</code> and <code class=\"font-mono text-xs\">todo</code> exports take the same filters as their pages (<code class=\"font-mono text-xs\">q</code>, <code class=\"font-mono text-xs\">status</code>, <code class=\"font-mono text-xs\">user</code>, <code class=\"font-mono text-xs\">from</code>, <code class=\"font-mono text-xs\">to</code>) — the “Export” button above each table carries the active filters over anyway."
 msgstr ""
 
-#: website/templates/docs.html:349 website/templates/llms.txt:22
+#: website/templates/docs.html:353 website/templates/llms.txt:22
 msgid "Resources"
 msgstr ""
 
-#: website/templates/docs.html:355
+#: website/templates/docs.html:359
 msgid "the source of the POI data"
 msgstr ""
 
-#: website/templates/docs.html:359
+#: website/templates/docs.html:363
 msgid "OSM wiki page"
 msgstr ""
 
-#: website/templates/docs.html:361
+#: website/templates/docs.html:365
 msgid "documentation of the automated integrations"
 msgstr ""
 
-#: website/templates/docs.html:365 website/templates/llms.txt:24
+#: website/templates/docs.html:369 website/templates/llms.txt:24
 msgid "Source code"
 msgstr ""
 
-#: website/templates/docs.html:367
+#: website/templates/docs.html:371
 msgid "contributions welcome"
 msgstr ""
 
