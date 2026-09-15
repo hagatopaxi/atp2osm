@@ -17,7 +17,7 @@
 {% set active = specs | selectattr(0, 'in', filters) | list | length %}
 <div class="flex flex-wrap items-center gap-2 mb-2" data-filter-bar>
     <label class="input input-sm w-64 border-base-content/20">
-        <i class="iconoir-search opacity-50"></i>
+        <i class="iconoir-search opacity-50" aria-hidden="true"></i>
         <input type="search" name="q" value="{{ filters.q or '' }}" placeholder="{{ placeholder or _('Name or Wikidata code') }}"
             {{ 'autofocus' if filters.q }} />
     </label>
@@ -25,12 +25,12 @@
        arrow opens the list of the filters to add. #}
     <div class="join">
         <button type="button" class="btn btn-sm btn-outline border-base-content/20 join-item gap-1" data-filters-toggle>
-            <i class="iconoir-filter"></i> {{ _('Filters') }}
+            <i class="iconoir-filter" aria-hidden="true"></i> {{ _('Filters') }}
             {% if active %}<span class="badge badge-xs badge-primary">{{ active }}</span>{% endif %}
         </button>
     <details class="dropdown join-item" data-filters-menu>
         <summary class="btn btn-sm btn-outline border-base-content/20 join-item px-2" aria-label="{{ _('Add a filter') }}">
-            <i class="iconoir-nav-arrow-down"></i>
+            <i class="iconoir-nav-arrow-down" aria-hidden="true"></i>
         </summary>
         <ul class="dropdown-content menu menu-sm bg-base-100 rounded-box z-10 w-52 p-2 shadow border border-base-content/20">
             {% for name, label, options in specs %}
@@ -39,7 +39,7 @@
         </ul>
     </details>
     </div>
-    <button type="submit" class="btn btn-sm btn-primary">{{ _('Search') }}</button>
+    <button type="submit" class="btn btn-sm btn-primary"><i class="iconoir-search" aria-hidden="true"></i> {{ _('Search') }}</button>
     <div class="ml-auto">{{ caller() }}</div>
 </div>
 <div class="filter-chips flex items-center gap-2 mb-4" data-filter-chips {{ '' if active else 'hidden' }}>
@@ -61,7 +61,7 @@
                 {% if picked %}
                 <span class="badge badge-sm badge-soft {{ picked[0][2] }}">{{ picked[0][1] }}</span>
                 {% else %}{{ _('Choose…') }}{% endif %}
-                <i class="iconoir-nav-arrow-down"></i>
+                <i class="iconoir-nav-arrow-down" aria-hidden="true"></i>
             </summary>
             <ul class="dropdown-content menu menu-sm bg-base-100 rounded-box z-10 w-52 p-2 shadow border border-base-content/20">
                 {% for value, option_label, color in options %}
@@ -78,7 +78,7 @@
         </select>
         {% endif %}
         <button type="button" class="btn btn-sm btn-outline border-base-content/20 join-item px-2" data-remove aria-label="{{ _('Remove this filter') }}">
-            <i class="iconoir-xmark"></i>
+            <i class="iconoir-xmark" aria-hidden="true"></i>
         </button>
     </div>
     {% endfor %}

@@ -6,8 +6,8 @@
       atp2osm{% if is_dev %}<span class="badge badge-warning badge-sm">DEV</span>{% endif %}
     </div>
     <label for="sidebar-toggle" class="btn btn-ghost btn-sm btn-square shrink-0" title="{{ _('Toggle the sidebar') }}">
-      <i class="iconoir-sidebar-collapse sidebar-collapse-icon"></i>
-      <i class="iconoir-sidebar-expand sidebar-expand-icon"></i>
+      <i class="iconoir-sidebar-collapse sidebar-collapse-icon" aria-hidden="true"></i>
+      <i class="iconoir-sidebar-expand sidebar-expand-icon" aria-hidden="true"></i>
     </label>
   </div>
 
@@ -15,7 +15,7 @@
   {% set is_active = (request.path == href) if exact else request.path.startswith(href) %}
   <li>
     <a class="{{ 'bg-base-300 font-semibold hover:bg-base-200' if is_active else 'bg-base-100 hover:bg-base-300' }} shadow-sm" href="{{ request.script_root }}{{ href }}">
-      <i class="{{ icon }}"></i><span class="sidebar-hide whitespace-nowrap">{{ label }}</span>
+      <i class="{{ icon }}" aria-hidden="true"></i><span class="sidebar-hide whitespace-nowrap">{{ label }}</span>
     </a>
   </li>
   {% endmacro %}
@@ -37,8 +37,8 @@
   <label class="btn btn-soft btn-sm w-full justify-start mt-6 shrink-0 whitespace-nowrap" title="{{ _('Light or dark theme') }}">
     <span class="swap">
       <input type="checkbox" id="theme-toggle" aria-label="{{ _('Light or dark theme') }}" />
-      <i class="swap-on iconoir-sun-light"></i>
-      <i class="swap-off iconoir-half-moon"></i>
+      <i class="swap-on iconoir-sun-light" aria-hidden="true"></i>
+      <i class="swap-off iconoir-half-moon" aria-hidden="true"></i>
     </span>
     <span class="sidebar-hide">{{ _('Theme') }}</span>
   </label>
@@ -47,7 +47,7 @@
   <nav class="w-full shrink-0 mt-2" aria-label="{{ _('Language') }}">
     <details class="dropdown dropdown-top w-full">
       <summary class="btn btn-ghost btn-sm w-full justify-start">
-        <i class="iconoir-language"></i>
+        <i class="iconoir-language" aria-hidden="true"></i>
         <span class="sidebar-hide">{{ locale_name(get_locale()) }}</span>
       </summary>
       <ul class="menu dropdown-content bg-base-100 rounded-md shadow-sm w-full">
@@ -62,12 +62,12 @@
   {% endif %}
 
   <div class="shrink-0 mt-6 mb-4 px-1 text-xs muted sidebar-hide">
-    <p class="font-semibold mb-1 flex gap-2 items-center"><i class="iconoir-info-circle"></i> {{ _('About') }}</p>
+    <p class="font-semibold mb-1 flex gap-2 items-center"><i class="iconoir-info-circle" aria-hidden="true"></i> {{ _('About') }}</p>
     <p class="mb-1">{{ _('Open-source project. Contributions welcome!') }}</p>
     <a href="{{ source_repo_url }}" class="link link-hover" target="_blank"
       rel="noopener">
-      <i class="iconoir-github"></i> GitHub
-    <i class="iconoir-open-new-window"></i></a>
+      <i class="iconoir-github" aria-hidden="true"></i> GitHub
+    <i class="iconoir-open-new-window" aria-hidden="true"></i></a>
     <p class="mt-1">{{ _('GPL-3.0 licence') }}</p>
     <p class="mt-1">{% trans link='https://www.openstreetmap.org/copyright' %}Data © <a href="{{ link }}" target="_blank" rel="noopener" class="link link-hover">OpenStreetMap contributors<i class="iconoir-open-new-window"></i></a>, ODbL{% endtrans %}</p>
     <p class="mt-1 font-mono">{{ app_version }}</p>
@@ -84,19 +84,19 @@
       <div class="flex-1 min-w-0 sidebar-hide">
         <a href="{{ api_url }}/user/{{ session['user']['name'] }}"
           class="text-sm font-semibold truncate link link-hover tooltip tooltip-top"
-          data-tip="{{ session['user']['name'] }}" target="_blank" rel="noopener">{{ session['user']['name'] }}<i class="iconoir-open-new-window"></i></a>
+          data-tip="{{ session['user']['name'] }}" target="_blank" rel="noopener">{{ session['user']['name'] }}<i class="iconoir-open-new-window" aria-hidden="true"></i></a>
         <p class="text-xs opacity-70">OpenStreetMap</p>
       </div>
       <button class="btn btn-ghost btn-sm btn-square text-error sidebar-hide" onclick="logout()" title="{{ _('Log out') }}">
-        <i class="iconoir-log-out text-xl"></i>
+        <i class="iconoir-log-out text-xl" aria-hidden="true"></i>
       </button>
     </div>
     {% else %}
     <button class="btn btn-primary w-full rounded-full sidebar-hide" onclick="login()">
-      <i class="iconoir-log-in"></i> {{ _('Sign in with OSM') }}
+      <i class="iconoir-log-in" aria-hidden="true"></i> {{ _('Sign in with OSM') }}
     </button>
     <button class="btn btn-primary btn-circle sidebar-show" onclick="login()" title="{{ _('Sign in with OSM') }}">
-      <i class="iconoir-log-in"></i>
+      <i class="iconoir-log-in" aria-hidden="true"></i>
     </button>
     {% endif %}
   </div>

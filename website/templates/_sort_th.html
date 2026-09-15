@@ -8,7 +8,7 @@
   <a class="flex items-center gap-1 px-4 py-3 hover:bg-base-200 {{ 'text-primary' if active }}"
     href="{{ url_for(endpoint, **args) }}">
     {{ label }}
-    <i class="{{ 'iconoir-nav-arrow-up' if active and direction == 'asc' else 'iconoir-nav-arrow-down' }} {{ '' if active else 'opacity-20' }}"></i>
+    <i class="{{ 'iconoir-nav-arrow-up' if active and direction == 'asc' else 'iconoir-nav-arrow-down' }} {{ '' if active else 'opacity-20' }}" aria-hidden="true"></i>
   </a>
 </th>
 {% endmacro %}

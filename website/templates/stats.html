@@ -43,7 +43,7 @@
     <li>
         <span class="bar-label" title="{{ row.label }}">
             {% if row.label and row.label.startswith('Q') and row.label[1:].isdigit() %}
-                <a href="https://www.wikidata.org/wiki/{{ row.label }}" target="_blank" rel="noopener" class="link font-mono">{{ row.label }}<i class="iconoir-open-new-window"></i></a>
+                <a href="https://www.wikidata.org/wiki/{{ row.label }}" target="_blank" rel="noopener" class="link font-mono">{{ row.label }}<i class="iconoir-open-new-window" aria-hidden="true"></i></a>
             {% else %}
                 {{ row.label }}
             {% endif %}

@@ -53,11 +53,11 @@
 <section class="mb-6 flex flex-wrap gap-4 items-center">
     {% if 'user' in session %}
     <a href="/brands" class="btn btn-primary rounded-full">
-        <i class="iconoir-double-check"></i> {{ _('Start integrating!') }}
+        <i class="iconoir-double-check" aria-hidden="true"></i> {{ _('Start integrating!') }}
     </a>
     {% else %}
     <button onclick="login('/brands')" class="btn btn-primary rounded-full">
-        <i class="iconoir-log-in"></i> {{ _('Sign in to OSM to start') }}
+        <i class="iconoir-log-in" aria-hidden="true"></i> {{ _('Sign in to OSM to start') }}
     </button>
     {% endif %}
     <a href="/docs" class="link link-primary">{{ _('How does it work?') }}</a>
@@ -66,7 +66,7 @@
 <h2 class="text-xl font-semibold mb-3 flex items-center gap-3">
     {{ _('Statistics') }}
     <a href="/stats" class="btn btn-xs btn-soft btn-primary rounded-full">
-        <i class="iconoir-graph-up"></i> {{ _('See all') }}
+        <i class="iconoir-graph-up" aria-hidden="true"></i> {{ _('See all') }}
     </a>
 </h2>
 

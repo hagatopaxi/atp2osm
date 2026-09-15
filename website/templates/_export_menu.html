@@ -2,7 +2,7 @@
 {% macro export_menu(dataset, filters={}) %}
 <div class="dropdown dropdown-end">
   <div tabindex="0" role="button" class="btn btn-sm btn-ghost muted" title="{{ _('Export this data') }}">
-    <i class="iconoir-download"></i> {{ _('Export') }}
+    <i class="iconoir-download" aria-hidden="true"></i> {{ _('Export') }}
   </div>
   <ul tabindex="0" class="dropdown-content menu menu-sm bg-base-100 rounded-box z-10 w-40 p-2 shadow">
     <li><a rel="nofollow" href="{{ url_for('export.export', dataset=dataset, fmt='csv', **filters) | language_free }}">CSV</a></li>
