@@ -48,22 +48,10 @@
 {% endblock %}
 
 {% block title %}{{ _('Enrich OpenStreetMap with the AllThePlaces data') }}{% endblock %}
-{% block subtitle %}{{ _('Integrate the AllThePlaces points of interest into OpenStreetMap.') }}{% endblock %}
+{% block subtitle %}{{ _('Identify → verify → integrate') }}{% endblock %}
 
 {% block content %}
-<section class="max-w-3xl">
-    <p class="text-base leading-relaxed mb-4">
-        {% trans atp='https://alltheplaces.xyz', osm='https://www.openstreetmap.org' %}<strong>atp2osm</strong> matches the points of interest (POIs) of the <a href="{{ atp }}" class="link link-primary" target="_blank" rel="noopener">All The Places<i class="iconoir-open-new-window"></i></a> database against the objects that already exist in <a href="{{ osm }}" class="link link-primary" target="_blank" rel="noopener">OpenStreetMap<i class="iconoir-open-new-window"></i></a>.{% endtrans %}
-    </p>
-    <p class="text-base leading-relaxed mb-6">
-        {{ _('For every brand, the tool finds the matches by geographic proximity and by attributes (name, brand, phone, email, website), then offers the tag updates for review before integration.') }}
-    </p>
-    <p>
-        {% trans link='https://nicofredo.github.io/osm_pois_completude_viewer/main.html' %}To follow how the integrations progress in your area, the result can be browsed on this site: <a class="link link-primary break-all" href="{{ link }}" target="_blank" rel="noopener">{{ link }}<i class="iconoir-open-new-window"></i></a>{% endtrans %}
-    </p>
-</section>
-
-<section class="mt-6 flex flex-wrap gap-3 items-center">
+<section class="mb-6 flex flex-wrap gap-4 items-center">
     {% if 'user' in session %}
     <a href="/brands" class="btn btn-primary rounded-full">
         <i class="iconoir-double-check"></i> {{ _('Start integrating!') }}
@@ -73,12 +61,10 @@
         <i class="iconoir-log-in"></i> {{ _('Sign in to OSM to start') }}
     </button>
     {% endif %}
-    <a href="/docs" class="btn btn-outline rounded-full">
-        <i class="iconoir-book"></i> {{ _('How does it work?') }}
-    </a>
+    <a href="/docs" class="link link-primary">{{ _('How does it work?') }}</a>
 </section>
 
-<h2 class="text-xl font-semibold mt-6 mb-3 flex items-center gap-3">
+<h2 class="text-xl font-semibold mb-3 flex items-center gap-3">
     {{ _('Statistics') }}
     <a href="/stats" class="btn btn-xs btn-soft btn-primary rounded-full">
         <i class="iconoir-graph-up"></i> {{ _('See all') }}
@@ -95,6 +81,18 @@
     {{ kpi_card(icon, value, label) }}
     {% endfor %}
 </div>
+
+<section class="mt-8 max-w-3xl">
+    <p class="text-base leading-relaxed mb-4">
+        {% trans atp='https://alltheplaces.xyz', osm='https://www.openstreetmap.org' %}<strong>atp2osm</strong> matches the points of interest (POIs) of the <a href="{{ atp }}" class="link link-primary" target="_blank" rel="noopener">All The Places<i class="iconoir-open-new-window"></i></a> database against the objects that already exist in <a href="{{ osm }}" class="link link-primary" target="_blank" rel="noopener">OpenStreetMap<i class="iconoir-open-new-window"></i></a>.{% endtrans %}
+    </p>
+    <p class="text-base leading-relaxed mb-6">
+        {{ _('For every brand, the tool finds the matches by geographic proximity and by attributes (name, brand, phone, email, website), then offers the tag updates for review before integration.') }}
+    </p>
+    <p>
+        {% trans link='https://nicofredo.github.io/osm_pois_completude_viewer/main.html' %}To follow how the integrations progress in your area, the result can be browsed on this site: <a class="link link-primary break-all" href="{{ link }}" target="_blank" rel="noopener">{{ link }}<i class="iconoir-open-new-window"></i></a>{% endtrans %}
+    </p>
+</section>
 
 <section class="mt-8 max-w-3xl">
     <h2 class="text-lg font-semibold mb-3">{{ _('Data status') }}</h2>

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-15 12:07+0200\n"
+"POT-Creation-Date: 2026-09-15 13:12+0200\n"
 "PO-Revision-Date: 2026-09-06 17:06+0200\n"
 "Last-Translator: the atp2osm contributors\n"
 "Language: fr\n"
@@ -16,7 +16,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 #: src/templating.py:57
 msgid "The data is being prepared, this instance has not run its first refresh yet."
@@ -81,7 +81,7 @@ msgstr "Spiders"
 msgid "Integration history"
 msgstr "Historique des intégrations"
 
-#: website/templates/_aside.html:28 website/templates/home.html:82
+#: website/templates/_aside.html:28 website/templates/home.html:68
 #: website/templates/llms.txt:14 website/templates/stats.html:7
 #: website/templates/stats.html:17 website/templates/stats.html:31
 msgid "Statistics"
@@ -366,7 +366,7 @@ msgstr "Annulé"
 #: website/templates/brands/:brand_wikidata/validate.html:75
 #: website/templates/docs.html:261 website/templates/history.html:43
 #: website/templates/history.html:97 website/templates/history_detail.html:87
-#: website/templates/history_detail.html:215 website/templates/home.html:109
+#: website/templates/history_detail.html:215 website/templates/home.html:107
 #: website/templates/spiders.html:41 website/templates/spiders.html:58
 msgid "Error"
 msgstr "Erreur"
@@ -839,7 +839,7 @@ msgid "OSM user"
 msgstr "Utilisateur OSM"
 
 #: website/templates/history.html:73 website/templates/history.html:121
-#: website/templates/history_detail.html:125 website/templates/home.html:90
+#: website/templates/history_detail.html:125 website/templates/home.html:76
 #: website/templates/stats.html:83
 msgid "POIs integrated"
 msgstr "POIs intégrés"
@@ -998,68 +998,68 @@ msgid "Enrich OpenStreetMap with the AllThePlaces data"
 msgstr "Enrichir OpenStreetMap avec les données AllThePlaces"
 
 #: website/templates/home.html:51
-msgid "Integrate the AllThePlaces points of interest into OpenStreetMap."
-msgstr "Intégrez les données de points d'intérêt depuis AllThePlaces vers OpenStreetMap."
+msgid "Identify → verify → integrate"
+msgstr "Identifier → vérifier → intégrer"
 
-#: website/templates/home.html:56
+#: website/templates/home.html:57
+msgid "Start integrating!"
+msgstr "Commencer à intégrer !"
+
+#: website/templates/home.html:61
+msgid "Sign in to OSM to start"
+msgstr "Se connecter à OSM pour démarrer"
+
+#: website/templates/home.html:64
+msgid "How does it work?"
+msgstr "Comment ça marche ?"
+
+#: website/templates/home.html:70
+msgid "See all"
+msgstr "Tout voir"
+
+#: website/templates/home.html:77 website/templates/stats.html:84
+msgid "Tags added"
+msgstr "Tags ajoutés"
+
+#: website/templates/home.html:78 website/templates/stats.html:176
+msgid "Brands integrated"
+msgstr "Marques intégrées"
+
+#: website/templates/home.html:79 website/templates/stats.html:95
+msgid "Contributors"
+msgstr "Contributeurs"
+
+#: website/templates/home.html:87
 #, python-format
 msgid "<strong>atp2osm</strong> matches the points of interest (POIs) of the <a href=\"%(atp)s\" class=\"link link-primary\" target=\"_blank\" rel=\"noopener\">All The Places<i class=\"iconoir-open-new-window\"></i></a> database against the objects that already exist in <a href=\"%(osm)s\" class=\"link link-primary\" target=\"_blank\" rel=\"noopener\">OpenStreetMap<i class=\"iconoir-open-new-window\"></i></a>."
 msgstr "<strong>atp2osm</strong> rapproche les points d'intérêt (POI) de la base <a href=\"%(atp)s\" class=\"link link-primary\" target=\"_blank\" rel=\"noopener\">All The Places<i class=\"iconoir-open-new-window\"></i></a> des objets existants dans <a href=\"%(osm)s\" class=\"link link-primary\" target=\"_blank\" rel=\"noopener\">OpenStreetMap<i class=\"iconoir-open-new-window\"></i></a>."
 
-#: website/templates/home.html:59
+#: website/templates/home.html:90
 msgid "For every brand, the tool finds the matches by geographic proximity and by attributes (name, brand, phone, email, website), then offers the tag updates for review before integration."
 msgstr "Pour chaque marque, l'outil identifie les correspondances par proximité géographique et par attributs (nom, marque, téléphone, email, site web), puis propose les mises à jour de tags à valider avant intégration."
 
-#: website/templates/home.html:62
+#: website/templates/home.html:93
 #, python-format
 msgid "To follow how the integrations progress in your area, the result can be browsed on this site: <a class=\"link link-primary break-all\" href=\"%(link)s\" target=\"_blank\" rel=\"noopener\">%(link)s<i class=\"iconoir-open-new-window\"></i></a>"
 msgstr "Pour voir la progression des intégrations dans votre région, le résultat se visualise sur le site suivant : <a class=\"link link-primary break-all\" href=\"%(link)s\" target=\"_blank\" rel=\"noopener\">%(link)s<i class=\"iconoir-open-new-window\"></i></a>"
 
-#: website/templates/home.html:69
-msgid "Start integrating!"
-msgstr "Commencer à intégrer !"
-
-#: website/templates/home.html:73
-msgid "Sign in to OSM to start"
-msgstr "Se connecter à OSM pour démarrer"
-
-#: website/templates/home.html:77
-msgid "How does it work?"
-msgstr "Comment ça marche ?"
-
-#: website/templates/home.html:84
-msgid "See all"
-msgstr "Tout voir"
-
-#: website/templates/home.html:91 website/templates/stats.html:84
-msgid "Tags added"
-msgstr "Tags ajoutés"
-
-#: website/templates/home.html:92 website/templates/stats.html:176
-msgid "Brands integrated"
-msgstr "Marques intégrées"
-
-#: website/templates/home.html:93 website/templates/stats.html:95
-msgid "Contributors"
-msgstr "Contributeurs"
-
-#: website/templates/home.html:100
+#: website/templates/home.html:98
 msgid "Data status"
 msgstr "État des données"
 
-#: website/templates/home.html:111
+#: website/templates/home.html:109
 msgid "Syncing"
 msgstr "Synchronisation"
 
-#: website/templates/home.html:116
+#: website/templates/home.html:114
 msgid "Source:"
 msgstr "Source :"
 
-#: website/templates/home.html:123
+#: website/templates/home.html:121
 msgid "Last check:"
 msgstr "Dernière vérification :"
 
-#: website/templates/home.html:127
+#: website/templates/home.html:125
 msgid "No data integrated"
 msgstr "Aucune donnée intégrée"
 
@@ -1881,4 +1881,7 @@ msgstr "Réessayez dans quelques minutes."
 
 #~ msgid "alpha"
 #~ msgstr "alpha"
+
+#~ msgid "Integrate the AllThePlaces points of interest into OpenStreetMap."
+#~ msgstr "Intégrez les données de points d'intérêt depuis AllThePlaces vers OpenStreetMap."
 
