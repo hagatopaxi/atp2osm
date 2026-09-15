@@ -1132,14 +1132,12 @@ msgid "With errors"
 msgstr "En erreur"
 
 #: website/templates/spiders.html:43
-#, fuzzy
 msgid "Integrated since"
-msgstr "Intégrés"
+msgstr "Intégré depuis le"
 
 #: website/templates/spiders.html:44
-#, fuzzy
 msgid "Integrated until"
-msgstr "Intégrés"
+msgstr "Intégré jusqu'au"
 
 #: website/templates/spiders.html:45
 msgid "Spider, brand or Wikidata code"
