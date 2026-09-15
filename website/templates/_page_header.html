@@ -1,0 +1,18 @@
+{# Page header: the title every page opens with, an optional subtitle under
+   it, and an optional block of actions at its right (buttons, an export
+   menu). `_base.html` renders it from the `title`, `subtitle` and `actions`
+   blocks, so a page never writes its own H1.
+   Usage:
+     {% from '_page_header.html' import page_header %}
+     {% call page_header(title, subtitle) %}…actions…{% endcall %}
+#}
+{% macro page_header(title, subtitle='') %}
+{% set actions = caller() | trim if caller %}
+<div class="mb-4 flex flex-wrap items-start gap-2">
+    <div class="flex-grow">
+        <h1 class="text-xl font-bold mb-4 flex items-center"><i class="iconoir-nav-arrow-right"></i>{{ title }}</h1>
+        {% if subtitle | trim %}<p class="text-sm muted w-full md:w-2/3">{{ subtitle }}</p>{% endif %}
+    </div>
+    {% if actions %}<div class="flex items-center gap-2 shrink-0">{{ actions }}</div>{% endif %}
+</div>
+{% endmacro %}

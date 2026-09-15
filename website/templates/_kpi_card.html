@@ -1,0 +1,15 @@
+{# KPI card: an icon, the number, its label — the same tile on the home page
+   and on the stats page. `compact` is the stats page's denser variant.
+   Usage:
+     {% from '_kpi_card.html' import kpi_card %}
+     {{ kpi_card('iconoir-shop', 42, _('Brands')) }}
+#}
+{% macro kpi_card(icon, value, label, compact=false) %}
+<div class="card bg-base-100 shadow-sm">
+    <div class="card-body items-center text-center {{ 'p-4' if compact }}">
+        <i class="{{ icon }} text-2xl text-base-content/40"></i>
+        <p class="{{ 'text-2xl' if compact else 'text-3xl' }} font-bold">{{ value }}</p>
+        <h2 class="font-mono {{ 'text-xs' if compact else 'text-sm' }} muted">{{ label }}</h2>
+    </div>
+</div>
+{% endmacro %}

@@ -1,3 +1,4 @@
+{% from '_page_header.html' import page_header %}
 <!DOCTYPE html>
 <html lang="{{ get_locale() }}">
 
@@ -66,11 +67,9 @@
     {% include '_aside.html' %}
 
     <main class="flex flex-col bg-base-200 rounded-md flex-grow p-3 pt-14 md:pt-3 overflow-x-auto gap-2">
-        <div class="mb-4">
-            <h1 class="text-xl font-bold mb-4 flex items-center"><i class="iconoir-nav-arrow-right"></i>{%
-                block title %}{% endblock %}</h1>
-            <p class="text-sm muted w-full md:w-2/3">{% block subtitle %}{% endblock %}</p>
-        </div>
+        {% set title %}{% block title %}{% endblock %}{% endset %}
+        {% set subtitle %}{% block subtitle %}{% endblock %}{% endset %}
+        {% call page_header(title, subtitle) %}{% block actions %}{% endblock %}{% endcall %}
 
         {% block content %}{% endblock %}
     </main>

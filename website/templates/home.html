@@ -1,4 +1,5 @@
 {% extends '_base.html' %}
+{% from '_kpi_card.html' import kpi_card %}
 
 {% block meta_description %}{{ _('atp2osm enriches OpenStreetMap with the AllThePlaces data: opening hours, phone, website, email. A semi-automatic integration reviewed by OSM contributors.') }}{% endblock %}
 {% block og_title %}{{ _('atp2osm — Enrich OpenStreetMap with the AllThePlaces data') }}{% endblock %}
@@ -91,13 +92,7 @@
         ("iconoir-shop",           _('Brands integrated'), stats["brands_imported"]),
         ("iconoir-community",      _('Contributors'),    stats["contributors"])
     ] %}
-    <div class="card bg-base-100 shadow-sm">
-        <div class="card-body items-center text-center">
-            <i class="{{ icon }} text-2xl text-base-content/40"></i>
-            <p class="text-3xl font-bold">{{ value }}</p>
-            <h2 class="font-mono text-sm muted">{{ label }}</h2>
-        </div>
-    </div>
+    {{ kpi_card(icon, value, label) }}
     {% endfor %}
 </div>
 
