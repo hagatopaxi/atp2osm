@@ -303,8 +303,8 @@ body:has(#sidebar-toggle:not(:checked)) #sidebar .menu a {
     overflow-x: auto;
     padding-bottom: 0.5rem;
     background:
-        linear-gradient(to right, var(--color-base-200) 30%, transparent) left / 40px 100% no-repeat local,
-        linear-gradient(to left, var(--color-base-200) 30%, transparent) right / 40px 100% no-repeat local,
+        linear-gradient(to right, var(--color-base-100) 30%, transparent) left / 40px 100% no-repeat local,
+        linear-gradient(to left, var(--color-base-100) 30%, transparent) right / 40px 100% no-repeat local,
         linear-gradient(to right, color-mix(in oklab, var(--color-base-content) 25%, transparent), transparent) left / 14px 100% no-repeat scroll,
         linear-gradient(to left, color-mix(in oklab, var(--color-base-content) 25%, transparent), transparent) right / 14px 100% no-repeat scroll;
 }
