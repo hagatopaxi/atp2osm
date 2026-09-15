@@ -437,3 +437,27 @@ a[target="_blank"] > .iconoir-open-new-window {
         grid-area: 2 / 2 / 4 / 3;
     }
 }
+
+/* One transition for everything that answers the pointer: buttons, links,
+   menu entries, sortable headers, table rows. daisyUI already eases its own
+   buttons at .2s; the same duration here, so a link and a button next to it
+   settle together. Switched off for whoever asked their system for less
+   motion, along with the few animations above. */
+a,
+.btn,
+.menu a,
+summary,
+.table tr {
+    transition-property: color, background-color, border-color, opacity, box-shadow;
+    transition-duration: 200ms;
+    transition-timing-function: ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+        transition-duration: 0s !important;
+        animation: none !important;
+    }
+}
