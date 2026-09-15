@@ -36,3 +36,15 @@ def test_never_reclassifies_an_object_of_another_category(conn):
     # stations must not come out as amenity=fuel.
     got = match(conn, '{"shop": "supermarket", "brand:wikidata": "%s"}' % QID)
     assert got == {"operator:wikidata": "Q-op"}
+
+
+def test_recovers_the_qid_from_the_name(conn):
+    got = match(conn, '{"amenity": "fuel", "brand": "Test"}')
+    assert got == {"amenity": "fuel", "operator:wikidata": "Q-op"}
+
+
+def test_never_recovers_a_denied_qid_from_the_name(conn):
+    # node/5037224542: a contributor wrote not:brand:wikidata on the object,
+    # the name must not bring the same QID back.
+    got = match(conn, '{"amenity": "fuel", "brand": "Test", "not:brand:wikidata": "%s"}' % QID)
+    assert got is None
