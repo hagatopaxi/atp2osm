@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-13 23:49+0200\n"
+"POT-Creation-Date: 2026-09-15 08:44+0200\n"
 "PO-Revision-Date: 2026-09-06 17:06+0200\n"
 "Last-Translator: the atp2osm contributors\n"
 "Language: fr\n"
@@ -16,7 +16,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 #: src/templating.py:57
 msgid "The data is being prepared, this instance has not run its first refresh yet."
@@ -1037,8 +1037,8 @@ msgstr "Pour chaque marque, l'outil identifie les correspondances par proximité
 
 #: website/templates/home.html:61
 #, python-format
-msgid "To follow how the integrations progress in your area, the result can be browsed on this site: <a class=\"link link-primary\" href=\"%(link)s\" target=\"_blank\" rel=\"noopener\">%(link)s</a>"
-msgstr "Pour voir la progression des intégrations dans votre région, le résultat se visualise sur le site suivant : <a class=\"link link-primary\" href=\"%(link)s\" target=\"_blank\" rel=\"noopener\">%(link)s</a>"
+msgid "To follow how the integrations progress in your area, the result can be browsed on this site: <a class=\"link link-primary break-all\" href=\"%(link)s\" target=\"_blank\" rel=\"noopener\">%(link)s</a>"
+msgstr "Pour voir la progression des intégrations dans votre région, le résultat se visualise sur le site suivant : <a class=\"link link-primary break-all\" href=\"%(link)s\" target=\"_blank\" rel=\"noopener\">%(link)s</a>"
 
 #: website/templates/home.html:68
 msgid "Start integrating!"
