@@ -1,3 +1,12 @@
+/* Colour grammar — every daisyUI colour class carries one meaning:
+ *   primary (violet)  the user's action: the button to press, the link to follow
+ *   success (green)   done, valid, OK
+ *   error (red)       failure, danger, destructive action
+ *   warning (amber)   attention, something to check before going on
+ *   info (blue)       information, a second series next to the primary one
+ *   neutral (grey)    no meaning: counts, disabled, secondary text
+ * `secondary` and `accent` carry no meaning here and are never used. */
+
 /* Sidebar width */
 #sidebar {
     width: 256px;

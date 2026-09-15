@@ -132,7 +132,7 @@
                 <span>{{ _('The data comes straight from an official API.') }}</span>
                 {% endcall %}
                 {% elif item['source_uri'] %}
-                <a class="btn btn-accent btn-sm" href="{{ item['source_uri'] }}" target="_blank"
+                <a class="btn btn-primary btn-sm" href="{{ item['source_uri'] }}" target="_blank"
                     data-source-btn="{{ item['node_type'] }}-{{ item['id'] }}"
                     onclick="markSourceChecked(`{{ item['node_type'] }}-{{ item['id'] }}`)">
                     {{ _('Open the data source') }} <i class="iconoir-open-new-window ml-1"></i>

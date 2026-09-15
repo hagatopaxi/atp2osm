@@ -243,7 +243,7 @@
 
 /* Second ranking of the contributors pair, told apart by colour alone. */
 .bar-fill-alt {
-    background: var(--color-secondary);
+    background: var(--color-info);
 }
 
 /* The POI/integration switch swaps two pre-rendered rankings — no reload,
