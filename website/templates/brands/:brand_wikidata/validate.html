@@ -34,23 +34,23 @@
            sign both say which is which — red −, green + — so the reading does
            not rest on colour alone. #}
         {% if k in item['replaced_tags_keys'] %}
-        <p class="text-error break-words">{{ minus() }}{% if key == 'website' %}<a href="{{ item['old_tag'][k] }}" target="_blank" class="link">{% endif %}{% if k in item['diff'] %}{{ pieces(item['diff'][k][0]) }}{% else %}{{ item["old_tag"][k] }}{% endif %}{% if key == 'website' %}<i class="iconoir-open-new-window"></i></a>{% endif %}</p>
+        <p class="text-error opacity-75 break-words">{{ minus() }}{% if key == 'website' %}<a href="{{ item['old_tag'][k] }}" target="_blank" class="link">{% endif %}{% if k in item['diff'] %}{{ pieces(item['diff'][k][0]) }}{% else %}{{ item["old_tag"][k] }}{% endif %}{% if key == 'website' %}<i class="iconoir-open-new-window"></i></a>{% endif %}</p>
         {% endif %}
 
         {% if key == 'website' %}
-        <p class="{{'text-success' if k in item['written_tags_keys']}}">{{ plus(k, item) }}<a href="{{ item['tag'][k] }}" target="_blank"
+        <p class="{{'text-success font-semibold' if k in item['written_tags_keys']}}">{{ plus(k, item) }}<a href="{{ item['tag'][k] }}" target="_blank"
                 class="link">{{
                 item["tag"][k]
                 }}<i class="iconoir-open-new-window"></i></a></p>
         {% elif key == 'brand:wikidata' %}
-        <p class="{{'text-success' if k in item['written_tags_keys']}}">{{ plus(k, item) }}<a href="https://www.wikidata.org/wiki/{{ item['tag'][k] }}" target="_blank"
+        <p class="{{'text-success font-semibold' if k in item['written_tags_keys']}}">{{ plus(k, item) }}<a href="https://www.wikidata.org/wiki/{{ item['tag'][k] }}" target="_blank"
                 class="link font-mono">{{
                 item["tag"][k]
                 }}<i class="iconoir-open-new-window"></i></a></p>
         {% elif k in item['diff'] %}
-        <p class="text-success break-words">{{ plus(k, item) }}{{ pieces(item['diff'][k][1]) }}</p>
+        <p class="text-success font-semibold break-words">{{ plus(k, item) }}{{ pieces(item['diff'][k][1]) }}</p>
         {% else %}
-        <p class="{{'text-success' if k in item['written_tags_keys']}}">{{ plus(k, item) }}{{ item["tag"][k] }}</p>
+        <p class="{{'text-success font-semibold' if k in item['written_tags_keys']}}">{{ plus(k, item) }}{{ item["tag"][k] }}</p>
         {% endif %}
     </div>
 </div>
@@ -126,7 +126,10 @@
         </div>
         <div class="content grid grid-cols-1 md:grid-cols-2 gap-2">
             {% set needs_source = item['source_uri'] != None and item['source_type'] != 'api' %}
-            <div class="flex flex-col gap-2">
+            {# On a phone the column stacks: tags, then the buttons, and the
+               map last — the decision is taken on the tags, the map is a
+               check. Both keep the second column on wider screens. #}
+            <div class="flex flex-col gap-2 md:row-span-2">
                 {% if item['source_type'] == 'api' %}
                 {% call info_card('info') %}
                 <span>{{ _('The data comes straight from an official API.') }}</span>
@@ -174,9 +177,9 @@
                         <ul class="font-mono text-sm">
                             {% for key, value in item['other_new_tags'].items() %}
                             {% if key in item['replaced_tags_keys'] %}
-                            <li class="text-error">{{ minus() }}{{ key }} = {{ item['old_tag'][key] }}</li>
+                            <li class="text-error opacity-75">{{ minus() }}{{ key }} = {{ item['old_tag'][key] }}</li>
                             {% endif %}
-                            <li class="text-success">{{ plus(key, item) }}{{ key }} = {{ value }}</li>
+                            <li class="text-success font-semibold">{{ plus(key, item) }}{{ key }} = {{ value }}</li>
                             {% endfor %}
                         </ul>
                     </div>
@@ -192,10 +195,9 @@
 
             </div>
 
-            <div class="flex flex-col gap-4 w-full">
-                <div class="map-container rounded-lg overflow-hidden shadow-md border-base-200 border-2">
+            <div class="map-container rounded-lg overflow-hidden shadow-md border-base-200 border-2 order-last md:order-none">
                     <a href="{{ api_url }}/{{ item['node_type'] }}/{{item['id']}}" target="_blank" class="block relative">
-                        <img class="w-full block"
+                        <img class="w-full block max-h-48 md:max-h-none object-cover"
                             src="/staticmap/{{item['lon']}}/{{item['lat']}}" alt="{% trans title=item['title'] %}Map of {{ title }}{% endtrans %}" />
                         <div class="map-hover-overlay"></div>
                         <span class="map-badge">
@@ -204,14 +206,14 @@
                     </a>
                 </div>
 
-                <div class="flex flex-col gap-1 self-end">
+                <div class="flex flex-col gap-1 md:self-end">
                     <div class="flex gap-2">
-                        <button class="btn btn-error btn-sm flex-1" {{ 'disabled' if needs_source }}
+                        <button class="btn btn-error md:btn-sm flex-1" {{ 'disabled' if needs_source }}
                             data-validate-btn="{{ item['node_type'] }}-{{ item['id'] }}"
                             onclick="invalidateData(`{{ item['node_type'] }}-{{ item['id'] }}`)">
                             {{ _('Reject') }} <i class="iconoir-prohibition"></i>
                         </button>
-                        <button class="btn btn-success btn-sm flex-1" {{ 'disabled' if needs_source }}
+                        <button class="btn btn-success md:btn-sm flex-1" {{ 'disabled' if needs_source }}
                             data-validate-btn="{{ item['node_type'] }}-{{ item['id'] }}"
                             onclick="validateData(`{{ item['node_type'] }}-{{ item['id'] }}`)">
                             {{ _('Accept') }} <i class="iconoir-check"></i>
@@ -223,7 +225,6 @@
                         <i class="iconoir-info-circle"></i> {{ _('Check the source before accepting.') }}
                     </p>
                     {% endif %}
-                </div>
             </div>
         </div>
     </div>
