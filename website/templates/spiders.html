@@ -94,9 +94,9 @@
             </td>
             <td>
                 {% if row["errors"] == 0 %}
-                <span class="badge badge-success" title="{% trans count=row['features'] %}{{ count }} POI worldwide{% pluralize %}{{ count }} POIs worldwide{% endtrans %}">{{ _('Without error') }}</span>
+                <span class="badge badge-soft badge-success" title="{% trans count=row['features'] %}{{ count }} POI worldwide{% pluralize %}{{ count }} POIs worldwide{% endtrans %}">{{ _('Without error') }}</span>
                 {% else %}
-                <span class="badge badge-error" title="{% trans count=row['errors'] %}{{ count }} error{% pluralize %}{{ count }} errors{% endtrans %}">{{ _('With errors') }}</span>
+                <span class="badge badge-soft badge-error" title="{% trans count=row['errors'] %}{{ count }} error{% pluralize %}{{ count }} errors{% endtrans %}">{{ _('With errors') }}</span>
                 {% endif %}
             </td>
             <td>{{ row["updated_at"] | dateformat('short') if row["updated_at"] else '—' }}</td>
@@ -106,7 +106,7 @@
             <td>{{ row["integrated"] }}</td>
             <td>
                 {% if row["last_status"] %}
-                <span class="badge {{ status_classes.get(row['last_status'], 'badge-ghost') }}">{{ status_labels.get(row['last_status'], row['last_status']) }}</span>
+                <span class="badge badge-soft {{ status_classes.get(row['last_status'], 'badge-ghost') }}">{{ status_labels.get(row['last_status'], row['last_status']) }}</span>
                 {% else %}
                 <span class="badge badge-ghost">—</span>
                 {% endif %}
