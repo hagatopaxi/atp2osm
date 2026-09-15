@@ -8,14 +8,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-15 11:18+0200\n"
+"POT-Creation-Date: 2026-09-15 11:33+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #: src/templating.py:57
 msgid "The data is being prepared, this instance has not run its first refresh yet."
@@ -816,7 +816,7 @@ msgstr ""
 msgid "No integration recorded yet."
 msgstr ""
 
-#: website/templates/history.html:60 website/templates/stats.html:116
+#: website/templates/history.html:60 website/templates/stats.html:121
 #, python-format
 msgid "%(count)s integration"
 msgid_plural "%(count)s integrations"
@@ -833,7 +833,7 @@ msgid "OSM user"
 msgstr ""
 
 #: website/templates/history.html:70 website/templates/history_detail.html:125
-#: website/templates/home.html:90 website/templates/stats.html:82
+#: website/templates/home.html:90 website/templates/stats.html:83
 msgid "POIs integrated"
 msgstr ""
 
@@ -1024,15 +1024,15 @@ msgstr ""
 msgid "See all"
 msgstr ""
 
-#: website/templates/home.html:91 website/templates/stats.html:83
+#: website/templates/home.html:91 website/templates/stats.html:84
 msgid "Tags added"
 msgstr ""
 
-#: website/templates/home.html:92 website/templates/stats.html:169
+#: website/templates/home.html:92 website/templates/stats.html:174
 msgid "Brands integrated"
 msgstr ""
 
-#: website/templates/home.html:93 website/templates/stats.html:86
+#: website/templates/home.html:93 website/templates/stats.html:95
 msgid "Contributors"
 msgstr ""
 
@@ -1147,7 +1147,7 @@ msgstr[1] ""
 msgid "No spider matches these filters."
 msgstr ""
 
-#: website/templates/spiders.html:72 website/templates/stats.html:85
+#: website/templates/spiders.html:72 website/templates/stats.html:86
 msgid "Brands"
 msgstr ""
 
@@ -1185,150 +1185,158 @@ msgstr ""
 msgid "No data over this period."
 msgstr ""
 
-#: website/templates/stats.html:84 website/templates/stats.html:144
+#: website/templates/stats.html:80
+msgid "Impact"
+msgstr ""
+
+#: website/templates/stats.html:85 website/templates/stats.html:149
 msgid "Integrations"
 msgstr ""
 
-#: website/templates/stats.html:87
+#: website/templates/stats.html:92
+msgid "Quality & community"
+msgstr ""
+
+#: website/templates/stats.html:94
 msgid "Spider reliability"
 msgstr ""
 
-#: website/templates/stats.html:95
+#: website/templates/stats.html:100
 msgid "day"
 msgstr ""
 
-#: website/templates/stats.html:95
+#: website/templates/stats.html:100
 msgid "week"
 msgstr ""
 
-#: website/templates/stats.html:95
+#: website/templates/stats.html:100
 msgid "month"
 msgstr ""
 
-#: website/templates/stats.html:97
+#: website/templates/stats.html:102
 msgid "Pace and progress"
 msgstr ""
 
-#: website/templates/stats.html:99
+#: website/templates/stats.html:104
 #, python-format
 msgid "What each %(unit)s brought to OpenStreetMap, and what it all adds up to. Both series share one scale: the height of a bar reads directly as the share of that period in the total."
 msgstr ""
 
-#: website/templates/stats.html:102
+#: website/templates/stats.html:107
 #, python-format
 msgid "POIs integrated per %(unit)s"
 msgstr ""
 
-#: website/templates/stats.html:103
+#: website/templates/stats.html:108
 msgid "Running total"
-msgstr ""
-
-#: website/templates/stats.html:111
-#, python-format
-msgid "%(period)s: %(pois)s POIs, running total %(cumulative)s. "
 msgstr ""
 
 #: website/templates/stats.html:116
 #, python-format
+msgid "%(period)s: %(pois)s POIs, running total %(cumulative)s. "
+msgstr ""
+
+#: website/templates/stats.html:121
+#, python-format
 msgid "running total %(cumulative)s"
 msgstr ""
 
-#: website/templates/stats.html:140
+#: website/templates/stats.html:145
 msgid "Integrations per contributor"
 msgstr ""
 
-#: website/templates/stats.html:141
+#: website/templates/stats.html:146
 msgid "OSM contributors ranked by integration volume."
 msgstr ""
 
-#: website/templates/stats.html:151
+#: website/templates/stats.html:156
 msgid "Missing brands added"
 msgstr ""
 
-#: website/templates/stats.html:152
+#: website/templates/stats.html:157
 msgid "OSM contributors ranked by the number of brands missing from ATP they added."
 msgstr ""
 
-#: website/templates/stats.html:158
+#: website/templates/stats.html:163
 msgid "Tags enriched"
 msgstr ""
 
-#: website/templates/stats.html:162
+#: website/templates/stats.html:167
 msgid "Most integrated brands"
 msgstr ""
 
-#: website/templates/stats.html:166
+#: website/templates/stats.html:171
 msgid "Reliability of the ATP data"
 msgstr ""
 
-#: website/templates/stats.html:167
+#: website/templates/stats.html:172
 #, python-format
 msgid "Share of the brands whose integration was accepted, per %(unit)s. A brand counts once, whatever the volume behind it; a period without data is empty."
 msgstr ""
 
-#: website/templates/stats.html:170
+#: website/templates/stats.html:175
 msgid "Brands rejected"
 msgstr ""
 
-#: website/templates/stats.html:176
+#: website/templates/stats.html:181
 #, python-format
 msgid "%(period)s: %(rate)s %% reliability. "
 msgstr ""
 
-#: website/templates/stats.html:180
+#: website/templates/stats.html:185
 #, python-format
 msgid "%(count)s brand integrated"
 msgid_plural "%(count)s brands integrated"
 msgstr[0] ""
 msgstr[1] ""
 
-#: website/templates/stats.html:180
+#: website/templates/stats.html:185
 #, python-format
 msgid "%(count)s rejected"
 msgid_plural "%(count)s rejected"
 msgstr[0] ""
 msgstr[1] ""
 
-#: website/templates/stats.html:195
+#: website/templates/stats.html:200
 msgid "No review over this period."
 msgstr ""
 
-#: website/templates/stats.html:198
+#: website/templates/stats.html:203
 msgid "Reliability of the OSM data"
 msgstr ""
 
-#: website/templates/stats.html:198
+#: website/templates/stats.html:203
 msgid "A changeset is almost always refused because the local copy of OpenStreetMap has aged: one of the POIs no longer carries the same version in OSM and in the atp2osm database. The API then rejects the changeset as a whole."
 msgstr ""
 
-#: website/templates/stats.html:200
+#: website/templates/stats.html:205
 msgid "Accepted"
 msgstr ""
 
-#: website/templates/stats.html:201
+#: website/templates/stats.html:206
 msgid "Refused"
 msgstr ""
 
-#: website/templates/stats.html:209
+#: website/templates/stats.html:214
 #, python-format
 msgid "%(period)s: %(rate)s %% of changesets accepted. "
 msgstr ""
 
-#: website/templates/stats.html:214
+#: website/templates/stats.html:219
 #, python-format
 msgid "%(count)s accepted"
 msgid_plural "%(count)s accepted"
 msgstr[0] ""
 msgstr[1] ""
 
-#: website/templates/stats.html:214
+#: website/templates/stats.html:219
 #, python-format
 msgid "%(count)s refused"
 msgid_plural "%(count)s refused"
 msgstr[0] ""
 msgstr[1] ""
 
-#: website/templates/stats.html:229
+#: website/templates/stats.html:234
 msgid "No changeset over this period."
 msgstr ""
 

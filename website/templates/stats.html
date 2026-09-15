@@ -77,17 +77,22 @@
     ], url_for('stats.stats')) %}{% endcall %}
 </form>
 
-<div class="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-4">
+<h2 class="text-sm font-semibold muted mb-2">{{ _('Impact') }}</h2>
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
     {% for icon, value, label in [
-        ("iconoir-database-check", kpi.pois,         _('POIs integrated')),
-        ("iconoir-label",          tags_total,       _('Tags added')),
-        ("iconoir-double-check",   kpi.imports,      _('Integrations')),
-        ("iconoir-shop",           kpi.brands,       _('Brands')),
-        ("iconoir-community",      contributors,     _('Contributors')),
-        ("iconoir-check-circle",   (spiders_reliability ~ ' %') if spiders_reliability is not none else '—', _('Spider reliability'))
+        ("iconoir-database-check", kpi.pois,    _('POIs integrated')),
+        ("iconoir-label",          tags_total,  _('Tags added')),
+        ("iconoir-double-check",   kpi.imports, _('Integrations')),
+        ("iconoir-shop",           kpi.brands,  _('Brands'))
     ] %}
     {{ kpi_card(icon, value, label, compact=true) }}
     {% endfor %}
+</div>
+
+<h2 class="text-sm font-semibold muted mb-2">{{ _('Quality & community') }}</h2>
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+    {{ kpi_card("iconoir-check-circle", (spiders_reliability ~ ' %') if spiders_reliability is not none else '—', _('Spider reliability'), compact=true) }}
+    {{ kpi_card("iconoir-community", contributors, _('Contributors'), compact=true) }}
 </div>
 
 {% if series_max > 0 %}
