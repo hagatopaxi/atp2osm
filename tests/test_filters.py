@@ -16,6 +16,7 @@ def test_all_filters():
             {
                 "q": "carre",
                 "status": "partial",
+                "wave": "2",
                 "user": "42",
                 "from": "2026-01-01",
                 "to": "2026-02-01",
@@ -24,16 +25,17 @@ def test_all_filters():
         HISTORY_FILTERS,
     )
     assert where.startswith("WHERE ")
-    assert where.count(" AND ") == 4
+    assert where.count(" AND ") == 5
     assert params == [
         "%carre%",
         "%carre%",
         "partial",
+        2,
         42,
         "2026-01-01",
         "2026-02-01",
     ]
-    assert active["status"] == "partial" and active["user"] == 42
+    assert active["status"] == "partial" and active["wave"] == 2 and active["user"] == 42
 
 
 def test_unknown_status_and_blanks_ignored():

@@ -33,6 +33,8 @@
 <form method="get" data-autosubmit>
     <input type="hidden" name="sort" value="{{ sort }}" />
     <input type="hidden" name="dir" value="{{ direction }}" />
+    {% set wave_options = [] %}
+    {% for number in waves %}{% set _ = wave_options.append((number | string, wave.label(number) | trim, wave.color(number) | trim)) %}{% endfor %}
     {% call filter_bar(filters, [
         ('status', _('Status'), [
             ('success',   _('Success'),   'badge-success'),
@@ -40,6 +42,7 @@
             ('cancelled', _('Cancelled'), 'badge-info'),
             ('error',     _('Error'),     'badge-error')
         ]),
+        ('wave', _('Wave'), wave_options),
         ('user', _('User'), filter_users),
         ('from', _('Start date'), 'date'),
         ('to', _('End date'), 'date')

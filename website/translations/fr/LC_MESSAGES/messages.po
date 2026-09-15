@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-15 11:58+0200\n"
+"POT-Creation-Date: 2026-09-15 12:07+0200\n"
 "PO-Revision-Date: 2026-09-06 17:06+0200\n"
 "Last-Translator: the atp2osm contributors\n"
 "Language: fr\n"
@@ -323,8 +323,8 @@ msgstr "Connexion requise"
 msgid "Sign in with your OpenStreetMap account to start an integration."
 msgstr "Connectez-vous avec votre compte OpenStreetMap pour lancer une intégration."
 
-#: website/templates/brands.html:51 website/templates/history.html:68
-#: website/templates/history_detail.html:128
+#: website/templates/brands.html:51 website/templates/history.html:45
+#: website/templates/history.html:71 website/templates/history_detail.html:128
 msgid "Wave"
 msgstr "Vague"
 
@@ -339,8 +339,8 @@ msgstr "Jamais intégrée"
 
 #: website/templates/brands.html:54 website/templates/brands.html:101
 #: website/templates/brands/:brand_wikidata/validate.html:75
-#: website/templates/docs.html:221 website/templates/history.html:38
-#: website/templates/history.html:91 website/templates/history_detail.html:84
+#: website/templates/docs.html:221 website/templates/history.html:40
+#: website/templates/history.html:94 website/templates/history_detail.html:84
 #: website/templates/history_detail.html:215 website/templates/spiders.html:38
 #: website/templates/spiders.html:55
 msgid "Success"
@@ -348,24 +348,24 @@ msgstr "Succès"
 
 #: website/templates/brands.html:55 website/templates/brands.html:102
 #: website/templates/brands/:brand_wikidata/validate.html:75
-#: website/templates/docs.html:233 website/templates/history.html:39
-#: website/templates/history.html:92 website/templates/history_detail.html:85
+#: website/templates/docs.html:233 website/templates/history.html:41
+#: website/templates/history.html:95 website/templates/history_detail.html:85
 #: website/templates/spiders.html:39 website/templates/spiders.html:56
 msgid "Partial"
 msgstr "Partiel"
 
 #: website/templates/brands.html:56 website/templates/brands.html:103
 #: website/templates/brands/:brand_wikidata/validate.html:75
-#: website/templates/docs.html:247 website/templates/history.html:40
-#: website/templates/history.html:93 website/templates/history_detail.html:86
+#: website/templates/docs.html:247 website/templates/history.html:42
+#: website/templates/history.html:96 website/templates/history_detail.html:86
 #: website/templates/spiders.html:40 website/templates/spiders.html:57
 msgid "Cancelled"
 msgstr "Annulé"
 
 #: website/templates/brands.html:57 website/templates/brands.html:104
 #: website/templates/brands/:brand_wikidata/validate.html:75
-#: website/templates/docs.html:261 website/templates/history.html:41
-#: website/templates/history.html:94 website/templates/history_detail.html:87
+#: website/templates/docs.html:261 website/templates/history.html:43
+#: website/templates/history.html:97 website/templates/history_detail.html:87
 #: website/templates/history_detail.html:215 website/templates/home.html:109
 #: website/templates/spiders.html:41 website/templates/spiders.html:58
 msgid "Error"
@@ -390,7 +390,7 @@ msgstr[1] "%(count)s marques"
 msgid "No brand matches these filters."
 msgstr "Aucune marque ne correspond à ces filtres."
 
-#: website/templates/brands.html:74 website/templates/history.html:66
+#: website/templates/brands.html:74 website/templates/history.html:69
 msgid "Brand (Wikidata)"
 msgstr "Marque (Wikidata)"
 
@@ -788,63 +788,63 @@ msgstr "Historique des intégrations AllThePlaces vers OpenStreetMap réalisées
 msgid "Every integration carried out or reported as faulty."
 msgstr "Liste de toutes les intégrations effectuées ou signalées comme erronées."
 
-#: website/templates/history.html:37 website/templates/history.html:67
+#: website/templates/history.html:39 website/templates/history.html:70
 #: website/templates/history_detail.html:95
 #: website/templates/history_detail.html:195
 msgid "Status"
 msgstr "Statut"
 
-#: website/templates/history.html:43 website/templates/stats.html:74
+#: website/templates/history.html:46 website/templates/stats.html:74
 msgid "User"
 msgstr "Utilisateur"
 
-#: website/templates/history.html:44 website/templates/stats.html:75
+#: website/templates/history.html:47 website/templates/stats.html:75
 msgid "Start date"
 msgstr "Date de début"
 
-#: website/templates/history.html:45 website/templates/stats.html:76
+#: website/templates/history.html:48 website/templates/stats.html:76
 msgid "End date"
 msgstr "Date de fin"
 
-#: website/templates/history.html:51
+#: website/templates/history.html:54
 msgid "See the integration statistics"
 msgstr "Voir les statistiques d'intégration"
 
-#: website/templates/history.html:57
+#: website/templates/history.html:60
 msgid "No integration matches these filters."
 msgstr "Aucune intégration ne correspond à ces filtres."
 
-#: website/templates/history.html:57
+#: website/templates/history.html:60
 msgid "No integration recorded yet."
 msgstr "Aucune intégration enregistrée pour le moment."
 
-#: website/templates/history.html:60 website/templates/stats.html:123
+#: website/templates/history.html:63 website/templates/stats.html:123
 #, python-format
 msgid "%(count)s integration"
 msgid_plural "%(count)s integrations"
 msgstr[0] "%(count)s intégration"
 msgstr[1] "%(count)s intégrations"
 
-#: website/templates/history.html:65 website/templates/history_detail.html:80
+#: website/templates/history.html:68 website/templates/history_detail.html:80
 #: website/templates/todo.html:103
 msgid "Date"
 msgstr "Date"
 
-#: website/templates/history.html:69 website/templates/history_detail.html:115
+#: website/templates/history.html:72 website/templates/history_detail.html:115
 msgid "OSM user"
 msgstr "Utilisateur OSM"
 
-#: website/templates/history.html:70 website/templates/history.html:118
+#: website/templates/history.html:73 website/templates/history.html:121
 #: website/templates/history_detail.html:125 website/templates/home.html:90
 #: website/templates/stats.html:83
 msgid "POIs integrated"
 msgstr "POIs intégrés"
 
-#: website/templates/history.html:71
+#: website/templates/history.html:74
 msgid "Action"
 msgstr "Action"
 
-#: website/templates/history.html:121
+#: website/templates/history.html:124
 msgid "See more"
 msgstr "Voir plus"
 
