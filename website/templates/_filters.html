@@ -13,12 +13,12 @@
        … what sits at the right of the search field (export menu, count)
      {% endcall %}
 #}
-{% macro filter_bar(filters, specs, reset_url) %}
+{% macro filter_bar(filters, specs, reset_url, placeholder=None) %}
 {% set active = specs | selectattr(0, 'in', filters) | list | length %}
 <div class="flex flex-wrap items-center gap-2 mb-2" data-filter-bar>
     <label class="input input-sm w-64 border-base-content/20">
         <i class="iconoir-search opacity-50"></i>
-        <input type="search" name="q" value="{{ filters.q or '' }}" placeholder="{{ _('Name or Wikidata code') }}"
+        <input type="search" name="q" value="{{ filters.q or '' }}" placeholder="{{ placeholder or _('Name or Wikidata code') }}"
             {{ 'autofocus' if filters.q }} />
     </label>
     {# Split button: the main part toggles the row of filters in use, the

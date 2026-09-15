@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-15 10:37+0200\n"
+"POT-Creation-Date: 2026-09-15 11:18+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -208,7 +208,7 @@ msgstr ""
 msgid "Export"
 msgstr ""
 
-#: website/templates/_filters.html:21 website/templates/stats.html:77
+#: website/templates/_filters.html:21
 msgid "Name or Wikidata code"
 msgstr ""
 
@@ -232,8 +232,7 @@ msgstr ""
 msgid "Remove this filter"
 msgstr ""
 
-#: website/templates/_filters.html:85 website/templates/spiders.html:72
-#: website/templates/stats.html:96
+#: website/templates/_filters.html:85
 msgid "Reset"
 msgstr ""
 
@@ -285,34 +284,6 @@ msgstr ""
 msgid "Partial integration: some subdivisions could not be integrated ({errors}). Redirecting in a few seconds…"
 msgstr ""
 
-#: website/templates/_period_filter.html:11
-msgid "Period"
-msgstr ""
-
-#: website/templates/_period_filter.html:14
-msgid "7 days"
-msgstr ""
-
-#: website/templates/_period_filter.html:14
-msgid "8 weeks"
-msgstr ""
-
-#: website/templates/_period_filter.html:14
-msgid "1 year"
-msgstr ""
-
-#: website/templates/_period_filter.html:14
-msgid "All time"
-msgstr ""
-
-#: website/templates/_period_filter.html:20
-msgid "From"
-msgstr ""
-
-#: website/templates/_period_filter.html:22
-msgid "To"
-msgstr ""
-
 #: website/templates/_wave.html:11
 msgid "Adding tags"
 msgstr ""
@@ -357,11 +328,11 @@ msgid "Wave"
 msgstr ""
 
 #: website/templates/brands.html:52 website/templates/brands.html:77
-#: website/templates/spiders.html:52 website/templates/spiders.html:108
+#: website/templates/spiders.html:36 website/templates/spiders.html:79
 msgid "Previous status"
 msgstr ""
 
-#: website/templates/brands.html:53 website/templates/spiders.html:56
+#: website/templates/brands.html:53 website/templates/spiders.html:37
 msgid "Never integrated"
 msgstr ""
 
@@ -369,8 +340,8 @@ msgstr ""
 #: website/templates/brands/:brand_wikidata/validate.html:75
 #: website/templates/docs.html:221 website/templates/history.html:38
 #: website/templates/history.html:91 website/templates/history_detail.html:84
-#: website/templates/history_detail.html:215 website/templates/spiders.html:57
-#: website/templates/spiders.html:84
+#: website/templates/history_detail.html:215 website/templates/spiders.html:38
+#: website/templates/spiders.html:55
 msgid "Success"
 msgstr ""
 
@@ -378,7 +349,7 @@ msgstr ""
 #: website/templates/brands/:brand_wikidata/validate.html:75
 #: website/templates/docs.html:233 website/templates/history.html:39
 #: website/templates/history.html:92 website/templates/history_detail.html:85
-#: website/templates/spiders.html:58 website/templates/spiders.html:85
+#: website/templates/spiders.html:39 website/templates/spiders.html:56
 msgid "Partial"
 msgstr ""
 
@@ -386,7 +357,7 @@ msgstr ""
 #: website/templates/brands/:brand_wikidata/validate.html:75
 #: website/templates/docs.html:247 website/templates/history.html:40
 #: website/templates/history.html:93 website/templates/history_detail.html:86
-#: website/templates/spiders.html:59 website/templates/spiders.html:86
+#: website/templates/spiders.html:40 website/templates/spiders.html:57
 msgid "Cancelled"
 msgstr ""
 
@@ -395,7 +366,7 @@ msgstr ""
 #: website/templates/docs.html:261 website/templates/history.html:41
 #: website/templates/history.html:94 website/templates/history_detail.html:87
 #: website/templates/history_detail.html:215 website/templates/home.html:109
-#: website/templates/spiders.html:60 website/templates/spiders.html:87
+#: website/templates/spiders.html:41 website/templates/spiders.html:58
 msgid "Error"
 msgstr ""
 
@@ -430,8 +401,7 @@ msgstr ""
 msgid "Proposed wave"
 msgstr ""
 
-#: website/templates/brands.html:78 website/templates/spiders.html:67
-#: website/templates/spiders.html:109
+#: website/templates/brands.html:78 website/templates/spiders.html:80
 msgid "Last integration"
 msgstr ""
 
@@ -439,12 +409,11 @@ msgstr ""
 msgid "Actions"
 msgstr ""
 
-#: website/templates/brands.html:123 website/templates/spiders.html:36
-#: website/templates/spiders.html:100
+#: website/templates/brands.html:123 website/templates/spiders.html:71
 msgid "Spider"
 msgstr ""
 
-#: website/templates/brands.html:126 website/templates/spiders.html:143
+#: website/templates/brands.html:126 website/templates/spiders.html:114
 msgid "Never"
 msgstr ""
 
@@ -709,7 +678,7 @@ msgstr ""
 msgid "The <a href=\"%(link)s\" class=\"link link-primary\">spiders</a> page counts what each AllThePlaces spider brings, step by step. Each figure is a subset of the one before it."
 msgstr ""
 
-#: website/templates/docs.html:282 website/templates/spiders.html:104
+#: website/templates/docs.html:282 website/templates/spiders.html:75
 msgid "Scraped here"
 msgstr ""
 
@@ -717,7 +686,7 @@ msgstr ""
 msgid "The POIs the spider produced inside the country and its territories."
 msgstr ""
 
-#: website/templates/docs.html:283 website/templates/spiders.html:105
+#: website/templates/docs.html:283 website/templates/spiders.html:76
 msgid "Matched"
 msgstr ""
 
@@ -725,7 +694,7 @@ msgstr ""
 msgid "Those with an OpenStreetMap object within 500 m sharing a brand, a name, an email, a phone or a website. The rest is either missing from OSM, or present without any attribute to recognise it by."
 msgstr ""
 
-#: website/templates/docs.html:284 website/templates/spiders.html:106
+#: website/templates/docs.html:284 website/templates/spiders.html:77
 msgid "To integrate"
 msgstr ""
 
@@ -733,7 +702,7 @@ msgstr ""
 msgid "The matches with something left to do — a tag to add (wave 1) or to replace (wave 2), minus the subdivisions under cooldown. A POI on both waves counts twice, as two integrations. The brands page shows one wave at a time and only the brands carrying a Wikidata code, so its totals are lower."
 msgstr ""
 
-#: website/templates/docs.html:285 website/templates/spiders.html:107
+#: website/templates/docs.html:285 website/templates/spiders.html:78
 msgid "Integrated"
 msgstr ""
 
@@ -823,15 +792,15 @@ msgstr ""
 msgid "Status"
 msgstr ""
 
-#: website/templates/history.html:43 website/templates/stats.html:82
+#: website/templates/history.html:43 website/templates/stats.html:74
 msgid "User"
 msgstr ""
 
-#: website/templates/history.html:44
+#: website/templates/history.html:44 website/templates/stats.html:75
 msgid "Start date"
 msgstr ""
 
-#: website/templates/history.html:45
+#: website/templates/history.html:45 website/templates/stats.html:76
 msgid "End date"
 msgstr ""
 
@@ -847,7 +816,7 @@ msgstr ""
 msgid "No integration recorded yet."
 msgstr ""
 
-#: website/templates/history.html:60 website/templates/stats.html:138
+#: website/templates/history.html:60 website/templates/stats.html:116
 #, python-format
 msgid "%(count)s integration"
 msgid_plural "%(count)s integrations"
@@ -864,7 +833,7 @@ msgid "OSM user"
 msgstr ""
 
 #: website/templates/history.html:70 website/templates/history_detail.html:125
-#: website/templates/home.html:90 website/templates/stats.html:104
+#: website/templates/home.html:90 website/templates/stats.html:82
 msgid "POIs integrated"
 msgstr ""
 
@@ -939,7 +908,7 @@ msgstr ""
 msgid "General information"
 msgstr ""
 
-#: website/templates/history_detail.html:70 website/templates/stats.html:74
+#: website/templates/history_detail.html:70
 msgid "Brand"
 msgstr ""
 
@@ -1055,15 +1024,15 @@ msgstr ""
 msgid "See all"
 msgstr ""
 
-#: website/templates/home.html:91 website/templates/stats.html:105
+#: website/templates/home.html:91 website/templates/stats.html:83
 msgid "Tags added"
 msgstr ""
 
-#: website/templates/home.html:92 website/templates/stats.html:191
+#: website/templates/home.html:92 website/templates/stats.html:169
 msgid "Brands integrated"
 msgstr ""
 
-#: website/templates/home.html:93 website/templates/stats.html:108
+#: website/templates/home.html:93 website/templates/stats.html:86
 msgid "Contributors"
 msgstr ""
 
@@ -1143,58 +1112,57 @@ msgid_plural "%(count)s spiders producing POIs of the country — what they scra
 msgstr[0] ""
 msgstr[1] ""
 
-#: website/templates/spiders.html:39
-msgid "Spider, brand or Wikidata code"
-msgstr ""
-
-#: website/templates/spiders.html:44 website/templates/spiders.html:102
+#: website/templates/spiders.html:35 website/templates/spiders.html:73
 msgid "ATP run"
 msgstr ""
 
-#: website/templates/spiders.html:46 website/templates/spiders.html:54
-#: website/templates/stats.html:84
-msgid "All"
-msgstr ""
-
-#: website/templates/spiders.html:47 website/templates/spiders.html:126
+#: website/templates/spiders.html:35 website/templates/spiders.html:97
 msgid "Without error"
 msgstr ""
 
-#: website/templates/spiders.html:48 website/templates/spiders.html:128
+#: website/templates/spiders.html:35 website/templates/spiders.html:99
 msgid "With errors"
 msgstr ""
 
-#: website/templates/spiders.html:71 website/templates/stats.html:94
-msgid "Filter"
+#: website/templates/spiders.html:43
+msgid "Integrated since"
 msgstr ""
 
-#: website/templates/spiders.html:75
+#: website/templates/spiders.html:44
+msgid "Integrated until"
+msgstr ""
+
+#: website/templates/spiders.html:45
+msgid "Spider, brand or Wikidata code"
+msgstr ""
+
+#: website/templates/spiders.html:46
 #, python-format
 msgid "%(count)s spider"
 msgid_plural "%(count)s spiders"
 msgstr[0] ""
 msgstr[1] ""
 
-#: website/templates/spiders.html:80
+#: website/templates/spiders.html:51
 msgid "No spider matches these filters."
 msgstr ""
 
-#: website/templates/spiders.html:101 website/templates/stats.html:107
+#: website/templates/spiders.html:72 website/templates/stats.html:85
 msgid "Brands"
 msgstr ""
 
-#: website/templates/spiders.html:103
+#: website/templates/spiders.html:74
 msgid "Last change"
 msgstr ""
 
-#: website/templates/spiders.html:126
+#: website/templates/spiders.html:97
 #, python-format
 msgid "%(count)s POI worldwide"
 msgid_plural "%(count)s POIs worldwide"
 msgstr[0] ""
 msgstr[1] ""
 
-#: website/templates/spiders.html:128
+#: website/templates/spiders.html:99
 #, python-format
 msgid "%(count)s error"
 msgid_plural "%(count)s errors"
@@ -1217,150 +1185,150 @@ msgstr ""
 msgid "No data over this period."
 msgstr ""
 
-#: website/templates/stats.html:106 website/templates/stats.html:166
+#: website/templates/stats.html:84 website/templates/stats.html:144
 msgid "Integrations"
 msgstr ""
 
-#: website/templates/stats.html:109
+#: website/templates/stats.html:87
 msgid "Spider reliability"
 msgstr ""
 
-#: website/templates/stats.html:117
+#: website/templates/stats.html:95
 msgid "day"
 msgstr ""
 
-#: website/templates/stats.html:117
+#: website/templates/stats.html:95
 msgid "week"
 msgstr ""
 
-#: website/templates/stats.html:117
+#: website/templates/stats.html:95
 msgid "month"
 msgstr ""
 
-#: website/templates/stats.html:119
+#: website/templates/stats.html:97
 msgid "Pace and progress"
 msgstr ""
 
-#: website/templates/stats.html:121
+#: website/templates/stats.html:99
 #, python-format
 msgid "What each %(unit)s brought to OpenStreetMap, and what it all adds up to. Both series share one scale: the height of a bar reads directly as the share of that period in the total."
 msgstr ""
 
-#: website/templates/stats.html:124
+#: website/templates/stats.html:102
 #, python-format
 msgid "POIs integrated per %(unit)s"
 msgstr ""
 
-#: website/templates/stats.html:125
+#: website/templates/stats.html:103
 msgid "Running total"
 msgstr ""
 
-#: website/templates/stats.html:133
+#: website/templates/stats.html:111
 #, python-format
 msgid "%(period)s: %(pois)s POIs, running total %(cumulative)s. "
 msgstr ""
 
-#: website/templates/stats.html:138
+#: website/templates/stats.html:116
 #, python-format
 msgid "running total %(cumulative)s"
 msgstr ""
 
-#: website/templates/stats.html:162
+#: website/templates/stats.html:140
 msgid "Integrations per contributor"
 msgstr ""
 
-#: website/templates/stats.html:163
+#: website/templates/stats.html:141
 msgid "OSM contributors ranked by integration volume."
 msgstr ""
 
-#: website/templates/stats.html:173
+#: website/templates/stats.html:151
 msgid "Missing brands added"
 msgstr ""
 
-#: website/templates/stats.html:174
+#: website/templates/stats.html:152
 msgid "OSM contributors ranked by the number of brands missing from ATP they added."
 msgstr ""
 
-#: website/templates/stats.html:180
+#: website/templates/stats.html:158
 msgid "Tags enriched"
 msgstr ""
 
-#: website/templates/stats.html:184
+#: website/templates/stats.html:162
 msgid "Most integrated brands"
 msgstr ""
 
-#: website/templates/stats.html:188
+#: website/templates/stats.html:166
 msgid "Reliability of the ATP data"
 msgstr ""
 
-#: website/templates/stats.html:189
+#: website/templates/stats.html:167
 #, python-format
 msgid "Share of the brands whose integration was accepted, per %(unit)s. A brand counts once, whatever the volume behind it; a period without data is empty."
 msgstr ""
 
-#: website/templates/stats.html:192
+#: website/templates/stats.html:170
 msgid "Brands rejected"
 msgstr ""
 
-#: website/templates/stats.html:198
+#: website/templates/stats.html:176
 #, python-format
 msgid "%(period)s: %(rate)s %% reliability. "
 msgstr ""
 
-#: website/templates/stats.html:202
+#: website/templates/stats.html:180
 #, python-format
 msgid "%(count)s brand integrated"
 msgid_plural "%(count)s brands integrated"
 msgstr[0] ""
 msgstr[1] ""
 
-#: website/templates/stats.html:202
+#: website/templates/stats.html:180
 #, python-format
 msgid "%(count)s rejected"
 msgid_plural "%(count)s rejected"
 msgstr[0] ""
 msgstr[1] ""
 
-#: website/templates/stats.html:217
+#: website/templates/stats.html:195
 msgid "No review over this period."
 msgstr ""
 
-#: website/templates/stats.html:220
+#: website/templates/stats.html:198
 msgid "Reliability of the OSM data"
 msgstr ""
 
-#: website/templates/stats.html:220
+#: website/templates/stats.html:198
 msgid "A changeset is almost always refused because the local copy of OpenStreetMap has aged: one of the POIs no longer carries the same version in OSM and in the atp2osm database. The API then rejects the changeset as a whole."
 msgstr ""
 
-#: website/templates/stats.html:222
+#: website/templates/stats.html:200
 msgid "Accepted"
 msgstr ""
 
-#: website/templates/stats.html:223
+#: website/templates/stats.html:201
 msgid "Refused"
 msgstr ""
 
-#: website/templates/stats.html:231
+#: website/templates/stats.html:209
 #, python-format
 msgid "%(period)s: %(rate)s %% of changesets accepted. "
 msgstr ""
 
-#: website/templates/stats.html:236
+#: website/templates/stats.html:214
 #, python-format
 msgid "%(count)s accepted"
 msgid_plural "%(count)s accepted"
 msgstr[0] ""
 msgstr[1] ""
 
-#: website/templates/stats.html:236
+#: website/templates/stats.html:214
 #, python-format
 msgid "%(count)s refused"
 msgid_plural "%(count)s refused"
 msgstr[0] ""
 msgstr[1] ""
 
-#: website/templates/stats.html:251
+#: website/templates/stats.html:229
 msgid "No changeset over this period."
 msgstr ""
 
@@ -1380,7 +1348,7 @@ msgstr ""
 msgid "Add a brand"
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:149
+#: website/templates/brands/:brand_wikidata/validate.html:152
 #: website/templates/todo.html:42 website/templates/todo.html:175
 msgid "Brand name"
 msgstr ""
@@ -1389,7 +1357,7 @@ msgstr ""
 msgid "e.g. Carrefour"
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:151
+#: website/templates/brands/:brand_wikidata/validate.html:154
 #: website/templates/todo.html:47 website/templates/todo.html:179
 msgid "Wikidata code"
 msgstr ""
@@ -1479,7 +1447,7 @@ msgstr ""
 
 #: website/templates/brands/:brand_wikidata/confirm.html:73
 #: website/templates/brands/:brand_wikidata/rejected.html:23
-#: website/templates/brands/:brand_wikidata/validate.html:251
+#: website/templates/brands/:brand_wikidata/validate.html:252
 #: website/templates/todo.html:188
 msgid "Cancel"
 msgstr ""
@@ -1611,7 +1579,7 @@ msgid "current value, replaced"
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:31
-#: website/templates/brands/:brand_wikidata/validate.html:173
+#: website/templates/brands/:brand_wikidata/validate.html:176
 #, python-format
 msgid "%(label)s:"
 msgstr ""
@@ -1658,88 +1626,88 @@ msgstr ""
 msgid "No earlier review can guide you: be especially careful on every tag, and report the slightest doubtful value."
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:132
+#: website/templates/brands/:brand_wikidata/validate.html:135
 msgid "The data comes straight from an official API."
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:138
+#: website/templates/brands/:brand_wikidata/validate.html:141
 msgid "Open the data source"
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:141
+#: website/templates/brands/:brand_wikidata/validate.html:144
 msgid "Is this an API? If so, the source will no longer be required for the remaining points."
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:143
+#: website/templates/brands/:brand_wikidata/validate.html:146
 msgid "Yes"
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:144
+#: website/templates/brands/:brand_wikidata/validate.html:147
 msgid "No"
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:155
+#: website/templates/brands/:brand_wikidata/validate.html:158
 msgid "This Wikidata code was <strong>inferred from the name</strong> of the object through the name-suggestion-index; it was not in OSM. Check that it really is this brand."
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:159
+#: website/templates/brands/:brand_wikidata/validate.html:162
 msgid "Shop name"
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:161
+#: website/templates/brands/:brand_wikidata/validate.html:164
 msgid "Email"
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:163
+#: website/templates/brands/:brand_wikidata/validate.html:166
 msgid "Phone"
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:165
+#: website/templates/brands/:brand_wikidata/validate.html:168
 msgid "Website"
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:167
+#: website/templates/brands/:brand_wikidata/validate.html:170
 msgid "Opening hours"
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:173
+#: website/templates/brands/:brand_wikidata/validate.html:176
 msgid "Other tags"
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:199
+#: website/templates/brands/:brand_wikidata/validate.html:201
 #, python-format
 msgid "Map of %(title)s"
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:202
+#: website/templates/brands/:brand_wikidata/validate.html:204
 msgid "View in OSM"
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:212
+#: website/templates/brands/:brand_wikidata/validate.html:214
 msgid "Reject"
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:217
+#: website/templates/brands/:brand_wikidata/validate.html:219
 msgid "Accept"
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:223
+#: website/templates/brands/:brand_wikidata/validate.html:225
 msgid "Check the source before accepting."
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:234
+#: website/templates/brands/:brand_wikidata/validate.html:235
 msgid "Go to the next step"
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:240
+#: website/templates/brands/:brand_wikidata/validate.html:241
 msgid "Why are you rejecting this data?"
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:248
+#: website/templates/brands/:brand_wikidata/validate.html:249
 msgid "Explain here…"
 msgstr ""
 
-#: website/templates/brands/:brand_wikidata/validate.html:250
+#: website/templates/brands/:brand_wikidata/validate.html:251
 msgid "Submit"
 msgstr ""
 

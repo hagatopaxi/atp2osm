@@ -248,7 +248,6 @@ def stats():
         changesets=changesets,
         changesets_max=max((c["ok"] + c["ko"] for c in changesets), default=0),
         filters=filters,
-        is_filtered=bool(filters),
         filter_users=sorted(
             ((uid, names.get(uid, str(uid))) for uid in all_user_ids),
             key=lambda u: u[1].lower(),

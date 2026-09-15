@@ -1,6 +1,6 @@
 {% extends '_base.html' %}
 
-{% from '_period_filter.html' import period_filter with context %}
+{% from '_filters.html' import filter_bar with context %}
 {% from '_kpi_card.html' import kpi_card %}
 
 {% block meta_description %}{{ _('Statistics of the AllThePlaces integrations into OpenStreetMap: POI volume, tags enriched, spider reliability, brands and contributors.') }}{% endblock %}
@@ -69,34 +69,12 @@
 {% endmacro %}
 
 {% block content %}
-<form method="get" data-autosubmit class="flex flex-wrap items-end gap-3 mb-4">
-    <div class="fieldset">
-        <label class="fieldset-legend" for="filter-q">{{ _('Brand') }}</label>
-        <label class="input input-sm w-56">
-            <i class="iconoir-search opacity-50"></i>
-            <input type="search" id="filter-q" name="q" value="{{ filters.q or '' }}" placeholder="{{ _('Name or Wikidata code') }}"
-                {{ 'autofocus' if filters.q }} />
-        </label>
-    </div>
-    <div class="fieldset">
-        <label class="fieldset-legend" for="filter-user">{{ _('User') }}</label>
-        <select id="filter-user" name="user" class="select select-sm">
-            <option value="">{{ _('All') }}</option>
-            {% for uid, name in filter_users %}
-            <option value="{{ uid }}" {{ 'selected' if filters.user == uid }}>{{ name }}</option>
-            {% endfor %}
-        </select>
-    </div>
-    {{ period_filter(filters) }}
-    <div class="fieldset">
-        <span class="fieldset-legend">&nbsp;</span>
-        <div class="join">
-            <button type="submit" class="btn btn-sm btn-primary join-item">{{ _('Filter') }}</button>
-            {% if is_filtered %}
-            <a href="{{ url_for('stats.stats') }}" class="btn btn-sm btn-soft join-item">{{ _('Reset') }}</a>
-            {% endif %}
-        </div>
-    </div>
+<form method="get" data-autosubmit>
+    {% call filter_bar(filters, [
+        ('user', _('User'), filter_users),
+        ('from', _('Start date'), 'date'),
+        ('to', _('End date'), 'date')
+    ], url_for('stats.stats')) %}{% endcall %}
 </form>
 
 <div class="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-4">
