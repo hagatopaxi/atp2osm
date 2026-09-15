@@ -70,12 +70,12 @@
                 <div class="flex flex-col gap-2">
                     <p class="text-sm font-semibold">{{ _('A few key terms') }}</p>
                     <dl class="flex flex-col gap-2 text-sm">
-                        <div class="flex gap-3 items-start">
-                            <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">spider</dt>
+                        <div class="flex flex-col sm:flex-row gap-1 sm:gap-3 sm:items-start">
+                            <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded self-start shrink-0 mt-0.5">spider</dt>
                             <dd class="muted">{{ _('A program dedicated to a single chain, which automatically collects its data from its official website (opening hours, phone, address…).') }}</dd>
                         </div>
-                        <div class="flex gap-3 items-start">
-                            <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">scraping</dt>
+                        <div class="flex flex-col sm:flex-row gap-1 sm:gap-3 sm:items-start">
+                            <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded self-start shrink-0 mt-0.5">scraping</dt>
                             <dd class="muted">{{ _('The technique of automatically extracting information from web pages. It is what every ATP spider does to gather the data of a chain.') }}</dd>
                         </div>
                     </dl>
@@ -335,7 +335,7 @@
         </div>
     </section>
 
-    <section id="export">
+    <section>
         <h2 id="export" class="text-lg font-semibold mb-3">{{ toc['export'] }}</h2>
         <div class="card bg-base-100 shadow-sm">
             <div class="card-body gap-4">
@@ -345,20 +345,20 @@
                 </p>
 
                 <dl class="flex flex-col gap-2 text-sm">
-                    <div class="flex gap-3 items-start">
-                        <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">/api/export/history.csv</dt>
+                    <div class="flex flex-col sm:flex-row gap-1 sm:gap-3 sm:items-start">
+                        <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded self-start shrink-0 mt-0.5">/api/export/history.csv</dt>
                         <dd class="muted">{{ _('One row per integration: brand, contributor, date, status, number of objects and of tags.') }}</dd>
                     </div>
-                    <div class="flex gap-3 items-start">
-                        <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">/api/export/subdivisions.csv</dt>
+                    <div class="flex flex-col sm:flex-row gap-1 sm:gap-3 sm:items-start">
+                        <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded self-start shrink-0 mt-0.5">/api/export/subdivisions.csv</dt>
                         <dd class="muted">{{ _('The detail per changeset: administrative subdivision, number of objects, OSM changeset identifier and status.') }}</dd>
                     </div>
-                    <div class="flex gap-3 items-start">
-                        <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">/api/export/todo.csv</dt>
+                    <div class="flex flex-col sm:flex-row gap-1 sm:gap-3 sm:items-start">
+                        <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded self-start shrink-0 mt-0.5">/api/export/todo.csv</dt>
                         <dd class="muted">{% trans %}The brands reported as missing from ATP. The ones ATP now knows are left out, unless <code class="font-mono text-xs">?show_in_atp=1</code> is passed.{% endtrans %}</dd>
                     </div>
-                    <div class="flex gap-3 items-start">
-                        <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">/api/stats.json</dt>
+                    <div class="flex flex-col sm:flex-row gap-1 sm:gap-3 sm:items-start">
+                        <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded self-start shrink-0 mt-0.5">/api/stats.json</dt>
                         <dd class="muted">{{ _('The figures of the statistics page: totals, series per period, top tags, brands and contributors, spider reliability. Takes the same filters as the page.') }}</dd>
                     </div>
                 </dl>
