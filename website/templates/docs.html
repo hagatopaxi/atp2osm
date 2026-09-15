@@ -344,21 +344,21 @@
                     {% trans atp='https://alltheplaces.xyz', osm='https://www.openstreetmap.org' %}The data <strong>produced by atp2osm</strong> can be exported freely, as CSV or JSON, without signing in. It is only the trace of the integrations and the list of the missing brands: the source data stays with the projects that produce it (<a href="{{ atp }}" target="_blank" rel="noopener" class="link link-primary">All The Places<i class="iconoir-open-new-window"></i></a> and <a href="{{ osm }}" target="_blank" rel="noopener" class="link link-primary">OpenStreetMap<i class="iconoir-open-new-window"></i></a>).{% endtrans %}
                 </p>
 
-                <dl class="flex flex-col gap-2 text-sm">
-                    <div class="flex flex-col sm:flex-row gap-1 sm:gap-3 sm:items-start">
-                        <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded self-start shrink-0 mt-0.5">/api/export/history.csv</dt>
+                <dl class="flex flex-col gap-3 text-sm">
+                    <div class="border border-base-300 rounded-md p-3 flex flex-col gap-1">
+                        <dt class="flex items-center gap-2 font-mono text-xs"><span class="badge badge-soft badge-sm font-mono">GET</span>/api/export/history.csv</dt>
                         <dd class="muted">{{ _('One row per integration: brand, contributor, date, status, number of objects and of tags.') }}</dd>
                     </div>
-                    <div class="flex flex-col sm:flex-row gap-1 sm:gap-3 sm:items-start">
-                        <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded self-start shrink-0 mt-0.5">/api/export/subdivisions.csv</dt>
+                    <div class="border border-base-300 rounded-md p-3 flex flex-col gap-1">
+                        <dt class="flex items-center gap-2 font-mono text-xs"><span class="badge badge-soft badge-sm font-mono">GET</span>/api/export/subdivisions.csv</dt>
                         <dd class="muted">{{ _('The detail per changeset: administrative subdivision, number of objects, OSM changeset identifier and status.') }}</dd>
                     </div>
-                    <div class="flex flex-col sm:flex-row gap-1 sm:gap-3 sm:items-start">
-                        <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded self-start shrink-0 mt-0.5">/api/export/todo.csv</dt>
+                    <div class="border border-base-300 rounded-md p-3 flex flex-col gap-1">
+                        <dt class="flex items-center gap-2 font-mono text-xs"><span class="badge badge-soft badge-sm font-mono">GET</span>/api/export/todo.csv</dt>
                         <dd class="muted">{% trans %}The brands reported as missing from ATP. The ones ATP now knows are left out, unless <code class="font-mono text-xs">?show_in_atp=1</code> is passed.{% endtrans %}</dd>
                     </div>
-                    <div class="flex flex-col sm:flex-row gap-1 sm:gap-3 sm:items-start">
-                        <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded self-start shrink-0 mt-0.5">/api/stats.json</dt>
+                    <div class="border border-base-300 rounded-md p-3 flex flex-col gap-1">
+                        <dt class="flex items-center gap-2 font-mono text-xs"><span class="badge badge-soft badge-sm font-mono">GET</span>/api/stats.json</dt>
                         <dd class="muted">{{ _('The figures of the statistics page: totals, series per period, top tags, brands and contributors, spider reliability. Takes the same filters as the page.') }}</dd>
                     </div>
                 </dl>
