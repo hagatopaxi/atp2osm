@@ -1,0 +1,34 @@
+name: Build image
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: meta
+        run: echo "short=$(git rev-parse --short=6 HEAD)" >> "$GITHUB_OUTPUT"
+
+      - uses: redhat-actions/buildah-build@v2
+        id: build
+        with:
+          containerfiles: Containerfile
+          image: ghcr.io/${{ github.repository }}
+          tags: latest ${{ steps.meta.outputs.short }}
+          build-args: GIT_COMMIT=${{ steps.meta.outputs.short }}
+
+      - uses: redhat-actions/push-to-registry@v2
+        with:
+          image: ${{ steps.build.outputs.image }}
+          tags: ${{ steps.build.outputs.tags }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
