@@ -346,19 +346,19 @@
 
                 <dl class="flex flex-col gap-3 text-sm">
                     <div class="border border-base-300 rounded-md p-3 flex flex-col gap-1">
-                        <dt class="flex items-center gap-2 font-mono text-xs"><span class="badge badge-soft badge-sm font-mono">GET</span>/api/export/history.csv</dt>
+                        <dt class="flex items-center gap-2 font-mono text-xs"><span class="badge badge-soft badge-sm font-mono">GET</span><a href="/api/export/history.csv" class="link link-primary" target="_blank" rel="noopener">/api/export/history.csv<i class="iconoir-open-new-window"></i></a></dt>
                         <dd class="muted">{{ _('One row per integration: brand, contributor, date, status, number of objects and of tags.') }}</dd>
                     </div>
                     <div class="border border-base-300 rounded-md p-3 flex flex-col gap-1">
-                        <dt class="flex items-center gap-2 font-mono text-xs"><span class="badge badge-soft badge-sm font-mono">GET</span>/api/export/subdivisions.csv</dt>
+                        <dt class="flex items-center gap-2 font-mono text-xs"><span class="badge badge-soft badge-sm font-mono">GET</span><a href="/api/export/subdivisions.csv" class="link link-primary" target="_blank" rel="noopener">/api/export/subdivisions.csv<i class="iconoir-open-new-window"></i></a></dt>
                         <dd class="muted">{{ _('The detail per changeset: administrative subdivision, number of objects, OSM changeset identifier and status.') }}</dd>
                     </div>
                     <div class="border border-base-300 rounded-md p-3 flex flex-col gap-1">
-                        <dt class="flex items-center gap-2 font-mono text-xs"><span class="badge badge-soft badge-sm font-mono">GET</span>/api/export/todo.csv</dt>
+                        <dt class="flex items-center gap-2 font-mono text-xs"><span class="badge badge-soft badge-sm font-mono">GET</span><a href="/api/export/todo.csv" class="link link-primary" target="_blank" rel="noopener">/api/export/todo.csv<i class="iconoir-open-new-window"></i></a></dt>
                         <dd class="muted">{% trans %}The brands reported as missing from ATP. The ones ATP now knows are left out, unless <code class="font-mono text-xs">?show_in_atp=1</code> is passed.{% endtrans %}</dd>
                     </div>
                     <div class="border border-base-300 rounded-md p-3 flex flex-col gap-1">
-                        <dt class="flex items-center gap-2 font-mono text-xs"><span class="badge badge-soft badge-sm font-mono">GET</span>/api/stats.json</dt>
+                        <dt class="flex items-center gap-2 font-mono text-xs"><span class="badge badge-soft badge-sm font-mono">GET</span><a href="/api/stats.json" class="link link-primary" target="_blank" rel="noopener">/api/stats.json<i class="iconoir-open-new-window"></i></a></dt>
                         <dd class="muted">{{ _('The figures of the statistics page: totals, series per period, top tags, brands and contributors, spider reliability. Takes the same filters as the page.') }}</dd>
                     </div>
                 </dl>
