@@ -38,6 +38,23 @@ setting on its default.
 `.env` keeps what must not sit in a file meant to be read, mounted and diffed:
 the database password, the OSM OAuth credentials and the session key.
 
+## Deploy from the published image
+
+Every push to `main` builds `ghcr.io/hagatopaxi/atp2osm` (`:latest`
+and `:<git-short>`). Nothing in it is French: it serves the
+country its mounted `config.json` describes.
+
+```
+podman run -d --name atp2osm --network host \
+  --env-file .env --env ATP2OSM_CONFIG=/app/config.json --env PORT=8000 \
+  -v ./config.json:/app/config.json:ro,Z -v ./data:/app/data:Z \
+  ghcr.io/hagatopaxi/atp2osm:latest
+```
+
+A `translations/` directory mounted on `/app/translations` adds a language the
+product does not ship. The daily refresh is the same image running
+`python -m src.pipeline` (see `run-pipeline.sh`).
+
 ## Start the server
 
 `dev.sh` is the recommended way to run the app:
