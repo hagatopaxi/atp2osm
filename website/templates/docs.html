@@ -34,10 +34,32 @@
 {% block subtitle %}{{ _('How atp2osm works, and how to contribute.') }}{% endblock %}
 
 {% block content %}
+{% set toc = {
+    'brand': _('What is a “brand”?'),
+    'summary': _('Summary'),
+    'how': _('How it works'),
+    'process': _('The process in detail'),
+    'contribute': _('How to contribute'),
+    'review': _('Reviewing a brand'),
+    'statuses': _('Integration statuses'),
+    'spiders': _('Reading the spider figures'),
+    'licences': _('Licences'),
+    'export': _('Exporting the data'),
+    'resources': _('Resources'),
+} %}
+<div class="flex flex-col lg:flex-row lg:items-start gap-8">
+<nav class="lg:order-last lg:sticky lg:top-0 lg:w-56 shrink-0" aria-label="{{ _('On this page') }}">
+    <p class="text-sm font-semibold mb-2">{{ _('On this page') }}</p>
+    <ul class="text-sm flex flex-col gap-1">
+        {% for id, label in toc.items() %}
+        <li><a href="#{{ id }}" class="link link-hover muted">{{ label }}</a></li>
+        {% endfor %}
+    </ul>
+</nav>
 <div class="max-w-3xl flex flex-col gap-8">
 
     <section>
-        <h2 class="text-lg font-semibold mb-3">{{ _('What is a “brand”?') }}</h2>
+        <h2 id="brand" class="text-lg font-semibold mb-3">{{ toc['brand'] }}</h2>
         <div class="card bg-base-100 shadow-sm">
             <div class="card-body gap-4">
 
@@ -83,7 +105,7 @@
     </section>
 
     <section>
-        <h2 class="text-lg font-semibold mb-3">{{ _('Summary') }}</h2>
+        <h2 id="summary" class="text-lg font-semibold mb-3">{{ toc['summary'] }}</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="card bg-base-100 shadow-sm">
                 <div class="card-body gap-2">
@@ -111,7 +133,7 @@
     </section>
 
     <section>
-        <h2 class="text-lg font-semibold mb-3">{{ _('How it works') }}</h2>
+        <h2 id="how" class="text-lg font-semibold mb-3">{{ toc['how'] }}</h2>
         <p class="text-sm text-base-content/80 leading-relaxed mb-3">
             {% trans atp='https://alltheplaces.xyz' %}<strong>atp2osm</strong> enriches OpenStreetMap from the <a href="{{ atp }}" target="_blank" rel="noopener" class="link link-primary">All The Places<i class="iconoir-open-new-window"></i></a> (ATP) data. ATP automatically collects the information of points of interest (opening hours, phone, website, email) straight from the official websites of the chains.{% endtrans %}
         </p>
@@ -121,7 +143,7 @@
     </section>
 
     <section>
-        <h2 class="text-lg font-semibold mb-3">{{ _('The process in detail') }}</h2>
+        <h2 id="process" class="text-lg font-semibold mb-3">{{ toc['process'] }}</h2>
         <ul class="steps steps-vertical text-sm">
             <li class="step step-primary">
                 <div class="text-left ml-3">
@@ -159,7 +181,7 @@
     </section>
 
     <section>
-        <h2 class="text-lg font-semibold mb-3">{{ _('How to contribute') }}</h2>
+        <h2 id="contribute" class="text-lg font-semibold mb-3">{{ toc['contribute'] }}</h2>
         <ol class="flex flex-col gap-4 text-sm">
             <li class="flex gap-3">
                 <span class="badge badge-primary badge-sm mt-0.5 shrink-0">1</span>
@@ -195,7 +217,7 @@
     </section>
 
     <section>
-        <h2 class="text-lg font-semibold mb-3">{{ _('Reviewing a brand') }}</h2>
+        <h2 id="review" class="text-lg font-semibold mb-3">{{ toc['review'] }}</h2>
         {% call info_card('warning', 'mb-4') %}
         <p class="text-sm">{{ _('Only <strong>3 items at the very least</strong> are reviewed by hand per batch, drawn at random among the places of that batch.') }}</p>
         {% endcall %}
@@ -211,7 +233,7 @@
     </section>
 
     <section>
-        <h2 class="text-lg font-semibold mb-3">{{ _('Integration statuses') }}</h2>
+        <h2 id="statuses" class="text-lg font-semibold mb-3">{{ toc['statuses'] }}</h2>
         <p class="text-sm text-base-content/80 leading-relaxed mb-4">
             {% trans link='/history' %}Every integration recorded in the <a href="{{ link }}" class="link link-primary">history</a> is given a status reflecting its outcome.{% endtrans %}
         </p>
@@ -272,7 +294,7 @@
 
     {% if spiders_page_linked %}
     <section>
-        <h2 class="text-lg font-semibold mb-3">{{ _('Reading the spider figures') }}</h2>
+        <h2 id="spiders" class="text-lg font-semibold mb-3">{{ toc['spiders'] }}</h2>
         <p class="text-sm text-base-content/80 leading-relaxed mb-4">
             {% trans link='/spiders' %}The <a href="{{ link }}" class="link link-primary">spiders</a> page counts what each AllThePlaces spider brings, step by step. Each figure is a subset of the one before it.{% endtrans %}
         </p>
@@ -290,7 +312,7 @@
     {% endif %}
 
     <section>
-        <h2 class="text-lg font-semibold mb-3">{{ _('Licences') }}</h2>
+        <h2 id="licences" class="text-lg font-semibold mb-3">{{ toc['licences'] }}</h2>
         <div class="flex flex-col gap-3 text-sm">
             <div class="card bg-base-100 shadow-sm">
                 <div class="card-body gap-1 py-3">
@@ -314,7 +336,7 @@
     </section>
 
     <section id="export">
-        <h2 class="text-lg font-semibold mb-3">{{ _('Exporting the data') }}</h2>
+        <h2 id="export" class="text-lg font-semibold mb-3">{{ toc['export'] }}</h2>
         <div class="card bg-base-100 shadow-sm">
             <div class="card-body gap-4">
 
@@ -350,7 +372,7 @@
     </section>
 
     <section>
-        <h2 class="text-lg font-semibold mb-3">{{ _('Resources') }}</h2>
+        <h2 id="resources" class="text-lg font-semibold mb-3">{{ toc['resources'] }}</h2>
         <ul class="flex flex-col gap-2 text-sm">
             <li>
                 <a href="https://alltheplaces.xyz" target="_blank" rel="noopener" class="link link-primary">
@@ -373,5 +395,6 @@
         </ul>
     </section>
 
+</div>
 </div>
 {% endblock %}
