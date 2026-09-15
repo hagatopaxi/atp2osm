@@ -82,8 +82,8 @@
       <i class="iconoir-page" aria-hidden="true"></i> <span class="flex-1">{{ _('GPL-3.0 licence') }}</span><i class="iconoir-open-new-window" aria-hidden="true"></i></a>
     <a href="https://www.openstreetmap.org/copyright" class="flex items-center gap-2 link link-hover" target="_blank" rel="noopener" title="ODbL">
       <i class="iconoir-map-pin" aria-hidden="true"></i> <span class="flex-1">{{ _('OpenStreetMap contributors') }}</span><i class="iconoir-open-new-window" aria-hidden="true"></i></a>
-    <p class="flex items-center gap-2 pt-2 border-t border-base-300">
-      <i class="iconoir-info-circle" aria-hidden="true"></i> {{ _('About') }} <span class="ml-auto font-mono text-xs">{{ app_version }}</span></p>
+    <a href="{{ request.script_root }}/about" class="flex items-center gap-2 pt-2 border-t border-base-300 link link-hover">
+      <i class="iconoir-info-circle" aria-hidden="true"></i> <span class="flex-1">{{ _('About') }}</span><i class="iconoir-nav-arrow-right" aria-hidden="true"></i></a>
   </div>
 
   <div class="p-3 shrink-0">

@@ -13,7 +13,8 @@
     'history.history': (_('Integration history'), _('integrations carried out, dates and statuses.')),
     'stats.stats':     (_('Statistics'), _('metrics and charts of the integrations carried out.')),
     'todo.todo':       (_('Missing brands'), _('brands absent from ATP.')),
-    'misc.docs':       (_('Documentation'), _('how it works and how to contribute.'))
+    'misc.docs':       (_('Documentation'), _('how it works and how to contribute.')),
+    'misc.about':      (_('About'), _('the project, its licence and the licences of the data.'))
 } -%}
 {% for endpoint in pages -%}
 {% set label, desc = descriptions[endpoint] -%}

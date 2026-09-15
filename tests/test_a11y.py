@@ -34,7 +34,7 @@ SECRET = "test"
 
 pytestmark = pytest.mark.a11y
 
-PUBLIC = ["/", "/fr/", "/brands", "/spiders", "/history", "/stats", "/todo", "/docs"]
+PUBLIC = ["/", "/fr/", "/brands", "/spiders", "/history", "/stats", "/todo", "/docs", "/about"]
 LOGGED_IN = [
     f"/brands/{QID}/validate",
     f"/brands/{QID}/confirm",
