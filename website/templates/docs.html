@@ -64,7 +64,7 @@
             <div class="card-body gap-4">
 
                 <p class="text-sm text-base-content/80 leading-relaxed">
-                    {% trans atp='https://alltheplaces.xyz', wikidata='https://www.wikidata.org', zara='https://www.wikidata.org/wiki/Q37158' %}The notion of a <strong>brand</strong> comes straight from <a href="{{ atp }}" target="_blank" rel="noopener" class="link link-primary">All The Places<i class="iconoir-open-new-window"></i></a> (ATP). ATP is a collaborative database built around <strong>national and international chains</strong>: retail chains, restaurant networks, banks, pharmacy chains… Every chain is identified there by a unique <a href="{{ wikidata }}" target="_blank" rel="noopener" class="link link-primary">Wikidata<i class="iconoir-open-new-window"></i></a> code — for instance <a href="{{ zara }}" target="_blank" rel="noopener" class="link font-mono text-xs">Q37158<i class="iconoir-open-new-window"></i></a> for Zara. <strong>Independent shops</strong> (the bakery around the corner, a local restaurant…) are not part of it.{% endtrans %}
+                    {% trans atp='https://alltheplaces.xyz', wikidata='https://www.wikidata.org', zara='https://www.wikidata.org/wiki/Q37158' %}The notion of a <strong>brand</strong> comes straight from <a href="{{ atp }}" target="_blank" rel="noopener" class="link link-primary">All The Places<i class="iconoir-open-new-window"></i></a> (ATP). ATP is a collaborative database built around <strong>national and international chains</strong>: retail chains, restaurant networks, banks, pharmacy chains… Every chain is identified there by a unique <a href="{{ wikidata }}" target="_blank" rel="noopener" class="link link-primary">Wikidata<i class="iconoir-open-new-window"></i></a> code, for instance <a href="{{ zara }}" target="_blank" rel="noopener" class="link font-mono text-xs">Q37158<i class="iconoir-open-new-window"></i></a> for Zara. <strong>Independent shops</strong> (the bakery around the corner, a local restaurant…) are not part of it.{% endtrans %}
                 </p>
 
                 <div class="flex flex-col gap-2">
@@ -82,7 +82,7 @@
                 </div>
 
                 <p class="text-sm text-base-content/80 leading-relaxed">
-                    {{ _('atp2osm follows that structure and integrates the data <strong>chain by chain</strong>, faithfully to the ATP spiders. This guarantees that all the data of one chain comes from a single, homogeneous source — which is what makes it possible to judge the quality of a spider by reviewing a random sample of 3 POIs per integrated batch, and to extend that confidence to the whole dataset.') }}
+                    {{ _('atp2osm follows that structure and integrates the data <strong>chain by chain</strong>, faithfully to the ATP spiders. This guarantees that all the data of one chain comes from a single, homogeneous source, which is what makes it possible to judge the quality of a spider by reviewing a random sample of 3 POIs per integrated batch, and to extend that confidence to the whole dataset.') }}
                 </p>
 
                 {% call info_card('info', 'p-3') %}
@@ -138,7 +138,7 @@
             {% trans atp='https://alltheplaces.xyz' %}<strong>atp2osm</strong> enriches OpenStreetMap from the <a href="{{ atp }}" target="_blank" rel="noopener" class="link link-primary">All The Places<i class="iconoir-open-new-window"></i></a> (ATP) data. ATP automatically collects the information of points of interest (opening hours, phone, website, email) straight from the official websites of the chains.{% endtrans %}
         </p>
         <p class="text-sm text-base-content/80 leading-relaxed">
-            {{ _('The tool compares that data against the existing OSM nodes, finds the missing tags, and lets you review then integrate them into OSM through your own account. <strong>No node is ever created or deleted</strong> — only missing tags are added.') }}
+            {{ _('The tool compares that data against the existing OSM nodes, finds the missing tags, and lets you review then integrate them into OSM through your own account. <strong>No node is ever created or deleted</strong>: only missing tags are added.') }}
         </p>
     </section>
 
@@ -161,14 +161,14 @@
                 <div class="text-left ml-3">
                     <p class="font-semibold">{{ _('Spatial and attribute matching') }}</p>
                     <p class="muted">
-                        {% trans %}Every ATP POI is matched against the OSM nodes within <strong>500 m</strong>, checking that at least one attribute is shared among <span class="font-mono text-xs">brand:wikidata</span>, <span class="font-mono text-xs">brand</span>, <span class="font-mono text-xs">name</span>, <span class="font-mono text-xs">phone</span>, <span class="font-mono text-xs">website</span>, <span class="font-mono text-xs">email</span>. Ambiguous matches — several OSM nodes for one ATP POI — are dropped.{% endtrans %}
+                        {% trans %}Every ATP POI is matched against the OSM nodes within <strong>500 m</strong>, checking that at least one attribute is shared among <span class="font-mono text-xs">brand:wikidata</span>, <span class="font-mono text-xs">brand</span>, <span class="font-mono text-xs">name</span>, <span class="font-mono text-xs">phone</span>, <span class="font-mono text-xs">website</span>, <span class="font-mono text-xs">email</span>. Ambiguous matches (several OSM nodes for one ATP POI) are dropped.{% endtrans %}
                     </p>
                 </div>
             </li>
             <li class="step step-primary">
                 <div class="text-left ml-3">
                     <p class="font-semibold">{{ _('Computing the missing tags') }}</p>
-                    <p class="muted">{{ _('For every match kept, the tool computes which tags exist in ATP but not in OSM. Only the missing ones are offered — <strong>an existing tag is never changed.</strong>') }}</p>
+                    <p class="muted">{{ _('For every match kept, the tool computes which tags exist in ATP but not in OSM. Only the missing ones are offered: <strong>an existing tag is never changed.</strong>') }}</p>
                 </div>
             </li>
             <li class="step">
@@ -269,7 +269,7 @@
                     <span class="badge badge-soft badge-info mt-0.5 shrink-0">{{ _('Cancelled') }}</span>
                     <div class="flex flex-col gap-1">
                         <p class="text-sm font-semibold">
-                            {{ _('Integration cancelled — data reported') }}
+                            {{ _('Integration cancelled, data reported') }}
                         </p>
                         <p class="text-sm muted">
                             {{ _('The integration was stopped after a contributor found errors in the ATP data. Nothing was sent to OpenStreetMap.') }}
@@ -303,8 +303,8 @@
             <tbody>
                 <tr><th class="whitespace-nowrap">{{ _('Scraped here') }}</th><td>{{ _('The POIs the spider produced inside the country and its territories.') }}</td></tr>
                 <tr><th class="whitespace-nowrap">{{ _('Matched') }}</th><td>{{ _('Those with an OpenStreetMap object within 500 m sharing a brand, a name, an email, a phone or a website. The rest is either missing from OSM, or present without any attribute to recognise it by.') }}</td></tr>
-                <tr><th class="whitespace-nowrap">{{ _('To integrate') }}</th><td>{{ _('The matches with something left to do — a tag to add (wave 1) or to replace (wave 2), minus the subdivisions under cooldown. A POI on both waves counts twice, as two integrations. The brands page shows one wave at a time and only the brands carrying a Wikidata code, so its totals are lower.') }}</td></tr>
-                <tr><th class="whitespace-nowrap">{{ _('Integrated') }}</th><td>{{ _('The POIs actually written to OpenStreetMap through the brands the spider produces — a brand two spiders share counts for both.') }}</td></tr>
+                <tr><th class="whitespace-nowrap">{{ _('To integrate') }}</th><td>{{ _('The matches with something left to do: a tag to add (wave 1) or to replace (wave 2), minus the subdivisions under cooldown. A POI on both waves counts twice, as two integrations. The brands page shows one wave at a time and only the brands carrying a Wikidata code, so its totals are lower.') }}</td></tr>
+                <tr><th class="whitespace-nowrap">{{ _('Integrated') }}</th><td>{{ _('The POIs actually written to OpenStreetMap through the brands the spider produces; a brand two spiders share counts for both.') }}</td></tr>
             </tbody>
         </table>
         </div>
@@ -364,7 +364,7 @@
                 </dl>
 
                 <p class="text-sm text-base-content/80 leading-relaxed">
-                    {% trans %}Replace <code class="font-mono text-xs">.csv</code> with <code class="font-mono text-xs">.json</code> for the same content as JSON. The <code class="font-mono text-xs">history</code> and <code class="font-mono text-xs">todo</code> exports take the same filters as their pages (<code class="font-mono text-xs">q</code>, <code class="font-mono text-xs">status</code>, <code class="font-mono text-xs">user</code>, <code class="font-mono text-xs">from</code>, <code class="font-mono text-xs">to</code>) — the “Export” button above each table carries the active filters over anyway.{% endtrans %}
+                    {% trans %}Replace <code class="font-mono text-xs">.csv</code> with <code class="font-mono text-xs">.json</code> for the same content as JSON. The <code class="font-mono text-xs">history</code> and <code class="font-mono text-xs">todo</code> exports take the same filters as their pages (<code class="font-mono text-xs">q</code>, <code class="font-mono text-xs">status</code>, <code class="font-mono text-xs">user</code>, <code class="font-mono text-xs">from</code>, <code class="font-mono text-xs">to</code>); the “Export” button above each table carries the active filters over anyway.{% endtrans %}
                 </p>
 
             </div>

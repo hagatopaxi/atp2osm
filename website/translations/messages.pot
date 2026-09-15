@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-15 14:28+0200\n"
+"POT-Creation-Date: 2026-09-15 14:31+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -242,7 +242,7 @@ msgstr ""
 
 #: website/templates/_js_strings.html:13
 #, python-brace-format
-msgid "Careful: this brand looks like it is already there — {names}"
+msgid "Careful: this brand looks like it is already there: {names}"
 msgstr ""
 
 #: website/templates/_js_strings.html:14
@@ -276,7 +276,7 @@ msgstr ""
 
 #: website/templates/_js_strings.html:21
 #, python-brace-format
-msgid "The integration failed: {errors} — you can try again later."
+msgid "The integration failed: {errors}. You can try again later."
 msgstr ""
 
 #: website/templates/_js_strings.html:22
@@ -488,7 +488,7 @@ msgstr ""
 
 #: website/templates/docs.html:67
 #, python-format
-msgid "The notion of a <strong>brand</strong> comes straight from <a href=\"%(atp)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">All The Places<i class=\"iconoir-open-new-window\"></i></a> (ATP). ATP is a collaborative database built around <strong>national and international chains</strong>: retail chains, restaurant networks, banks, pharmacy chains… Every chain is identified there by a unique <a href=\"%(wikidata)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">Wikidata<i class=\"iconoir-open-new-window\"></i></a> code — for instance <a href=\"%(zara)s\" target=\"_blank\" rel=\"noopener\" class=\"link font-mono text-xs\">Q37158<i class=\"iconoir-open-new-window\"></i></a> for Zara. <strong>Independent shops</strong> (the bakery around the corner, a local restaurant…) are not part of it."
+msgid "The notion of a <strong>brand</strong> comes straight from <a href=\"%(atp)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">All The Places<i class=\"iconoir-open-new-window\"></i></a> (ATP). ATP is a collaborative database built around <strong>national and international chains</strong>: retail chains, restaurant networks, banks, pharmacy chains… Every chain is identified there by a unique <a href=\"%(wikidata)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">Wikidata<i class=\"iconoir-open-new-window\"></i></a> code, for instance <a href=\"%(zara)s\" target=\"_blank\" rel=\"noopener\" class=\"link font-mono text-xs\">Q37158<i class=\"iconoir-open-new-window\"></i></a> for Zara. <strong>Independent shops</strong> (the bakery around the corner, a local restaurant…) are not part of it."
 msgstr ""
 
 #: website/templates/docs.html:71
@@ -504,7 +504,7 @@ msgid "The technique of automatically extracting information from web pages. It 
 msgstr ""
 
 #: website/templates/docs.html:85
-msgid "atp2osm follows that structure and integrates the data <strong>chain by chain</strong>, faithfully to the ATP spiders. This guarantees that all the data of one chain comes from a single, homogeneous source — which is what makes it possible to judge the quality of a spider by reviewing a random sample of 3 POIs per integrated batch, and to extend that confidence to the whole dataset."
+msgid "atp2osm follows that structure and integrates the data <strong>chain by chain</strong>, faithfully to the ATP spiders. This guarantees that all the data of one chain comes from a single, homogeneous source, which is what makes it possible to judge the quality of a spider by reviewing a random sample of 3 POIs per integrated batch, and to extend that confidence to the whole dataset."
 msgstr ""
 
 #: website/templates/docs.html:90
@@ -565,7 +565,7 @@ msgid "<strong>atp2osm</strong> enriches OpenStreetMap from the <a href=\"%(atp)
 msgstr ""
 
 #: website/templates/docs.html:141
-msgid "The tool compares that data against the existing OSM nodes, finds the missing tags, and lets you review then integrate them into OSM through your own account. <strong>No node is ever created or deleted</strong> — only missing tags are added."
+msgid "The tool compares that data against the existing OSM nodes, finds the missing tags, and lets you review then integrate them into OSM through your own account. <strong>No node is ever created or deleted</strong>: only missing tags are added."
 msgstr ""
 
 #: website/templates/docs.html:150
@@ -589,7 +589,7 @@ msgid "Spatial and attribute matching"
 msgstr ""
 
 #: website/templates/docs.html:164
-msgid "Every ATP POI is matched against the OSM nodes within <strong>500 m</strong>, checking that at least one attribute is shared among <span class=\"font-mono text-xs\">brand:wikidata</span>, <span class=\"font-mono text-xs\">brand</span>, <span class=\"font-mono text-xs\">name</span>, <span class=\"font-mono text-xs\">phone</span>, <span class=\"font-mono text-xs\">website</span>, <span class=\"font-mono text-xs\">email</span>. Ambiguous matches — several OSM nodes for one ATP POI — are dropped."
+msgid "Every ATP POI is matched against the OSM nodes within <strong>500 m</strong>, checking that at least one attribute is shared among <span class=\"font-mono text-xs\">brand:wikidata</span>, <span class=\"font-mono text-xs\">brand</span>, <span class=\"font-mono text-xs\">name</span>, <span class=\"font-mono text-xs\">phone</span>, <span class=\"font-mono text-xs\">website</span>, <span class=\"font-mono text-xs\">email</span>. Ambiguous matches (several OSM nodes for one ATP POI) are dropped."
 msgstr ""
 
 #: website/templates/docs.html:170
@@ -597,7 +597,7 @@ msgid "Computing the missing tags"
 msgstr ""
 
 #: website/templates/docs.html:171
-msgid "For every match kept, the tool computes which tags exist in ATP but not in OSM. Only the missing ones are offered — <strong>an existing tag is never changed.</strong>"
+msgid "For every match kept, the tool computes which tags exist in ATP but not in OSM. Only the missing ones are offered: <strong>an existing tag is never changed.</strong>"
 msgstr ""
 
 #: website/templates/docs.html:176
@@ -675,7 +675,7 @@ msgid "Some subdivisions could not be integrated because of an OpenStreetMap API
 msgstr ""
 
 #: website/templates/docs.html:272
-msgid "Integration cancelled — data reported"
+msgid "Integration cancelled, data reported"
 msgstr ""
 
 #: website/templates/docs.html:275
@@ -716,7 +716,7 @@ msgid "To integrate"
 msgstr ""
 
 #: website/templates/docs.html:306
-msgid "The matches with something left to do — a tag to add (wave 1) or to replace (wave 2), minus the subdivisions under cooldown. A POI on both waves counts twice, as two integrations. The brands page shows one wave at a time and only the brands carrying a Wikidata code, so its totals are lower."
+msgid "The matches with something left to do: a tag to add (wave 1) or to replace (wave 2), minus the subdivisions under cooldown. A POI on both waves counts twice, as two integrations. The brands page shows one wave at a time and only the brands carrying a Wikidata code, so its totals are lower."
 msgstr ""
 
 #: website/templates/docs.html:307 website/templates/spiders.html:78
@@ -724,7 +724,7 @@ msgid "Integrated"
 msgstr ""
 
 #: website/templates/docs.html:307
-msgid "The POIs actually written to OpenStreetMap through the brands the spider produces — a brand two spiders share counts for both."
+msgid "The POIs actually written to OpenStreetMap through the brands the spider produces; a brand two spiders share counts for both."
 msgstr ""
 
 #: website/templates/docs.html:320
@@ -764,7 +764,7 @@ msgid "The figures of the statistics page: totals, series per period, top tags, 
 msgstr ""
 
 #: website/templates/docs.html:367
-msgid "Replace <code class=\"font-mono text-xs\">.csv</code> with <code class=\"font-mono text-xs\">.json</code> for the same content as JSON. The <code class=\"font-mono text-xs\">history</code> and <code class=\"font-mono text-xs\">todo</code> exports take the same filters as their pages (<code class=\"font-mono text-xs\">q</code>, <code class=\"font-mono text-xs\">status</code>, <code class=\"font-mono text-xs\">user</code>, <code class=\"font-mono text-xs\">from</code>, <code class=\"font-mono text-xs\">to</code>) — the “Export” button above each table carries the active filters over anyway."
+msgid "Replace <code class=\"font-mono text-xs\">.csv</code> with <code class=\"font-mono text-xs\">.json</code> for the same content as JSON. The <code class=\"font-mono text-xs\">history</code> and <code class=\"font-mono text-xs\">todo</code> exports take the same filters as their pages (<code class=\"font-mono text-xs\">q</code>, <code class=\"font-mono text-xs\">status</code>, <code class=\"font-mono text-xs\">user</code>, <code class=\"font-mono text-xs\">from</code>, <code class=\"font-mono text-xs\">to</code>); the “Export” button above each table carries the active filters over anyway."
 msgstr ""
 
 #: website/templates/docs.html:381
@@ -867,13 +867,13 @@ msgstr ""
 
 #: website/templates/history_detail.html:19
 #, python-format
-msgid "Your integration went through — <strong>%(count)s POI</strong> enriched in OpenStreetMap."
-msgid_plural "Your integration went through — <strong>%(count)s POIs</strong> enriched in OpenStreetMap."
+msgid "Your integration went through: <strong>%(count)s POI</strong> enriched in OpenStreetMap."
+msgid_plural "Your integration went through: <strong>%(count)s POIs</strong> enriched in OpenStreetMap."
 msgstr[0] ""
 msgstr[1] ""
 
 #: website/templates/history_detail.html:21
-msgid "Your integration went through — the data has been sent to OpenStreetMap."
+msgid "Your integration went through: the data has been sent to OpenStreetMap."
 msgstr ""
 
 #: website/templates/history_detail.html:23
@@ -883,13 +883,13 @@ msgstr ""
 
 #: website/templates/history_detail.html:29
 #, python-format
-msgid "The integration only partly completed — <strong>%(count)s POI</strong> enriched, but some subdivisions could not be integrated."
-msgid_plural "The integration only partly completed — <strong>%(count)s POIs</strong> enriched, but some subdivisions could not be integrated."
+msgid "The integration only partly completed: <strong>%(count)s POI</strong> enriched, but some subdivisions could not be integrated."
+msgid_plural "The integration only partly completed: <strong>%(count)s POIs</strong> enriched, but some subdivisions could not be integrated."
 msgstr[0] ""
 msgstr[1] ""
 
 #: website/templates/history_detail.html:31
-msgid "The integration only partly completed — some subdivisions could not be integrated."
+msgid "The integration only partly completed: some subdivisions could not be integrated."
 msgstr ""
 
 #: website/templates/history_detail.html:37
@@ -1113,8 +1113,8 @@ msgstr ""
 
 #: website/templates/spiders.html:23
 #, python-format
-msgid "%(count)s spider producing POIs of the country — what it scrapes here, what matches OpenStreetMap, what was integrated."
-msgid_plural "%(count)s spiders producing POIs of the country — what they scrape here, what matches OpenStreetMap, what was integrated."
+msgid "%(count)s spider producing POIs of the country: what it scrapes here, what matches OpenStreetMap, what was integrated."
+msgid_plural "%(count)s spiders producing POIs of the country: what they scrape here, what matches OpenStreetMap, what was integrated."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -1615,8 +1615,8 @@ msgstr[1] ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:67
 #, python-format
-msgid "that is %(count)s POI."
-msgid_plural "that is %(count)s POIs."
+msgid "that is %(count)s POI"
+msgid_plural "that is %(count)s POIs"
 msgstr[0] ""
 msgstr[1] ""
 
@@ -1633,7 +1633,7 @@ msgid "by"
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:91
-msgid "Reported by a contributor during the last review — check these points more closely."
+msgid "Reported by a contributor during the last review: check these points more closely."
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:97

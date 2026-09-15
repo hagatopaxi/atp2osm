@@ -16,9 +16,9 @@
   {% set banner_kind = 'success' %}
   {% set banner_text %}
     {%- if entry['items_count'] -%}
-      {% trans count=entry['items_count'] %}Your integration went through — <strong>{{ count }} POI</strong> enriched in OpenStreetMap.{% pluralize %}Your integration went through — <strong>{{ count }} POIs</strong> enriched in OpenStreetMap.{% endtrans %}
+      {% trans count=entry['items_count'] %}Your integration went through: <strong>{{ count }} POI</strong> enriched in OpenStreetMap.{% pluralize %}Your integration went through: <strong>{{ count }} POIs</strong> enriched in OpenStreetMap.{% endtrans %}
     {%- else -%}
-      {{ _('Your integration went through — the data has been sent to OpenStreetMap.') }}
+      {{ _('Your integration went through: the data has been sent to OpenStreetMap.') }}
     {%- endif -%}{% endset %}
   {% set banner_btn_label = _('Integrate another brand') %}
   {% set banner_btn_href = '/brands' %}
@@ -26,9 +26,9 @@
   {% set banner_kind = 'warning' %}
   {% set banner_text %}
     {%- if entry['items_count'] -%}
-      {% trans count=entry['items_count'] %}The integration only partly completed — <strong>{{ count }} POI</strong> enriched, but some subdivisions could not be integrated.{% pluralize %}The integration only partly completed — <strong>{{ count }} POIs</strong> enriched, but some subdivisions could not be integrated.{% endtrans %}
+      {% trans count=entry['items_count'] %}The integration only partly completed: <strong>{{ count }} POI</strong> enriched, but some subdivisions could not be integrated.{% pluralize %}The integration only partly completed: <strong>{{ count }} POIs</strong> enriched, but some subdivisions could not be integrated.{% endtrans %}
     {%- else -%}
-      {{ _('The integration only partly completed — some subdivisions could not be integrated.') }}
+      {{ _('The integration only partly completed: some subdivisions could not be integrated.') }}
     {%- endif -%}{% endset %}
   {% set banner_btn_label = _('Integrate another brand') %}
   {% set banner_btn_href = '/brands' %}
