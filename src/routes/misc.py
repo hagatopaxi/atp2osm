@@ -26,6 +26,7 @@ PUBLIC_PAGES = (
     "stats.stats",
     "todo.todo",
     "misc.docs",
+    "misc.about",
 )
 
 
@@ -62,6 +63,11 @@ def home():
 @misc_bp.route("/docs")
 def docs():
     return render_template("docs.html")
+
+
+@misc_bp.route("/about")
+def about():
+    return render_template("about.html")
 
 
 @misc_bp.route("/favicon.ico")

@@ -62,7 +62,7 @@ def rendered(web_app):
     template_rendered.disconnect(record, web_app)
 
 
-PAGES = ["/", "/brands", "/spiders", "/history", "/stats", "/todo", "/docs"]
+PAGES = ["/", "/brands", "/spiders", "/history", "/stats", "/todo", "/docs", "/about"]
 
 
 @pytest.mark.parametrize("path", PAGES)

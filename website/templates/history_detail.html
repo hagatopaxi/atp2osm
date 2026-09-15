@@ -50,13 +50,13 @@
     <p class="text-base mt-1">{{ banner_text }}</p>
 </div>
 <a href="{{ banner_btn_href }}" class="btn btn-lg w-full md:w-auto">
-    {{ banner_btn_label }} <i class="iconoir-arrow-right"></i>
+    {{ banner_btn_label }} <i class="iconoir-arrow-right" aria-hidden="true"></i>
 </a>
 {% endcall %}
 {% endif %}
 
 <a class="btn btn-sm btn-ghost self-start -mt-2 mb-2" href="{{ url_for('history.history', **request.args) }}">
-    <i class="iconoir-arrow-left"></i> {{ _('Back to the history') }}
+    <i class="iconoir-arrow-left" aria-hidden="true"></i> {{ _('Back to the history') }}
 </a>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
@@ -73,7 +73,7 @@
                     {% if entry.brand_wikidata %}
                     <a class="link text-xs font-mono muted ml-1"
                        href="https://www.wikidata.org/wiki/{{ entry.brand_wikidata }}"
-                       target="_blank">{{ entry.brand_wikidata }}<i class="iconoir-open-new-window"></i></a>
+                       target="_blank">{{ entry.brand_wikidata }}<i class="iconoir-open-new-window" aria-hidden="true"></i></a>
                     {% endif %}
                 </dd>
 
@@ -116,7 +116,7 @@
                 <dd>
                     {% set display_name = users.get(entry.osm_user_id) %}
                     {% if display_name %}
-                    <a class="link" href="{{ api_url }}/user/{{ display_name }}" target="_blank">{{ display_name }}<i class="iconoir-open-new-window"></i></a>
+                    <a class="link" href="{{ api_url }}/user/{{ display_name }}" target="_blank">{{ display_name }}<i class="iconoir-open-new-window" aria-hidden="true"></i></a>
                     {% else %}
                     {{ entry.osm_user_id }}
                     {% endif %}
@@ -140,7 +140,7 @@
             <ul class="flex flex-col gap-1">
                 {% for c in comments %}
                 <li class="text-sm">
-                    <a class="link font-mono text-xs" href="{{ api_url }}/{{ c.osm_type }}/{{ c.osm_id }}" target="_blank">{{ c.osm_type }}/{{ c.osm_id }}<i class="iconoir-open-new-window"></i></a>
+                    <a class="link font-mono text-xs" href="{{ api_url }}/{{ c.osm_type }}/{{ c.osm_id }}" target="_blank">{{ c.osm_type }}/{{ c.osm_id }}<i class="iconoir-open-new-window" aria-hidden="true"></i></a>
                     {% if c.atp_id %}<span class="font-mono text-xs muted">(ATP {{ c.spider_id ~ "/" if c.spider_id }}{{ c.atp_id }})</span>{% endif %}
                     {% for r in c.reasons or [] %}<span class="badge badge-error badge-outline badge-sm">{{ reasons.LABELS.get(r, r) }}</span>{% endfor %}
                     {% if c.comment %} — {{ c.comment }}{% endif %}
@@ -167,7 +167,7 @@
             <div class="flex flex-wrap gap-2">
                 {% for tag, count in entry.tags_count.items() %}
                 <div class="flex items-center gap-2 bg-base-200 rounded-lg px-3 py-2">
-                    <i class="{{ tag_icons.get(tag, 'iconoir-check') }} muted"></i>
+                    <i class="{{ tag_icons.get(tag, 'iconoir-check') }} muted" aria-hidden="true"></i>
                     <div class="flex flex-col leading-tight">
                         <span class="text-xs muted font-mono">{{ tag }}</span>
                         <span class="text-sm font-bold">{{ count }}</span>
@@ -217,7 +217,7 @@
                             </td>
                             <td>
                                 {% if sub.osm_changeset_id %}
-                                <a class="link font-mono" href="{{ api_url }}/changeset/{{ sub.osm_changeset_id }}" target="_blank">{{ sub.osm_changeset_id }}<i class="iconoir-open-new-window"></i></a>
+                                <a class="link font-mono" href="{{ api_url }}/changeset/{{ sub.osm_changeset_id }}" target="_blank">{{ sub.osm_changeset_id }}<i class="iconoir-open-new-window" aria-hidden="true"></i></a>
                                 {% else %}
                                 <span class="muted">—</span>
                                 {% endif %}

@@ -1,0 +1,33 @@
+{% extends '_base.html' %}
+
+{% block page_title %}{{ _('About') }}{% endblock %}
+{% block meta_description %}{{ _('About atp2osm: an open-source tool to integrate the AllThePlaces data into OpenStreetMap, its licence and the licences of the data it handles.') }}{% endblock %}
+{% block og_title %}{{ _('About') }} — atp2osm{% endblock %}
+
+{% block title %}{{ _('About') }}{% endblock %}
+{% block subtitle %}{{ _('Open-source project. Contributions welcome!') }}{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-3 text-sm max-w-3xl">
+    <div class="card bg-base-100 shadow-sm">
+        <div class="card-body gap-1 py-3">
+            <h2 class="font-semibold">atp2osm</h2>
+            <p class="muted">{% trans gpl='https://www.gnu.org/licenses/gpl-3.0.html', github=source_repo_url %}The source code of this tool is published under the <a href="{{ gpl }}" target="_blank" rel="noopener" class="link link-primary">GPL-3.0<i class="iconoir-open-new-window"></i></a> licence. Contributions are welcome on <a href="{{ github }}" target="_blank" rel="noopener" class="link link-primary">GitHub<i class="iconoir-open-new-window"></i></a>.{% endtrans %}</p>
+            <p class="muted">{{ _('Version') }} <span class="font-mono">{{ app_version }}</span></p>
+        </div>
+    </div>
+    <div class="card bg-base-100 shadow-sm">
+        <div class="card-body gap-1 py-3">
+            <h2 class="font-semibold">OpenStreetMap</h2>
+            <p class="muted">{% trans link='https://www.openstreetmap.org/copyright' %}Data © <a href="{{ link }}" target="_blank" rel="noopener" class="link link-primary">OpenStreetMap contributors<i class="iconoir-open-new-window"></i></a>, ODbL{% endtrans %}</p>
+        </div>
+    </div>
+    <div class="card bg-base-100 shadow-sm">
+        <div class="card-body gap-1 py-3">
+            <h2 class="font-semibold">All The Places</h2>
+            <p class="muted">{% trans cc0='https://creativecommons.org/publicdomain/zero/1.0/' %}The ATP data is published under <a href="{{ cc0 }}" target="_blank" rel="noopener" class="link link-primary">CC0 1.0<i class="iconoir-open-new-window"></i></a> (public domain). It can be used freely, without restriction.{% endtrans %}</p>
+        </div>
+    </div>
+    <p><a href="/docs#licences" class="link link-primary">{{ _('More on the licences in the documentation') }}</a></p>
+</div>
+{% endblock %}

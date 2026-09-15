@@ -60,12 +60,12 @@
 <div>
           {% if 'user' in session %}
           <button type="submit" class="btn btn-primary btn-sm">
-            <i class="iconoir-plus"></i> {{ _('Add') }}
+            <i class="iconoir-plus" aria-hidden="true"></i> {{ _('Add') }}
           </button>
           {% else %}
           <div class="tooltip" data-tip="{{ _('You must sign in to add a brand') }}">
             <button type="submit" disabled class="btn btn-primary btn-sm">
-              <i class="iconoir-plus"></i> {{ _('Add') }}
+              <i class="iconoir-plus" aria-hidden="true"></i> {{ _('Add') }}
             </button>
           </div>
           {% endif %}
@@ -112,7 +112,7 @@
           <td>
             {% if entry.brand_wikidata %}
             <a class="link font-mono text-sm" href="https://www.wikidata.org/wiki/{{ entry.brand_wikidata }}"
-              target="_blank" rel="noopener">{{ entry.brand_wikidata }}<i class="iconoir-open-new-window"></i></a>
+              target="_blank" rel="noopener">{{ entry.brand_wikidata }}<i class="iconoir-open-new-window" aria-hidden="true"></i></a>
             {% else %}
             —
             {% endif %}
@@ -122,7 +122,7 @@
             {% set display_name = users.get(entry.osm_user_id) %}
             {% if display_name %}
             <a class="link" href="{{ api_url }}/user/{{ display_name }}" target="_blank" rel="noopener">{{ display_name
-              }}<i class="iconoir-open-new-window"></i></a>
+              }}<i class="iconoir-open-new-window" aria-hidden="true"></i></a>
             {% else %}
             {{ entry.osm_user_id }}
             {% endif %}
@@ -133,7 +133,7 @@
             {% set updater_name = users.get(entry.updated_by) %}
             {% if updater_name %}
             <a class="link" href="{{ api_url }}/user/{{ updater_name }}" target="_blank" rel="noopener">{{ updater_name
-              }}<i class="iconoir-open-new-window"></i></a>
+              }}<i class="iconoir-open-new-window" aria-hidden="true"></i></a>
             {% else %}
             {{ entry.updated_by }}
             {% endif %}
@@ -147,12 +147,12 @@
             <div class="row-actions flex justify-end gap-1">
               <button class="btn btn-sm btn-soft rounded-md" aria-label="{{ _('Edit') }}"
                 onclick='editEntry({{ entry.id }}, {{ entry.brand_name|tojson }}, {{ entry.brand_wikidata|tojson }}, {{ entry.estimation|tojson }})'>
-                <i class="iconoir-edit-pencil"></i>
+                <i class="iconoir-edit-pencil" aria-hidden="true"></i>
               </button>
               {% if current_user_id == entry.osm_user_id %}
               <button class="btn btn-sm btn-soft btn-error rounded-md" onclick="deleteEntry({{ entry.id }})"
                 aria-label="{{ _('Delete') }}">
-                <i class="iconoir-trash"></i>
+                <i class="iconoir-trash" aria-hidden="true"></i>
               </button>
               {% endif %}
             </div>

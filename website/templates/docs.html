@@ -49,7 +49,7 @@
 } %}
 <div class="flex flex-col lg:flex-row lg:items-start gap-8">
 <nav class="lg:order-last lg:sticky lg:top-0 lg:w-60 shrink-0 bg-base-100 rounded-md shadow-sm p-4 lg:bg-transparent lg:shadow-none lg:p-0 lg:pl-4 lg:border-l-2 lg:border-base-300" aria-label="{{ _('On this page') }}">
-    <p class="text-xs font-semibold uppercase tracking-wide muted mb-2 flex items-center gap-2"><i class="iconoir-list"></i> {{ _('On this page') }}</p>
+    <p class="text-xs font-semibold uppercase tracking-wide muted mb-2 flex items-center gap-2"><i class="iconoir-list" aria-hidden="true"></i> {{ _('On this page') }}</p>
     <ol class="text-sm flex flex-col">
         {% for id, label in toc.items() if id != "spiders" or spiders_page_linked %}
         <li><a href="#{{ id }}" class="flex gap-2 py-1 hover:text-primary"><span class="font-mono text-xs muted w-5 shrink-0 text-right">{{ loop.index }}</span>{{ label }}</a></li>
@@ -90,11 +90,11 @@
                 <p class="text-sm">{{ _('A chain is missing? Its ATP spider may not exist yet.') }}</p>
                 <div class="flex flex-wrap gap-2">
                     <a href="/todo" class="btn btn-xs btn-primary rounded-full">
-                        <i class="iconoir-list"></i> {{ _('Report it in the missing brands') }}
+                        <i class="iconoir-list" aria-hidden="true"></i> {{ _('Report it in the missing brands') }}
                     </a>
                     <a href="https://github.com/alltheplaces/alltheplaces" target="_blank" rel="noopener"
                         class="btn btn-xs btn-outline rounded-full">
-                        <i class="iconoir-github"></i> {{ _('Write a spider on GitHub') }}
+                        <i class="iconoir-github" aria-hidden="true"></i> {{ _('Write a spider on GitHub') }}
                     </a>
                 </div>
                 </div>
@@ -109,7 +109,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="card bg-base-100 shadow-sm">
                 <div class="card-body gap-2">
-                    <h3 class="font-semibold text-success text-sm flex items-center gap-1"><i class="iconoir-check-circle"></i> {{ _('What it does') }}</h3>
+                    <h3 class="font-semibold text-success text-sm flex items-center gap-1"><i class="iconoir-check-circle" aria-hidden="true"></i> {{ _('What it does') }}</h3>
                     <ul class="text-sm text-base-content/80 flex flex-col gap-1">
                         <li>{% trans %}Add the missing <span class="font-mono text-xs">opening_hours</span>, <span class="font-mono text-xs">phone</span>, <span class="font-mono text-xs">website</span> and <span class="font-mono text-xs">email</span> tags{% endtrans %}</li>
                         <li>{{ _('Match nodes, ways and relations') }}</li>
@@ -120,7 +120,7 @@
             </div>
             <div class="card bg-base-100 shadow-sm">
                 <div class="card-body gap-2">
-                    <h3 class="font-semibold text-error text-sm flex items-center gap-1"><i class="iconoir-xmark-circle"></i> {{ _('What it does not do') }}</h3>
+                    <h3 class="font-semibold text-error text-sm flex items-center gap-1"><i class="iconoir-xmark-circle" aria-hidden="true"></i> {{ _('What it does not do') }}</h3>
                     <ul class="text-sm text-base-content/80 flex flex-col gap-1">
                         <li>{{ _('Create new OSM nodes') }}</li>
                         <li>{{ _('Change or delete existing tags') }}</li>
@@ -346,19 +346,19 @@
 
                 <dl class="flex flex-col gap-3 text-sm">
                     <div class="border border-base-300 rounded-md p-3 flex flex-col gap-1">
-                        <dt class="flex items-center gap-2 font-mono text-xs"><span class="badge badge-soft badge-sm font-mono">GET</span><a href="/api/export/history.csv" class="link link-primary" target="_blank" rel="noopener">/api/export/history.csv<i class="iconoir-open-new-window"></i></a></dt>
+                        <dt class="flex items-center gap-2 font-mono text-xs"><span class="badge badge-soft badge-sm font-mono">GET</span><a href="/api/export/history.csv" class="link link-primary" target="_blank" rel="noopener">/api/export/history.csv<i class="iconoir-open-new-window" aria-hidden="true"></i></a></dt>
                         <dd class="muted">{{ _('One row per integration: brand, contributor, date, status, number of objects and of tags.') }}</dd>
                     </div>
                     <div class="border border-base-300 rounded-md p-3 flex flex-col gap-1">
-                        <dt class="flex items-center gap-2 font-mono text-xs"><span class="badge badge-soft badge-sm font-mono">GET</span><a href="/api/export/subdivisions.csv" class="link link-primary" target="_blank" rel="noopener">/api/export/subdivisions.csv<i class="iconoir-open-new-window"></i></a></dt>
+                        <dt class="flex items-center gap-2 font-mono text-xs"><span class="badge badge-soft badge-sm font-mono">GET</span><a href="/api/export/subdivisions.csv" class="link link-primary" target="_blank" rel="noopener">/api/export/subdivisions.csv<i class="iconoir-open-new-window" aria-hidden="true"></i></a></dt>
                         <dd class="muted">{{ _('The detail per changeset: administrative subdivision, number of objects, OSM changeset identifier and status.') }}</dd>
                     </div>
                     <div class="border border-base-300 rounded-md p-3 flex flex-col gap-1">
-                        <dt class="flex items-center gap-2 font-mono text-xs"><span class="badge badge-soft badge-sm font-mono">GET</span><a href="/api/export/todo.csv" class="link link-primary" target="_blank" rel="noopener">/api/export/todo.csv<i class="iconoir-open-new-window"></i></a></dt>
+                        <dt class="flex items-center gap-2 font-mono text-xs"><span class="badge badge-soft badge-sm font-mono">GET</span><a href="/api/export/todo.csv" class="link link-primary" target="_blank" rel="noopener">/api/export/todo.csv<i class="iconoir-open-new-window" aria-hidden="true"></i></a></dt>
                         <dd class="muted">{% trans %}The brands reported as missing from ATP. The ones ATP now knows are left out, unless <code class="font-mono text-xs">?show_in_atp=1</code> is passed.{% endtrans %}</dd>
                     </div>
                     <div class="border border-base-300 rounded-md p-3 flex flex-col gap-1">
-                        <dt class="flex items-center gap-2 font-mono text-xs"><span class="badge badge-soft badge-sm font-mono">GET</span><a href="/api/stats.json" class="link link-primary" target="_blank" rel="noopener">/api/stats.json<i class="iconoir-open-new-window"></i></a></dt>
+                        <dt class="flex items-center gap-2 font-mono text-xs"><span class="badge badge-soft badge-sm font-mono">GET</span><a href="/api/stats.json" class="link link-primary" target="_blank" rel="noopener">/api/stats.json<i class="iconoir-open-new-window" aria-hidden="true"></i></a></dt>
                         <dd class="muted">{{ _('The figures of the statistics page: totals, series per period, top tags, brands and contributors, spider reliability. Takes the same filters as the page.') }}</dd>
                     </div>
                 </dl>
@@ -376,20 +376,20 @@
         <ul class="flex flex-col gap-2 text-sm">
             <li>
                 <a href="https://alltheplaces.xyz" target="_blank" rel="noopener" class="link link-primary">
-                    <i class="iconoir-open-in-browser"></i> All The Places
-                <i class="iconoir-open-new-window"></i></a>
+                    <i class="iconoir-open-in-browser" aria-hidden="true"></i> All The Places
+                <i class="iconoir-open-new-window" aria-hidden="true"></i></a>
                 — {{ _('the source of the POI data') }}
             </li>
             <li>
                 <a href="https://wiki.openstreetmap.org/wiki/atp2osm" target="_blank" rel="noopener" class="link link-primary">
-                    <i class="icown-wikipedia"></i> {{ _('OSM wiki page') }}
-                <i class="iconoir-open-new-window"></i></a>
+                    <i class="icown-wikipedia" aria-hidden="true"></i> {{ _('OSM wiki page') }}
+                <i class="iconoir-open-new-window" aria-hidden="true"></i></a>
                 — {{ _('documentation of the automated integrations') }}
             </li>
             <li>
                 <a href="https://github.com/hagatopaxi/atp2osm-import" target="_blank" rel="noopener" class="link link-primary">
-                    <i class="iconoir-github"></i> {{ _('Source code') }}
-                <i class="iconoir-open-new-window"></i></a>
+                    <i class="iconoir-github" aria-hidden="true"></i> {{ _('Source code') }}
+                <i class="iconoir-open-new-window" aria-hidden="true"></i></a>
                 — {{ _('contributions welcome') }}
             </li>
         </ul>

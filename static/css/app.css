@@ -9,7 +9,7 @@
 
 /* Sidebar width */
 #sidebar {
-    width: 256px;
+    width: 288px;
     flex-shrink: 0;
     overflow-x: hidden;
     overflow-y: auto;
@@ -35,10 +35,37 @@ body:has(#sidebar-toggle:not(:checked)) .sidebar-collapse-icon {
     display: none;
 }
 
-/* User avatar when collapsed */
+/* User avatar and preference rows when collapsed */
 body:has(#sidebar-toggle:not(:checked)) .sidebar-user-section {
     padding: 6px 4px;
     justify-content: center;
+}
+body:has(#sidebar-toggle:not(:checked)) .sidebar-row {
+    justify-content: center;
+    padding-inline: 0;
+}
+
+/* Collapsed, the sidebar is too narrow for the language menu: it opens to
+   the right of the globe, and the sidebar stops clipping its overflow, which
+   is then that menu alone, every label being hidden. */
+@media (min-width: 768px) {
+    body:has(#sidebar-toggle:not(:checked)) #sidebar {
+        overflow: visible;
+    }
+    body:has(#sidebar-toggle:not(:checked)) .lang-menu {
+        left: 100%;
+        bottom: 0;
+        margin-left: 0.5rem;
+    }
+}
+
+/* The theme row names the current theme: one word shown, the other hidden. */
+.theme-name-dark,
+[data-theme="dark"] .theme-name-light {
+    display: none;
+}
+[data-theme="dark"] .theme-name-dark {
+    display: inline;
 }
 
 /* Icon-only menu items when collapsed */
@@ -86,6 +113,15 @@ body:has(#sidebar-toggle:not(:checked)) #sidebar .menu a {
     .sidebar-show {
         display: none;
     }
+}
+
+/* The content panel is white (or its dark twin) like the cards on it: a
+   shadow alone no longer sets a card apart, and says nothing on the dark
+   theme. Every card in the content draws its edge, and sits a shade off
+   the panel. */
+main .card {
+    background-color: var(--color-base-200);
+    border: 1px solid var(--color-base-300);
 }
 
 /* Info cards, see templates/_info_card.html. Built on the daisyUI alert, whose
@@ -290,8 +326,8 @@ body:has(#sidebar-toggle:not(:checked)) #sidebar .menu a {
     overflow-x: auto;
     padding-bottom: 0.5rem;
     background:
-        linear-gradient(to right, var(--color-base-200) 30%, transparent) left / 40px 100% no-repeat local,
-        linear-gradient(to left, var(--color-base-200) 30%, transparent) right / 40px 100% no-repeat local,
+        linear-gradient(to right, var(--color-base-100) 30%, transparent) left / 40px 100% no-repeat local,
+        linear-gradient(to left, var(--color-base-100) 30%, transparent) right / 40px 100% no-repeat local,
         linear-gradient(to right, color-mix(in oklab, var(--color-base-content) 25%, transparent), transparent) left / 14px 100% no-repeat scroll,
         linear-gradient(to left, color-mix(in oklab, var(--color-base-content) 25%, transparent), transparent) right / 14px 100% no-repeat scroll;
 }
@@ -435,5 +471,29 @@ a[target="_blank"] > .iconoir-open-new-window {
 
     .brands-list td:nth-child(6) {
         grid-area: 2 / 2 / 4 / 3;
+    }
+}
+
+/* One transition for everything that answers the pointer: buttons, links,
+   menu entries, sortable headers, table rows. daisyUI already eases its own
+   buttons at .2s; the same duration here, so a link and a button next to it
+   settle together. Switched off for whoever asked their system for less
+   motion, along with the few animations above. */
+a,
+.btn,
+.menu a,
+summary,
+.table tr {
+    transition-property: color, background-color, border-color, opacity, box-shadow;
+    transition-duration: 200ms;
+    transition-timing-function: ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+        transition-duration: 0s !important;
+        animation: none !important;
     }
 }

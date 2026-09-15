@@ -19,7 +19,7 @@
 
 {% macro badge(number) %}
 <span class="badge badge-soft join-item {{ color(number) | trim }} whitespace-nowrap">
-    <i class="{{ icon(number) | trim }}"></i>
+    <i class="{{ icon(number) | trim }}" aria-hidden="true"></i>
     <span class="list-hide">{{ label(number) | trim }}</span><span class="list-only">{{ short_label(number) | trim }}</span>
 </span>
 {% endmacro %}

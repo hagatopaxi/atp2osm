@@ -14,7 +14,7 @@
 
 {% macro info_card(kind='info', class='', attrs='') %}
 <div role="alert" class="info-card alert alert-{{ kind }} alert-soft {{ class }}" {{ attrs | safe }}>
-    <i class="{{ INFO_CARD_ICONS[kind] }} text-xl shrink-0"></i>
+    <i class="{{ INFO_CARD_ICONS[kind] }} text-xl shrink-0" aria-hidden="true"></i>
     <div class="info-card-content">
         {{ caller() }}
     </div>

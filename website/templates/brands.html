@@ -37,7 +37,7 @@
     <p class="text-sm">{{ _('Sign in with your OpenStreetMap account to start an integration.') }}</p>
 </div>
 <button onclick="login('/brands')" class="btn btn-sm btn-primary rounded-full self-start">
-    <i class="iconoir-log-in"></i> {{ _('Sign in with OSM') }}
+    <i class="iconoir-log-in" aria-hidden="true"></i> {{ _('Sign in with OSM') }}
 </button>
 {% endcall %}
 {% endif %}
@@ -85,7 +85,7 @@
             <td class="whitespace-nowrap md:w-1/2 md:max-w-0 md:truncate" title="{{ row['brand'] }}">
                 {{ row["brand"] }}
                 <br><a class="link text-xs font-mono muted" href="https://www.wikidata.org/wiki/{{ row['brand_wikidata'] }}"
-                   target="_blank" rel="noopener">{{ row["brand_wikidata"] }}<i class="iconoir-open-new-window"></i></a>
+                   target="_blank" rel="noopener">{{ row["brand_wikidata"] }}<i class="iconoir-open-new-window" aria-hidden="true"></i></a>
             </td>
 
             <td>
@@ -137,7 +137,7 @@
                     <div class="{{ 'tooltip tooltip-left' if disabled }}" {{ ('data-tip="' + tooltip + '"') | safe if disabled }}>
                         <a {% if not disabled %}href="/brands/{{ row['brand_wikidata'] }}/validate"{% endif %}
                         {{ 'disabled' if disabled }} class="btn btn-sm rounded-md whitespace-nowrap {{ 'btn-soft btn-primary' if not disabled }}">
-                        <i class="iconoir-double-check"></i>
+                        <i class="iconoir-double-check" aria-hidden="true"></i>
                         {{ _('Integrate') }}
                         </a>
                     </div>

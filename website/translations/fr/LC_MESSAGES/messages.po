@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-15 14:35+0200\n"
+"POT-Creation-Date: 2026-09-15 15:34+0200\n"
 "PO-Revision-Date: 2026-09-06 17:06+0200\n"
 "Last-Translator: the atp2osm contributors\n"
 "Language: fr\n"
@@ -56,83 +56,92 @@ msgstr "Une erreur est survenue, veuillez réessayer."
 msgid "Toggle the sidebar"
 msgstr "Basculer la barre latérale"
 
-#: website/templates/_aside.html:24 website/templates/brands.html:16
+#: website/templates/_aside.html:25 website/templates/brands.html:16
 #: website/templates/docs.html:26 website/templates/history.html:17
 #: website/templates/llms.txt:10 website/templates/spiders.html:15
 #: website/templates/stats.html:16 website/templates/todo.html:17
 msgid "Home"
 msgstr "Accueil"
 
-#: website/templates/_aside.html:25 website/templates/brands.html:7
+#: website/templates/_aside.html:26 website/templates/brands.html:7
 #: website/templates/brands.html:8 website/templates/brands.html:17
 #: website/templates/llms.txt:11 website/templates/todo.html:24
 msgid "Brands to integrate"
 msgstr "Marques à intégrer"
 
-#: website/templates/_aside.html:26 website/templates/llms.txt:12
+#: website/templates/_aside.html:27 website/templates/llms.txt:12
 #: website/templates/spiders.html:6 website/templates/spiders.html:7
 #: website/templates/spiders.html:16
 msgid "Spiders"
 msgstr "Spiders"
 
-#: website/templates/_aside.html:27 website/templates/history.html:8
+#: website/templates/_aside.html:28 website/templates/history.html:8
 #: website/templates/history.html:9 website/templates/history.html:18
 #: website/templates/history.html:29 website/templates/llms.txt:13
 msgid "Integration history"
 msgstr "Historique des intégrations"
 
-#: website/templates/_aside.html:28 website/templates/home.html:67
+#: website/templates/_aside.html:29 website/templates/home.html:67
 #: website/templates/llms.txt:14 website/templates/stats.html:7
 #: website/templates/stats.html:17 website/templates/stats.html:31
 msgid "Statistics"
 msgstr "Statistiques"
 
-#: website/templates/_aside.html:29 website/templates/llms.txt:15
+#: website/templates/_aside.html:30 website/templates/llms.txt:15
 #: website/templates/todo.html:8 website/templates/todo.html:18
 msgid "Missing brands"
 msgstr "Marques manquantes"
 
-#: website/templates/_aside.html:30 website/templates/docs.html:4
+#: website/templates/_aside.html:31 website/templates/docs.html:4
 #: website/templates/docs.html:6 website/templates/docs.html:13
 #: website/templates/docs.html:27 website/templates/docs.html:33
 #: website/templates/llms.txt:16
 msgid "Documentation"
 msgstr "Documentation"
 
-#: website/templates/_aside.html:37 website/templates/_aside.html:39
+#: website/templates/_aside.html:38
+msgid "Preferences"
+msgstr "Préférences"
+
+#: website/templates/_aside.html:42 website/templates/_aside.html:44
 msgid "Light or dark theme"
 msgstr "Thème clair ou sombre"
 
-#: website/templates/_aside.html:43
+#: website/templates/_aside.html:48
 msgid "Theme"
 msgstr "Thème"
 
-#: website/templates/_aside.html:47
+#: website/templates/_aside.html:50
+msgid "Light"
+msgstr "Clair"
+
+#: website/templates/_aside.html:50
+msgid "Dark"
+msgstr "Sombre"
+
+#: website/templates/_aside.html:56 website/templates/_aside.html:60
 msgid "Language"
 msgstr "Langue"
 
-#: website/templates/_aside.html:65 website/templates/_export_menu.html:10
-msgid "About"
-msgstr "À propos"
-
-#: website/templates/_aside.html:66
-msgid "Open-source project. Contributions welcome!"
-msgstr "Projet open-source. Contributions bienvenues !"
-
-#: website/templates/_aside.html:71
+#: website/templates/_aside.html:82
 msgid "GPL-3.0 licence"
 msgstr "Licence GPL-3.0"
 
-#: website/templates/_aside.html:72
-#, python-format
-msgid "Data © <a href=\"%(link)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-hover\">OpenStreetMap contributors<i class=\"iconoir-open-new-window\"></i></a>, ODbL"
-msgstr "Données © <a href=\"%(link)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-hover\">OpenStreetMap contributors<i class=\"iconoir-open-new-window\"></i></a>, ODbL"
+#: website/templates/_aside.html:84
+msgid "OpenStreetMap contributors"
+msgstr "Contributeurs OpenStreetMap"
 
-#: website/templates/_aside.html:90
+#: website/templates/_aside.html:86 website/templates/_export_menu.html:10
+#: website/templates/about.html:3 website/templates/about.html:5
+#: website/templates/about.html:7 website/templates/llms.txt:17
+msgid "About"
+msgstr "À propos"
+
+#: website/templates/_aside.html:98
 msgid "Log out"
 msgstr "Déconnexion"
 
-#: website/templates/_aside.html:96 website/templates/_aside.html:98
+#: website/templates/_aside.html:104 website/templates/_aside.html:106
 #: website/templates/brands.html:40
 msgid "Sign in with OSM"
 msgstr "Se connecter avec OSM"
@@ -305,6 +314,37 @@ msgstr "Ajout"
 #: website/templates/_wave.html:14
 msgid "Modifying"
 msgstr "Modification"
+
+#: website/templates/about.html:4
+msgid "About atp2osm: an open-source tool to integrate the AllThePlaces data into OpenStreetMap, its licence and the licences of the data it handles."
+msgstr "À propos d'atp2osm : un outil open-source d'intégration des données AllThePlaces dans OpenStreetMap, sa licence et celles des données qu'il manipule."
+
+#: website/templates/about.html:8
+msgid "Open-source project. Contributions welcome!"
+msgstr "Projet open-source. Contributions bienvenues !"
+
+#: website/templates/about.html:15 website/templates/docs.html:332
+#, python-format
+msgid "The source code of this tool is published under the <a href=\"%(gpl)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">GPL-3.0<i class=\"iconoir-open-new-window\"></i></a> licence. Contributions are welcome on <a href=\"%(github)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">GitHub<i class=\"iconoir-open-new-window\"></i></a>."
+msgstr "Le code source de cet outil est publié sous licence <a href=\"%(gpl)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">GPL-3.0<i class=\"iconoir-open-new-window\"></i></a>. Les contributions sont les bienvenues sur <a href=\"%(github)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">GitHub<i class=\"iconoir-open-new-window\"></i></a>."
+
+#: website/templates/about.html:16
+msgid "Version"
+msgstr "Version"
+
+#: website/templates/about.html:22
+#, python-format
+msgid "Data © <a href=\"%(link)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">OpenStreetMap contributors<i class=\"iconoir-open-new-window\"></i></a>, ODbL"
+msgstr "Données © <a href=\"%(link)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">contributeurs OpenStreetMap<i class=\"iconoir-open-new-window\"></i></a>, ODbL"
+
+#: website/templates/about.html:28 website/templates/docs.html:326
+#, python-format
+msgid "The ATP data is published under <a href=\"%(cc0)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">CC0 1.0<i class=\"iconoir-open-new-window\"></i></a> (public domain). It can be used freely, without restriction."
+msgstr "Les données ATP sont publiées sous licence <a href=\"%(cc0)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">CC0 1.0<i class=\"iconoir-open-new-window\"></i></a> (domaine public). Leur utilisation est libre sans restriction."
+
+#: website/templates/about.html:31
+msgid "More on the licences in the documentation"
+msgstr "Plus de détails sur les licences dans la documentation"
 
 #: website/templates/brands.html:6
 #, python-format
@@ -479,7 +519,7 @@ msgstr "Licences"
 msgid "Exporting the data"
 msgstr "Exporter les données"
 
-#: website/templates/docs.html:48 website/templates/llms.txt:22
+#: website/templates/docs.html:48 website/templates/llms.txt:23
 msgid "Resources"
 msgstr "Ressources"
 
@@ -733,16 +773,6 @@ msgstr "Les POI réellement écrits dans OpenStreetMap via les marques que le sp
 msgid "The OSM data is published under the <a href=\"%(odbl)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">ODbL 1.0<i class=\"iconoir-open-new-window\"></i></a> (Open Database License). Every contribution made through this tool falls under the OpenStreetMap <a href=\"%(terms)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">Contributor Terms<i class=\"iconoir-open-new-window\"></i></a>."
 msgstr "Les données OSM sont publiées sous licence <a href=\"%(odbl)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">ODbL 1.0<i class=\"iconoir-open-new-window\"></i></a> (Open Database License). Toute contribution via cet outil est soumise aux <a href=\"%(terms)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">Contributor Terms<i class=\"iconoir-open-new-window\"></i></a> d'OpenStreetMap."
 
-#: website/templates/docs.html:326
-#, python-format
-msgid "The ATP data is published under <a href=\"%(cc0)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">CC0 1.0<i class=\"iconoir-open-new-window\"></i></a> (public domain). It can be used freely, without restriction."
-msgstr "Les données ATP sont publiées sous licence <a href=\"%(cc0)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">CC0 1.0<i class=\"iconoir-open-new-window\"></i></a> (domaine public). Leur utilisation est libre sans restriction."
-
-#: website/templates/docs.html:332
-#, python-format
-msgid "The source code of this tool is published under the <a href=\"%(gpl)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">GPL-3.0<i class=\"iconoir-open-new-window\"></i></a> licence. Contributions are welcome on <a href=\"%(github)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">GitHub<i class=\"iconoir-open-new-window\"></i></a>."
-msgstr "Le code source de cet outil est publié sous licence <a href=\"%(gpl)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">GPL-3.0<i class=\"iconoir-open-new-window\"></i></a>. Les contributions sont les bienvenues sur <a href=\"%(github)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">GitHub<i class=\"iconoir-open-new-window\"></i></a>."
-
 #: website/templates/docs.html:344
 #, python-format
 msgid "The data <strong>produced by atp2osm</strong> can be exported freely, as CSV or JSON, without signing in. It is only the trace of the integrations and the list of the missing brands: the source data stays with the projects that produce it (<a href=\"%(atp)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">All The Places<i class=\"iconoir-open-new-window\"></i></a> and <a href=\"%(osm)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">OpenStreetMap<i class=\"iconoir-open-new-window\"></i></a>)."
@@ -780,7 +810,7 @@ msgstr "Page wiki OSM"
 msgid "documentation of the automated integrations"
 msgstr "documentation des intégrations automatisées"
 
-#: website/templates/docs.html:391 website/templates/llms.txt:24
+#: website/templates/docs.html:391 website/templates/llms.txt:25
 msgid "Source code"
 msgstr "Code source"
 
@@ -1102,6 +1132,10 @@ msgstr "enseignes absentes d'ATP."
 #: website/templates/llms.txt:16
 msgid "how it works and how to contribute."
 msgstr "fonctionnement et guide de contribution."
+
+#: website/templates/llms.txt:17
+msgid "the project, its licence and the licences of the data."
+msgstr "le projet, sa licence et celles des données."
 
 #: website/templates/spiders.html:5
 #, python-format
@@ -1887,4 +1921,10 @@ msgstr "Réessayez dans quelques minutes."
 
 #~ msgid "Identify → verify → integrate"
 #~ msgstr "Identifier → vérifier → intégrer"
+
+#~ msgid "Open-source project. Contributions welcome!"
+#~ msgstr "Projet open-source. Contributions bienvenues !"
+
+#~ msgid "Data © <a href=\"%(link)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-hover\">OpenStreetMap contributors<i class=\"iconoir-open-new-window\"></i></a>, ODbL"
+#~ msgstr "Données © <a href=\"%(link)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-hover\">OpenStreetMap contributors<i class=\"iconoir-open-new-window\"></i></a>, ODbL"
 

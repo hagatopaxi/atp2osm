@@ -24,7 +24,7 @@ settings = get_settings()  # fail fast at startup if any required env var is mis
 
 # The pages that exist in every language. Everything else — assets, the API,
 # the OAuth callback, robots.txt — stays language-free.
-TRANSLATED_PATHS = ("/", "/brands", "/spiders", "/history", "/stats", "/todo", "/docs")
+TRANSLATED_PATHS = ("/", "/brands", "/spiders", "/history", "/stats", "/todo", "/docs", "/about")
 
 app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
