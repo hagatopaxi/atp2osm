@@ -124,7 +124,7 @@ msgstr ""
 
 #: website/templates/_aside.html:72
 #, python-format
-msgid "Data © <a href=\"%(link)s\" target=\"_blank\" rel=\"noopener\" class=\"link\">OpenStreetMap contributors</a>, ODbL"
+msgid "Data © <a href=\"%(link)s\" target=\"_blank\" rel=\"noopener\" class=\"link\">OpenStreetMap contributors<i class=\"iconoir-open-new-window\"></i></a>, ODbL"
 msgstr ""
 
 #: website/templates/_aside.html:90
@@ -474,7 +474,7 @@ msgstr ""
 
 #: website/templates/docs.html:45
 #, python-format
-msgid "The notion of a <strong>brand</strong> comes straight from <a href=\"%(atp)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">All The Places</a> (ATP). ATP is a collaborative database built around <strong>national and international chains</strong>: retail chains, restaurant networks, banks, pharmacy chains… Every chain is identified there by a unique <a href=\"%(wikidata)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">Wikidata</a> code — for instance <a href=\"%(zara)s\" target=\"_blank\" rel=\"noopener\" class=\"link font-mono text-xs\">Q37158</a> for Zara. <strong>Independent shops</strong> (the bakery around the corner, a local restaurant…) are not part of it."
+msgid "The notion of a <strong>brand</strong> comes straight from <a href=\"%(atp)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">All The Places<i class=\"iconoir-open-new-window\"></i></a> (ATP). ATP is a collaborative database built around <strong>national and international chains</strong>: retail chains, restaurant networks, banks, pharmacy chains… Every chain is identified there by a unique <a href=\"%(wikidata)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">Wikidata<i class=\"iconoir-open-new-window\"></i></a> code — for instance <a href=\"%(zara)s\" target=\"_blank\" rel=\"noopener\" class=\"link font-mono text-xs\">Q37158<i class=\"iconoir-open-new-window\"></i></a> for Zara. <strong>Independent shops</strong> (the bakery around the corner, a local restaurant…) are not part of it."
 msgstr ""
 
 #: website/templates/docs.html:49
@@ -555,7 +555,7 @@ msgstr ""
 
 #: website/templates/docs.html:116
 #, python-format
-msgid "<strong>atp2osm</strong> enriches OpenStreetMap from the <a href=\"%(atp)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">All The Places</a> (ATP) data. ATP automatically collects the information of points of interest (opening hours, phone, website, email) straight from the official websites of the chains."
+msgid "<strong>atp2osm</strong> enriches OpenStreetMap from the <a href=\"%(atp)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">All The Places<i class=\"iconoir-open-new-window\"></i></a> (ATP) data. ATP automatically collects the information of points of interest (opening hours, phone, website, email) straight from the official websites of the chains."
 msgstr ""
 
 #: website/templates/docs.html:119
@@ -747,17 +747,17 @@ msgstr ""
 
 #: website/templates/docs.html:298
 #, python-format
-msgid "The OSM data is published under the <a href=\"%(odbl)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">ODbL 1.0</a> (Open Database License). Every contribution made through this tool falls under the OpenStreetMap <a href=\"%(terms)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">Contributor Terms</a>."
+msgid "The OSM data is published under the <a href=\"%(odbl)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">ODbL 1.0<i class=\"iconoir-open-new-window\"></i></a> (Open Database License). Every contribution made through this tool falls under the OpenStreetMap <a href=\"%(terms)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">Contributor Terms<i class=\"iconoir-open-new-window\"></i></a>."
 msgstr ""
 
 #: website/templates/docs.html:304
 #, python-format
-msgid "The ATP data is published under <a href=\"%(cc0)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">CC0 1.0</a> (public domain). It can be used freely, without restriction."
+msgid "The ATP data is published under <a href=\"%(cc0)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">CC0 1.0<i class=\"iconoir-open-new-window\"></i></a> (public domain). It can be used freely, without restriction."
 msgstr ""
 
 #: website/templates/docs.html:310
 #, python-format
-msgid "The source code of this tool is published under the <a href=\"%(gpl)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">GPL-3.0</a> licence. Contributions are welcome on <a href=\"%(github)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">GitHub</a>."
+msgid "The source code of this tool is published under the <a href=\"%(gpl)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">GPL-3.0<i class=\"iconoir-open-new-window\"></i></a> licence. Contributions are welcome on <a href=\"%(github)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">GitHub<i class=\"iconoir-open-new-window\"></i></a>."
 msgstr ""
 
 #: website/templates/docs.html:317
@@ -766,7 +766,7 @@ msgstr ""
 
 #: website/templates/docs.html:322
 #, python-format
-msgid "The data <strong>produced by atp2osm</strong> can be exported freely, as CSV or JSON, without signing in. It is only the trace of the integrations and the list of the missing brands: the source data stays with the projects that produce it (<a href=\"%(atp)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">All The Places</a> and <a href=\"%(osm)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">OpenStreetMap</a>)."
+msgid "The data <strong>produced by atp2osm</strong> can be exported freely, as CSV or JSON, without signing in. It is only the trace of the integrations and the list of the missing brands: the source data stays with the projects that produce it (<a href=\"%(atp)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">All The Places<i class=\"iconoir-open-new-window\"></i></a> and <a href=\"%(osm)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">OpenStreetMap<i class=\"iconoir-open-new-window\"></i></a>)."
 msgstr ""
 
 #: website/templates/docs.html:328
@@ -990,7 +990,7 @@ msgstr ""
 
 #: website/templates/history_detail.html:232
 #, python-format
-msgid "A changeset went wrong? It can be reverted with <a class=\"link\" href=\"%(link)s\" target=\"_blank\" rel=\"noopener\">OSM Revert</a>, by pasting in the identifier of the changeset concerned."
+msgid "A changeset went wrong? It can be reverted with <a class=\"link\" href=\"%(link)s\" target=\"_blank\" rel=\"noopener\">OSM Revert<i class=\"iconoir-open-new-window\"></i></a>, by pasting in the identifier of the changeset concerned."
 msgstr ""
 
 #: website/templates/history_detail.html:236
@@ -1027,7 +1027,7 @@ msgstr ""
 
 #: website/templates/home.html:56
 #, python-format
-msgid "<strong>atp2osm</strong> matches the points of interest (POIs) of the <a href=\"%(atp)s\" class=\"link link-primary\" target=\"_blank\" rel=\"noopener\">All The Places</a> database against the objects that already exist in <a href=\"%(osm)s\" class=\"link link-primary\" target=\"_blank\" rel=\"noopener\">OpenStreetMap</a>."
+msgid "<strong>atp2osm</strong> matches the points of interest (POIs) of the <a href=\"%(atp)s\" class=\"link link-primary\" target=\"_blank\" rel=\"noopener\">All The Places<i class=\"iconoir-open-new-window\"></i></a> database against the objects that already exist in <a href=\"%(osm)s\" class=\"link link-primary\" target=\"_blank\" rel=\"noopener\">OpenStreetMap<i class=\"iconoir-open-new-window\"></i></a>."
 msgstr ""
 
 #: website/templates/home.html:59
@@ -1036,7 +1036,7 @@ msgstr ""
 
 #: website/templates/home.html:62
 #, python-format
-msgid "To follow how the integrations progress in your area, the result can be browsed on this site: <a class=\"link link-primary\" href=\"%(link)s\" target=\"_blank\" rel=\"noopener\">%(link)s</a>"
+msgid "To follow how the integrations progress in your area, the result can be browsed on this site: <a class=\"link link-primary\" href=\"%(link)s\" target=\"_blank\" rel=\"noopener\">%(link)s<i class=\"iconoir-open-new-window\"></i></a>"
 msgstr ""
 
 #: website/templates/home.html:69

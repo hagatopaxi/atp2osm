@@ -125,8 +125,8 @@ msgstr "Licence GPL-3.0"
 
 #: website/templates/_aside.html:72
 #, python-format
-msgid "Data © <a href=\"%(link)s\" target=\"_blank\" rel=\"noopener\" class=\"link\">OpenStreetMap contributors</a>, ODbL"
-msgstr "Données © <a href=\"%(link)s\" target=\"_blank\" rel=\"noopener\" class=\"link\">OpenStreetMap contributors</a>, ODbL"
+msgid "Data © <a href=\"%(link)s\" target=\"_blank\" rel=\"noopener\" class=\"link\">OpenStreetMap contributors<i class=\"iconoir-open-new-window\"></i></a>, ODbL"
+msgstr "Données © <a href=\"%(link)s\" target=\"_blank\" rel=\"noopener\" class=\"link\">OpenStreetMap contributors<i class=\"iconoir-open-new-window\"></i></a>, ODbL"
 
 #: website/templates/_aside.html:90
 msgid "Log out"
@@ -475,8 +475,8 @@ msgstr "Qu'est-ce qu'une « marque » ?"
 
 #: website/templates/docs.html:45
 #, python-format
-msgid "The notion of a <strong>brand</strong> comes straight from <a href=\"%(atp)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">All The Places</a> (ATP). ATP is a collaborative database built around <strong>national and international chains</strong>: retail chains, restaurant networks, banks, pharmacy chains… Every chain is identified there by a unique <a href=\"%(wikidata)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">Wikidata</a> code — for instance <a href=\"%(zara)s\" target=\"_blank\" rel=\"noopener\" class=\"link font-mono text-xs\">Q37158</a> for Zara. <strong>Independent shops</strong> (the bakery around the corner, a local restaurant…) are not part of it."
-msgstr "La notion de <strong>marque</strong> vient directement d'<a href=\"%(atp)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">All The Places</a> (ATP). ATP est une base de données collaborative structurée autour des <strong>enseignes nationales et internationales</strong> : chaînes de magasins, réseaux de restauration, banques, chaînes de pharmacies… Chaque enseigne y est identifiée par un code <a href=\"%(wikidata)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">Wikidata</a> unique — par exemple <a href=\"%(zara)s\" target=\"_blank\" rel=\"noopener\" class=\"link font-mono text-xs\">Q37158</a> pour Zara. <strong>Les commerces indépendants</strong> (boulangerie de quartier, restaurant local…) n'en font pas partie."
+msgid "The notion of a <strong>brand</strong> comes straight from <a href=\"%(atp)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">All The Places<i class=\"iconoir-open-new-window\"></i></a> (ATP). ATP is a collaborative database built around <strong>national and international chains</strong>: retail chains, restaurant networks, banks, pharmacy chains… Every chain is identified there by a unique <a href=\"%(wikidata)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">Wikidata<i class=\"iconoir-open-new-window\"></i></a> code — for instance <a href=\"%(zara)s\" target=\"_blank\" rel=\"noopener\" class=\"link font-mono text-xs\">Q37158<i class=\"iconoir-open-new-window\"></i></a> for Zara. <strong>Independent shops</strong> (the bakery around the corner, a local restaurant…) are not part of it."
+msgstr "La notion de <strong>marque</strong> vient directement d'<a href=\"%(atp)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">All The Places<i class=\"iconoir-open-new-window\"></i></a> (ATP). ATP est une base de données collaborative structurée autour des <strong>enseignes nationales et internationales</strong> : chaînes de magasins, réseaux de restauration, banques, chaînes de pharmacies… Chaque enseigne y est identifiée par un code <a href=\"%(wikidata)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">Wikidata<i class=\"iconoir-open-new-window\"></i></a> unique — par exemple <a href=\"%(zara)s\" target=\"_blank\" rel=\"noopener\" class=\"link font-mono text-xs\">Q37158<i class=\"iconoir-open-new-window\"></i></a> pour Zara. <strong>Les commerces indépendants</strong> (boulangerie de quartier, restaurant local…) n'en font pas partie."
 
 #: website/templates/docs.html:49
 msgid "A few key terms"
@@ -556,8 +556,8 @@ msgstr "Principe général"
 
 #: website/templates/docs.html:116
 #, python-format
-msgid "<strong>atp2osm</strong> enriches OpenStreetMap from the <a href=\"%(atp)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">All The Places</a> (ATP) data. ATP automatically collects the information of points of interest (opening hours, phone, website, email) straight from the official websites of the chains."
-msgstr "<strong>atp2osm</strong> est un outil d'enrichissement d'OpenStreetMap à partir des données <a href=\"%(atp)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">All The Places</a> (ATP). ATP collecte automatiquement les informations des points d'intérêt (horaires, téléphone, site web, email) directement depuis les sites officiels des enseignes."
+msgid "<strong>atp2osm</strong> enriches OpenStreetMap from the <a href=\"%(atp)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">All The Places<i class=\"iconoir-open-new-window\"></i></a> (ATP) data. ATP automatically collects the information of points of interest (opening hours, phone, website, email) straight from the official websites of the chains."
+msgstr "<strong>atp2osm</strong> est un outil d'enrichissement d'OpenStreetMap à partir des données <a href=\"%(atp)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">All The Places<i class=\"iconoir-open-new-window\"></i></a> (ATP). ATP collecte automatiquement les informations des points d'intérêt (horaires, téléphone, site web, email) directement depuis les sites officiels des enseignes."
 
 #: website/templates/docs.html:119
 msgid "The tool compares that data against the existing OSM nodes, finds the missing tags, and lets you review then integrate them into OSM through your own account. <strong>No node is ever created or deleted</strong> — only missing tags are added."
@@ -748,18 +748,18 @@ msgstr "Licences"
 
 #: website/templates/docs.html:298
 #, python-format
-msgid "The OSM data is published under the <a href=\"%(odbl)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">ODbL 1.0</a> (Open Database License). Every contribution made through this tool falls under the OpenStreetMap <a href=\"%(terms)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">Contributor Terms</a>."
-msgstr "Les données OSM sont publiées sous licence <a href=\"%(odbl)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">ODbL 1.0</a> (Open Database License). Toute contribution via cet outil est soumise aux <a href=\"%(terms)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">Contributor Terms</a> d'OpenStreetMap."
+msgid "The OSM data is published under the <a href=\"%(odbl)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">ODbL 1.0<i class=\"iconoir-open-new-window\"></i></a> (Open Database License). Every contribution made through this tool falls under the OpenStreetMap <a href=\"%(terms)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">Contributor Terms<i class=\"iconoir-open-new-window\"></i></a>."
+msgstr "Les données OSM sont publiées sous licence <a href=\"%(odbl)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">ODbL 1.0<i class=\"iconoir-open-new-window\"></i></a> (Open Database License). Toute contribution via cet outil est soumise aux <a href=\"%(terms)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">Contributor Terms<i class=\"iconoir-open-new-window\"></i></a> d'OpenStreetMap."
 
 #: website/templates/docs.html:304
 #, python-format
-msgid "The ATP data is published under <a href=\"%(cc0)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">CC0 1.0</a> (public domain). It can be used freely, without restriction."
-msgstr "Les données ATP sont publiées sous licence <a href=\"%(cc0)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">CC0 1.0</a> (domaine public). Leur utilisation est libre sans restriction."
+msgid "The ATP data is published under <a href=\"%(cc0)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">CC0 1.0<i class=\"iconoir-open-new-window\"></i></a> (public domain). It can be used freely, without restriction."
+msgstr "Les données ATP sont publiées sous licence <a href=\"%(cc0)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">CC0 1.0<i class=\"iconoir-open-new-window\"></i></a> (domaine public). Leur utilisation est libre sans restriction."
 
 #: website/templates/docs.html:310
 #, python-format
-msgid "The source code of this tool is published under the <a href=\"%(gpl)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">GPL-3.0</a> licence. Contributions are welcome on <a href=\"%(github)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">GitHub</a>."
-msgstr "Le code source de cet outil est publié sous licence <a href=\"%(gpl)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">GPL-3.0</a>. Les contributions sont les bienvenues sur <a href=\"%(github)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">GitHub</a>."
+msgid "The source code of this tool is published under the <a href=\"%(gpl)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">GPL-3.0<i class=\"iconoir-open-new-window\"></i></a> licence. Contributions are welcome on <a href=\"%(github)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">GitHub<i class=\"iconoir-open-new-window\"></i></a>."
+msgstr "Le code source de cet outil est publié sous licence <a href=\"%(gpl)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">GPL-3.0<i class=\"iconoir-open-new-window\"></i></a>. Les contributions sont les bienvenues sur <a href=\"%(github)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">GitHub<i class=\"iconoir-open-new-window\"></i></a>."
 
 #: website/templates/docs.html:317
 msgid "Exporting the data"
@@ -767,8 +767,8 @@ msgstr "Exporter les données"
 
 #: website/templates/docs.html:322
 #, python-format
-msgid "The data <strong>produced by atp2osm</strong> can be exported freely, as CSV or JSON, without signing in. It is only the trace of the integrations and the list of the missing brands: the source data stays with the projects that produce it (<a href=\"%(atp)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">All The Places</a> and <a href=\"%(osm)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">OpenStreetMap</a>)."
-msgstr "Les données <strong>produites par atp2osm</strong> sont librement exportables, en CSV ou en JSON, sans authentification. Il s'agit uniquement de la trace des intégrations et de la liste des marques manquantes : les données sources restent chez leurs producteurs respectifs (<a href=\"%(atp)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">All The Places</a> et <a href=\"%(osm)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">OpenStreetMap</a>)."
+msgid "The data <strong>produced by atp2osm</strong> can be exported freely, as CSV or JSON, without signing in. It is only the trace of the integrations and the list of the missing brands: the source data stays with the projects that produce it (<a href=\"%(atp)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">All The Places<i class=\"iconoir-open-new-window\"></i></a> and <a href=\"%(osm)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">OpenStreetMap<i class=\"iconoir-open-new-window\"></i></a>)."
+msgstr "Les données <strong>produites par atp2osm</strong> sont librement exportables, en CSV ou en JSON, sans authentification. Il s'agit uniquement de la trace des intégrations et de la liste des marques manquantes : les données sources restent chez leurs producteurs respectifs (<a href=\"%(atp)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">All The Places<i class=\"iconoir-open-new-window\"></i></a> et <a href=\"%(osm)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">OpenStreetMap<i class=\"iconoir-open-new-window\"></i></a>)."
 
 #: website/templates/docs.html:328
 msgid "One row per integration: brand, contributor, date, status, number of objects and of tags."
@@ -991,8 +991,8 @@ msgstr "Changeset"
 
 #: website/templates/history_detail.html:232
 #, python-format
-msgid "A changeset went wrong? It can be reverted with <a class=\"link\" href=\"%(link)s\" target=\"_blank\" rel=\"noopener\">OSM Revert</a>, by pasting in the identifier of the changeset concerned."
-msgstr "Un changeset s'est mal passé ? Il peut être annulé avec <a class=\"link\" href=\"%(link)s\" target=\"_blank\" rel=\"noopener\">OSM Revert</a>, en y collant l'identifiant du changeset concerné."
+msgid "A changeset went wrong? It can be reverted with <a class=\"link\" href=\"%(link)s\" target=\"_blank\" rel=\"noopener\">OSM Revert<i class=\"iconoir-open-new-window\"></i></a>, by pasting in the identifier of the changeset concerned."
+msgstr "Un changeset s'est mal passé ? Il peut être annulé avec <a class=\"link\" href=\"%(link)s\" target=\"_blank\" rel=\"noopener\">OSM Revert<i class=\"iconoir-open-new-window\"></i></a>, en y collant l'identifiant du changeset concerné."
 
 #: website/templates/history_detail.html:236
 msgid "No changeset recorded."
@@ -1028,8 +1028,8 @@ msgstr "Intégrez les données de points d'intérêt depuis AllThePlaces vers Op
 
 #: website/templates/home.html:56
 #, python-format
-msgid "<strong>atp2osm</strong> matches the points of interest (POIs) of the <a href=\"%(atp)s\" class=\"link link-primary\" target=\"_blank\" rel=\"noopener\">All The Places</a> database against the objects that already exist in <a href=\"%(osm)s\" class=\"link link-primary\" target=\"_blank\" rel=\"noopener\">OpenStreetMap</a>."
-msgstr "<strong>atp2osm</strong> rapproche les points d'intérêt (POI) de la base <a href=\"%(atp)s\" class=\"link link-primary\" target=\"_blank\" rel=\"noopener\">All The Places</a> des objets existants dans <a href=\"%(osm)s\" class=\"link link-primary\" target=\"_blank\" rel=\"noopener\">OpenStreetMap</a>."
+msgid "<strong>atp2osm</strong> matches the points of interest (POIs) of the <a href=\"%(atp)s\" class=\"link link-primary\" target=\"_blank\" rel=\"noopener\">All The Places<i class=\"iconoir-open-new-window\"></i></a> database against the objects that already exist in <a href=\"%(osm)s\" class=\"link link-primary\" target=\"_blank\" rel=\"noopener\">OpenStreetMap<i class=\"iconoir-open-new-window\"></i></a>."
+msgstr "<strong>atp2osm</strong> rapproche les points d'intérêt (POI) de la base <a href=\"%(atp)s\" class=\"link link-primary\" target=\"_blank\" rel=\"noopener\">All The Places<i class=\"iconoir-open-new-window\"></i></a> des objets existants dans <a href=\"%(osm)s\" class=\"link link-primary\" target=\"_blank\" rel=\"noopener\">OpenStreetMap<i class=\"iconoir-open-new-window\"></i></a>."
 
 #: website/templates/home.html:59
 msgid "For every brand, the tool finds the matches by geographic proximity and by attributes (name, brand, phone, email, website), then offers the tag updates for review before integration."
@@ -1037,8 +1037,8 @@ msgstr "Pour chaque marque, l'outil identifie les correspondances par proximité
 
 #: website/templates/home.html:62
 #, python-format
-msgid "To follow how the integrations progress in your area, the result can be browsed on this site: <a class=\"link link-primary\" href=\"%(link)s\" target=\"_blank\" rel=\"noopener\">%(link)s</a>"
-msgstr "Pour voir la progression des intégrations dans votre région, le résultat se visualise sur le site suivant : <a class=\"link link-primary\" href=\"%(link)s\" target=\"_blank\" rel=\"noopener\">%(link)s</a>"
+msgid "To follow how the integrations progress in your area, the result can be browsed on this site: <a class=\"link link-primary\" href=\"%(link)s\" target=\"_blank\" rel=\"noopener\">%(link)s<i class=\"iconoir-open-new-window\"></i></a>"
+msgstr "Pour voir la progression des intégrations dans votre région, le résultat se visualise sur le site suivant : <a class=\"link link-primary\" href=\"%(link)s\" target=\"_blank\" rel=\"noopener\">%(link)s<i class=\"iconoir-open-new-window\"></i></a>"
 
 #: website/templates/home.html:69
 msgid "Start integrating!"

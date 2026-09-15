@@ -73,7 +73,7 @@
                     {% if entry.brand_wikidata %}
                     <a class="link text-xs font-mono muted ml-1"
                        href="https://www.wikidata.org/wiki/{{ entry.brand_wikidata }}"
-                       target="_blank">{{ entry.brand_wikidata }}</a>
+                       target="_blank">{{ entry.brand_wikidata }}<i class="iconoir-open-new-window"></i></a>
                     {% endif %}
                 </dd>
 
@@ -116,7 +116,7 @@
                 <dd>
                     {% set display_name = users.get(entry.osm_user_id) %}
                     {% if display_name %}
-                    <a class="link" href="{{ api_url }}/user/{{ display_name }}" target="_blank">{{ display_name }}</a>
+                    <a class="link" href="{{ api_url }}/user/{{ display_name }}" target="_blank">{{ display_name }}<i class="iconoir-open-new-window"></i></a>
                     {% else %}
                     {{ entry.osm_user_id }}
                     {% endif %}
@@ -140,7 +140,7 @@
             <ul class="flex flex-col gap-1">
                 {% for c in comments %}
                 <li class="text-sm">
-                    <a class="link font-mono text-xs" href="{{ api_url }}/{{ c.osm_type }}/{{ c.osm_id }}" target="_blank">{{ c.osm_type }}/{{ c.osm_id }}</a>
+                    <a class="link font-mono text-xs" href="{{ api_url }}/{{ c.osm_type }}/{{ c.osm_id }}" target="_blank">{{ c.osm_type }}/{{ c.osm_id }}<i class="iconoir-open-new-window"></i></a>
                     {% if c.atp_id %}<span class="font-mono text-xs muted">(ATP {{ c.spider_id ~ "/" if c.spider_id }}{{ c.atp_id }})</span>{% endif %}
                     {% for r in c.reasons or [] %}<span class="badge badge-error badge-outline badge-sm">{{ reasons.LABELS.get(r, r) }}</span>{% endfor %}
                     {% if c.comment %} — {{ c.comment }}{% endif %}
@@ -217,7 +217,7 @@
                             </td>
                             <td>
                                 {% if sub.osm_changeset_id %}
-                                <a class="link font-mono" href="{{ api_url }}/changeset/{{ sub.osm_changeset_id }}" target="_blank">{{ sub.osm_changeset_id }}</a>
+                                <a class="link font-mono" href="{{ api_url }}/changeset/{{ sub.osm_changeset_id }}" target="_blank">{{ sub.osm_changeset_id }}<i class="iconoir-open-new-window"></i></a>
                                 {% else %}
                                 <span class="muted">—</span>
                                 {% endif %}
@@ -229,7 +229,7 @@
             </div>
             <div class="alert alert-info alert-soft text-sm">
                 <span>
-                    {% trans link='https://revert.monicz.dev/' %}A changeset went wrong? It can be reverted with <a class="link" href="{{ link }}" target="_blank" rel="noopener">OSM Revert</a>, by pasting in the identifier of the changeset concerned.{% endtrans %}
+                    {% trans link='https://revert.monicz.dev/' %}A changeset went wrong? It can be reverted with <a class="link" href="{{ link }}" target="_blank" rel="noopener">OSM Revert<i class="iconoir-open-new-window"></i></a>, by pasting in the identifier of the changeset concerned.{% endtrans %}
                 </span>
             </div>
             {% else %}

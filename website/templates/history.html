@@ -80,11 +80,11 @@
                     {{ entry.brand_name }}
                 {% elif entry.brand_wikidata %}
                     <a class="link font-mono" href="https://www.wikidata.org/wiki/{{ entry.brand_wikidata }}"
-                       target="_blank" rel="noopener">{{ entry.brand_wikidata }}</a>
+                       target="_blank" rel="noopener">{{ entry.brand_wikidata }}<i class="iconoir-open-new-window"></i></a>
                 {% endif %}
                 {% if entry.brand_wikidata %}
                     <br><a class="link text-xs font-mono muted" href="https://www.wikidata.org/wiki/{{ entry.brand_wikidata }}"
-                       target="_blank" rel="noopener">{{ entry.brand_wikidata }}</a>
+                       target="_blank" rel="noopener">{{ entry.brand_wikidata }}<i class="iconoir-open-new-window"></i></a>
                 {% endif %}
             </td>
             {% set status_labels = {
@@ -110,7 +110,7 @@
             <td>
                 {% set display_name = users.get(entry.osm_user_id) %}
                 {% if display_name %}
-                <a class="link" href="{{ api_url }}/user/{{ display_name }}" target="_blank">{{ display_name }}</a>
+                <a class="link" href="{{ api_url }}/user/{{ display_name }}" target="_blank">{{ display_name }}<i class="iconoir-open-new-window"></i></a>
                 {% else %}
                 {{ entry.osm_user_id }}
                 {% endif %}

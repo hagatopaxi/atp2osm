@@ -112,7 +112,7 @@
           <td>
             {% if entry.brand_wikidata %}
             <a class="link font-mono text-sm" href="https://www.wikidata.org/wiki/{{ entry.brand_wikidata }}"
-              target="_blank" rel="noopener">{{ entry.brand_wikidata }}</a>
+              target="_blank" rel="noopener">{{ entry.brand_wikidata }}<i class="iconoir-open-new-window"></i></a>
             {% else %}
             —
             {% endif %}
@@ -122,7 +122,7 @@
             {% set display_name = users.get(entry.osm_user_id) %}
             {% if display_name %}
             <a class="link" href="{{ api_url }}/user/{{ display_name }}" target="_blank" rel="noopener">{{ display_name
-              }}</a>
+              }}<i class="iconoir-open-new-window"></i></a>
             {% else %}
             {{ entry.osm_user_id }}
             {% endif %}
@@ -133,7 +133,7 @@
             {% set updater_name = users.get(entry.updated_by) %}
             {% if updater_name %}
             <a class="link" href="{{ api_url }}/user/{{ updater_name }}" target="_blank" rel="noopener">{{ updater_name
-              }}</a>
+              }}<i class="iconoir-open-new-window"></i></a>
             {% else %}
             {{ entry.updated_by }}
             {% endif %}

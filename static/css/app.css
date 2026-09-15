@@ -296,17 +296,10 @@ body:has(#sidebar-toggle:not(:checked)) #sidebar .menu a {
         linear-gradient(to left, color-mix(in oklab, var(--color-base-content) 25%, transparent), transparent) right / 14px 100% no-repeat scroll;
 }
 
-/* External links carry the Iconoir "open new window" glyph, with no class to
- * add. Iconoir is a mask-image set, not a font, so the glyph is its SVG. Buttons
- * and image links set their own. */
-a[target="_blank"]:not(.btn):not(:has(img))::after {
-    content: ' ';
-    display: inline-block;
-    width: 0.85em;
-    height: 0.85em;
+/* External links end with Iconoir's "open new window" glyph, an <i> in the
+ * markup: the lib only draws on an element bearing its class. */
+a[target="_blank"] > .iconoir-open-new-window {
+    font-size: 0.85em;
     margin-left: 0.2em;
     vertical-align: -0.05em;
-    background: currentColor;
-    mask: url('data:image/svg+xml;charset=utf-8,<svg width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 3L15 3M21 3L12 12M21 3V9" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 13V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3H11" stroke="currentColor" stroke-linecap="round"/></svg>') center / cover no-repeat;
-    -webkit-mask: url('data:image/svg+xml;charset=utf-8,<svg width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 3L15 3M21 3L12 12M21 3V9" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 13V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3H11" stroke="currentColor" stroke-linecap="round"/></svg>') center / cover no-repeat;
 }
