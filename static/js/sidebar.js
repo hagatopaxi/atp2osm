@@ -31,3 +31,11 @@ window.addEventListener('resize', function () {
         localStorage.removeItem(STORAGE_KEY);
     }
 });
+
+// A <details> dropdown only closes from its own summary: a click anywhere
+// else on the page closes the open ones of the sidebar too.
+document.addEventListener('click', function (event) {
+    sidebar.querySelectorAll('details[open]').forEach(function (details) {
+        if (!details.contains(event.target)) details.removeAttribute('open');
+    });
+});

@@ -1,6 +1,6 @@
-<aside id="sidebar" class="bg-base-200 rounded-md p-3 flex flex-col">
+<aside id="sidebar" class="bg-base-100 rounded-md shadow-sm flex flex-col">
 
-  <div class="flex items-center justify-between mb-4">
+  <div class="flex items-center justify-between p-3 border-b border-base-300">
     <div class="sidebar-hide text-xl font-bold font-mono flex items-center gap-2 whitespace-nowrap overflow-hidden">
       <img src="/static/img/logo.svg" alt="atp2osm logo" class="w-6 h-6 shrink-0" />
       atp2osm{% if is_dev %}<span class="badge badge-warning badge-sm">DEV</span>{% endif %}
@@ -14,13 +14,14 @@
   {% macro nav_item(href, icon, label, exact=false) %}
   {% set is_active = (request.path == href) if exact else request.path.startswith(href) %}
   <li>
-    <a class="{{ 'bg-base-300 font-semibold hover:bg-base-200' if is_active else 'bg-base-100 hover:bg-base-300' }} shadow-sm" href="{{ request.script_root }}{{ href }}">
-      <i class="{{ icon }}" aria-hidden="true"></i><span class="sidebar-hide whitespace-nowrap">{{ label }}</span>
+    <a class="{{ 'bg-primary/10 font-semibold' if is_active else 'bg-base-200 hover:bg-base-300' }}" href="{{ request.script_root }}{{ href }}">
+      <i class="{{ icon }} text-primary" aria-hidden="true"></i><span class="sidebar-hide truncate">{{ label }}</span>
+      <i class="iconoir-nav-arrow-right muted sidebar-hide" aria-hidden="true"></i>
     </a>
   </li>
   {% endmacro %}
 
-  <ul class="menu p-0 w-full gap-2">
+  <ul class="menu p-3 w-full gap-2">
     {{ nav_item('/',        'iconoir-home',    _('Home'),                  exact=true) }}
     {{ nav_item('/brands',  'iconoir-archery', _('Brands to integrate')) }}
     {% if spiders_page_linked %}{{ nav_item('/spiders', 'icown-spider', _('Spiders')) }}{% endif %}
@@ -32,63 +33,70 @@
 
   <div class="flex-1"></div>
 
-  {# One fixed button: the icon flips, the word stays — a swap of two
-     captions overlapped and wrapped. #}
-  <label class="btn btn-soft btn-sm w-full justify-start mt-6 shrink-0 whitespace-nowrap" title="{{ _('Light or dark theme') }}">
-    <span class="swap">
-      <input type="checkbox" id="theme-toggle" aria-label="{{ _('Light or dark theme') }}" />
-      <i class="swap-on iconoir-sun-light" aria-hidden="true"></i>
-      <i class="swap-off iconoir-half-moon" aria-hidden="true"></i>
-    </span>
-    <span class="sidebar-hide">{{ _('Theme') }}</span>
-  </label>
+  <div class="p-3 flex flex-col gap-1">
+    <p class="sidebar-hide text-xs font-semibold uppercase tracking-wide muted flex items-center gap-2 mb-1">
+      {{ _('Preferences') }}<span class="flex-1 border-t border-base-300"></span>
+    </p>
 
-  {% if locales | length > 1 %}
-  <nav class="w-full shrink-0 mt-2" aria-label="{{ _('Language') }}">
-    <details class="dropdown dropdown-top w-full">
-      <summary class="btn btn-ghost btn-sm w-full justify-start">
-        <i class="iconoir-language" aria-hidden="true"></i>
-        <span class="sidebar-hide">{{ locale_name(get_locale()) }}</span>
-      </summary>
-      <ul class="menu dropdown-content bg-base-100 rounded-md shadow-sm w-full">
-        {% for code in locales %}
-        <li><a href="{{ lang_url(code) }}" hreflang="{{ code }}"
-               {% if code == get_locale()|string %}aria-current="true"{% endif %}>
-          {{ locale_name(code) }}</a></li>
-        {% endfor %}
-      </ul>
-    </details>
-  </nav>
-  {% endif %}
+    {# One fixed row: the icon and the value flip, the word stays. #}
+    <label class="sidebar-row btn btn-ghost btn-sm w-full justify-start font-normal px-2" title="{{ _('Light or dark theme') }}">
+      <span class="swap">
+        <input type="checkbox" id="theme-toggle" aria-label="{{ _('Light or dark theme') }}" />
+        <i class="swap-on iconoir-sun-light text-primary" aria-hidden="true"></i>
+        <i class="swap-off iconoir-half-moon text-primary" aria-hidden="true"></i>
+      </span>
+      <span class="sidebar-hide">{{ _('Theme') }}</span>
+      <span class="sidebar-hide ml-auto muted text-xs flex items-center gap-1">
+        <span class="theme-name-light">{{ _('Light') }}</span><span class="theme-name-dark">{{ _('Dark') }}</span>
+        <i class="iconoir-nav-arrow-right" aria-hidden="true"></i>
+      </span>
+    </label>
 
-  <div class="shrink-0 mt-6 mb-4 px-1 text-xs muted sidebar-hide">
-    <p class="font-semibold mb-1 flex gap-2 items-center"><i class="iconoir-info-circle" aria-hidden="true"></i> {{ _('About') }}</p>
-    <p class="mb-1">{{ _('Open-source project. Contributions welcome!') }}</p>
-    <a href="{{ source_repo_url }}" class="link link-hover" target="_blank"
-      rel="noopener">
-      <i class="iconoir-github" aria-hidden="true"></i> GitHub
-    <i class="iconoir-open-new-window" aria-hidden="true"></i></a>
-    <p class="mt-1">{{ _('GPL-3.0 licence') }}</p>
-    <p class="mt-1">{% trans link='https://www.openstreetmap.org/copyright' %}Data © <a href="{{ link }}" target="_blank" rel="noopener" class="link link-hover">OpenStreetMap contributors<i class="iconoir-open-new-window"></i></a>, ODbL{% endtrans %}</p>
-    <p class="mt-1 font-mono">{{ app_version }}</p>
+    {% if locales | length > 1 %}
+    <nav class="w-full" aria-label="{{ _('Language') }}">
+      <details class="dropdown dropdown-top w-full">
+        <summary class="sidebar-row btn btn-ghost btn-sm w-full justify-start font-normal px-2">
+          <i class="iconoir-language text-primary" aria-hidden="true"></i>
+          <span class="sidebar-hide">{{ _('Language') }}</span>
+          <span class="sidebar-hide ml-auto muted text-xs flex items-center gap-1">
+            {{ locale_name(get_locale()) }}<i class="iconoir-nav-arrow-right" aria-hidden="true"></i>
+          </span>
+        </summary>
+        <ul class="menu dropdown-content bg-base-100 rounded-md shadow-sm border border-base-300 w-full">
+          {% for code in locales %}
+          <li><a href="{{ lang_url(code) }}" hreflang="{{ code }}"
+                 {% if code == get_locale()|string %}aria-current="true"{% endif %}>
+            {{ locale_name(code) }}</a></li>
+          {% endfor %}
+        </ul>
+      </details>
+    </nav>
+    {% endif %}
   </div>
 
-  <div class="w-full shrink-0">
+
+  <div class="sidebar-hide m-3 mb-0 p-2 text-xs muted border border-base-300 rounded-md flex flex-col gap-2">
+    <a href="{{ source_repo_url }}" class="flex items-center gap-2 link link-hover" target="_blank" rel="noopener">
+      <i class="iconoir-github" aria-hidden="true"></i> <span class="flex-1">GitHub</span><i class="iconoir-open-new-window" aria-hidden="true"></i></a>
+    <a href="https://www.gnu.org/licenses/gpl-3.0.html" class="flex items-center gap-2 link link-hover" target="_blank" rel="noopener">
+      <i class="iconoir-page" aria-hidden="true"></i> <span class="flex-1">{{ _('GPL-3.0 licence') }}</span><i class="iconoir-open-new-window" aria-hidden="true"></i></a>
+    <a href="https://www.openstreetmap.org/copyright" class="flex items-center gap-2 link link-hover" target="_blank" rel="noopener" title="ODbL">
+      <i class="iconoir-map-pin" aria-hidden="true"></i> <span class="flex-1">{{ _('OpenStreetMap contributors') }}</span><i class="iconoir-open-new-window" aria-hidden="true"></i></a>
+    <p class="flex items-center gap-2 pt-2 border-t border-base-300">
+      <i class="iconoir-info-circle" aria-hidden="true"></i> {{ _('About') }} <span class="ml-auto font-mono text-xs">{{ app_version }}</span></p>
+  </div>
+
+  <div class="p-3 shrink-0">
     {% if 'user' in session %}
-    <div class="sidebar-user-section flex items-center gap-3 p-3 bg-base-100 rounded-md shadow-sm">
-      <div class="avatar placeholder shrink-0">
-        <div class="bg-primary text-primary-content w-8 rounded-full flex items-center justify-center">
-          <span class="text-base leading-none">{{ session['user']['name'][0] | upper }}</span>
+    <div class="sidebar-user-section flex items-center gap-2 p-2 border border-base-300 rounded-md" title="{{ session['user']['name'] }}">
+      <div class="avatar avatar-placeholder shrink-0">
+        <div class="bg-primary text-primary-content w-8 rounded-full">
+          <span class="text-sm font-semibold leading-none">{{ session['user']['name'][0] | upper }}</span>
         </div>
       </div>
-      <div class="flex-1 min-w-0 sidebar-hide">
-        <a href="{{ api_url }}/user/{{ session['user']['name'] }}"
-          class="text-sm font-semibold truncate link link-hover tooltip tooltip-top"
-          data-tip="{{ session['user']['name'] }}" target="_blank" rel="noopener">{{ session['user']['name'] }}<i class="iconoir-open-new-window" aria-hidden="true"></i></a>
-        <p class="text-xs opacity-70">OpenStreetMap</p>
-      </div>
-      <button class="btn btn-ghost btn-sm btn-square text-error sidebar-hide" onclick="logout()" title="{{ _('Log out') }}">
-        <i class="iconoir-log-out text-xl" aria-hidden="true"></i>
+      <span class="flex-1 min-w-0 truncate text-sm font-semibold sidebar-hide">{{ session['user']['name'] }}</span>
+      <button class="btn btn-ghost btn-sm btn-square hover:text-error sidebar-hide" onclick="logout()" title="{{ _('Log out') }}" aria-label="{{ _('Log out') }}">
+        <i class="iconoir-log-out" aria-hidden="true"></i>
       </button>
     </div>
     {% else %}

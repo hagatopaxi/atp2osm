@@ -9,7 +9,7 @@
 
 /* Sidebar width */
 #sidebar {
-    width: 256px;
+    width: 288px;
     flex-shrink: 0;
     overflow-x: hidden;
     overflow-y: auto;
@@ -35,10 +35,23 @@ body:has(#sidebar-toggle:not(:checked)) .sidebar-collapse-icon {
     display: none;
 }
 
-/* User avatar when collapsed */
+/* User avatar and preference rows when collapsed */
 body:has(#sidebar-toggle:not(:checked)) .sidebar-user-section {
     padding: 6px 4px;
     justify-content: center;
+}
+body:has(#sidebar-toggle:not(:checked)) .sidebar-row {
+    justify-content: center;
+    padding-inline: 0;
+}
+
+/* The theme row names the current theme: one word shown, the other hidden. */
+.theme-name-dark,
+[data-theme="dark"] .theme-name-light {
+    display: none;
+}
+[data-theme="dark"] .theme-name-dark {
+    display: inline;
 }
 
 /* Icon-only menu items when collapsed */

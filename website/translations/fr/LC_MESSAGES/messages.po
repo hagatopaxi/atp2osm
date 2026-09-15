@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-15 14:35+0200\n"
+"POT-Creation-Date: 2026-09-15 15:26+0200\n"
 "PO-Revision-Date: 2026-09-06 17:06+0200\n"
 "Last-Translator: the atp2osm contributors\n"
 "Language: fr\n"
@@ -56,83 +56,90 @@ msgstr "Une erreur est survenue, veuillez réessayer."
 msgid "Toggle the sidebar"
 msgstr "Basculer la barre latérale"
 
-#: website/templates/_aside.html:24 website/templates/brands.html:16
+#: website/templates/_aside.html:25 website/templates/brands.html:16
 #: website/templates/docs.html:26 website/templates/history.html:17
 #: website/templates/llms.txt:10 website/templates/spiders.html:15
 #: website/templates/stats.html:16 website/templates/todo.html:17
 msgid "Home"
 msgstr "Accueil"
 
-#: website/templates/_aside.html:25 website/templates/brands.html:7
+#: website/templates/_aside.html:26 website/templates/brands.html:7
 #: website/templates/brands.html:8 website/templates/brands.html:17
 #: website/templates/llms.txt:11 website/templates/todo.html:24
 msgid "Brands to integrate"
 msgstr "Marques à intégrer"
 
-#: website/templates/_aside.html:26 website/templates/llms.txt:12
+#: website/templates/_aside.html:27 website/templates/llms.txt:12
 #: website/templates/spiders.html:6 website/templates/spiders.html:7
 #: website/templates/spiders.html:16
 msgid "Spiders"
 msgstr "Spiders"
 
-#: website/templates/_aside.html:27 website/templates/history.html:8
+#: website/templates/_aside.html:28 website/templates/history.html:8
 #: website/templates/history.html:9 website/templates/history.html:18
 #: website/templates/history.html:29 website/templates/llms.txt:13
 msgid "Integration history"
 msgstr "Historique des intégrations"
 
-#: website/templates/_aside.html:28 website/templates/home.html:67
+#: website/templates/_aside.html:29 website/templates/home.html:67
 #: website/templates/llms.txt:14 website/templates/stats.html:7
 #: website/templates/stats.html:17 website/templates/stats.html:31
 msgid "Statistics"
 msgstr "Statistiques"
 
-#: website/templates/_aside.html:29 website/templates/llms.txt:15
+#: website/templates/_aside.html:30 website/templates/llms.txt:15
 #: website/templates/todo.html:8 website/templates/todo.html:18
 msgid "Missing brands"
 msgstr "Marques manquantes"
 
-#: website/templates/_aside.html:30 website/templates/docs.html:4
+#: website/templates/_aside.html:31 website/templates/docs.html:4
 #: website/templates/docs.html:6 website/templates/docs.html:13
 #: website/templates/docs.html:27 website/templates/docs.html:33
 #: website/templates/llms.txt:16
 msgid "Documentation"
 msgstr "Documentation"
 
-#: website/templates/_aside.html:37 website/templates/_aside.html:39
+#: website/templates/_aside.html:36
+msgid "Preferences"
+msgstr "Préférences"
+
+#: website/templates/_aside.html:40 website/templates/_aside.html:42
 msgid "Light or dark theme"
 msgstr "Thème clair ou sombre"
 
-#: website/templates/_aside.html:43
+#: website/templates/_aside.html:46
 msgid "Theme"
 msgstr "Thème"
 
-#: website/templates/_aside.html:47
+#: website/templates/_aside.html:48
+msgid "Light"
+msgstr "Clair"
+
+#: website/templates/_aside.html:48
+msgid "Dark"
+msgstr "Sombre"
+
+#: website/templates/_aside.html:54 website/templates/_aside.html:58
 msgid "Language"
 msgstr "Langue"
 
-#: website/templates/_aside.html:65 website/templates/_export_menu.html:10
-msgid "About"
-msgstr "À propos"
-
-#: website/templates/_aside.html:66
-msgid "Open-source project. Contributions welcome!"
-msgstr "Projet open-source. Contributions bienvenues !"
-
-#: website/templates/_aside.html:71
+#: website/templates/_aside.html:81
 msgid "GPL-3.0 licence"
 msgstr "Licence GPL-3.0"
 
-#: website/templates/_aside.html:72
-#, python-format
-msgid "Data © <a href=\"%(link)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-hover\">OpenStreetMap contributors<i class=\"iconoir-open-new-window\"></i></a>, ODbL"
-msgstr "Données © <a href=\"%(link)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-hover\">OpenStreetMap contributors<i class=\"iconoir-open-new-window\"></i></a>, ODbL"
+#: website/templates/_aside.html:83
+msgid "OpenStreetMap contributors"
+msgstr "Contributeurs OpenStreetMap"
 
-#: website/templates/_aside.html:90
+#: website/templates/_aside.html:85 website/templates/_export_menu.html:10
+msgid "About"
+msgstr "À propos"
+
+#: website/templates/_aside.html:97
 msgid "Log out"
 msgstr "Déconnexion"
 
-#: website/templates/_aside.html:96 website/templates/_aside.html:98
+#: website/templates/_aside.html:103 website/templates/_aside.html:105
 #: website/templates/brands.html:40
 msgid "Sign in with OSM"
 msgstr "Se connecter avec OSM"
@@ -1887,4 +1894,10 @@ msgstr "Réessayez dans quelques minutes."
 
 #~ msgid "Identify → verify → integrate"
 #~ msgstr "Identifier → vérifier → intégrer"
+
+#~ msgid "Open-source project. Contributions welcome!"
+#~ msgstr "Projet open-source. Contributions bienvenues !"
+
+#~ msgid "Data © <a href=\"%(link)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-hover\">OpenStreetMap contributors<i class=\"iconoir-open-new-window\"></i></a>, ODbL"
+#~ msgstr "Données © <a href=\"%(link)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-hover\">OpenStreetMap contributors<i class=\"iconoir-open-new-window\"></i></a>, ODbL"
 
