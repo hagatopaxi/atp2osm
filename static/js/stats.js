@@ -28,6 +28,8 @@
       hoverBackgroundColor: token(w.color, 0.75),
       borderRadius: 2,
       stack: "pois",
+      // Drawn under the running-total curves: a lower order paints last.
+      order: 1,
     }));
   }
 
@@ -83,15 +85,26 @@
     by_pois: () => ranking(data.by_pois),
     tags: () => ranking(data.tags),
     brands: () => ranking(data.brands),
+    reporters: () =>
+      ranking(data.reporters, [
+        {
+          label: S.brands_reported,
+          data: data.reporters.values,
+          backgroundColor: token("primary"),
+          hoverBackgroundColor: token("primary", 0.75),
+          borderRadius: 2,
+        },
+      ]),
     spiders: () => share(data.spiders, S.brands_integrated, S.brands_rejected),
     changesets: () => share(data.changesets, S.accepted, S.refused),
   };
 
-  // Horizontal stacked bars: one row per label, the waves side by side.
-  function ranking(rows) {
+  // Horizontal stacked bars: one row per label, the waves side by side
+  // unless the series are given.
+  function ranking(rows, datasets = waveDatasets(rows.waves)) {
     return {
       type: "bar",
-      data: { labels: rows.labels, datasets: waveDatasets(rows.waves) },
+      data: { labels: rows.labels, datasets },
       options: {
         indexAxis: "y",
         interaction: byIndex,

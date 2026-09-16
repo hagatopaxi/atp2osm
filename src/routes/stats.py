@@ -271,7 +271,7 @@ def compute(args):
 
     all_tags = _stack(tags)
     tags = all_tags[:TOP_N]
-    by_imports, by_pois = rank("imports"), rank("pois")
+    by_imports, by_pois, reporters = rank("imports"), rank("pois"), rank("todos")
     brands = _stack(brands)[:TOP_N]
 
     # What Chart.js draws, shaped as series. The wave labels are added by the
@@ -288,6 +288,8 @@ def compute(args):
         "by_pois": _ranking(by_pois),
         "tags": _ranking(tags),
         "brands": _ranking(brands),
+        # Reports belong to no wave: one plain series.
+        "reporters": {"labels": [r["label"] for r in reporters], "values": [r["value"] for r in reporters]},
         "spiders": {
             "labels": period(spider_series),
             "ok": [r["integrated"] for r in spider_series],
@@ -308,7 +310,7 @@ def compute(args):
         awaiting_fix=awaiting_fix,
         by_imports=by_imports,
         by_pois=by_pois,
-        reporters=rank("todos"),
+        reporters=reporters,
         series=series,
         series_max=max((r["pois"] for r in series), default=0),
         unit=unit,

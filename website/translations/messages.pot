@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-16 10:55+0200\n"
+"POT-Creation-Date: 2026-09-16 12:06+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -373,7 +373,7 @@ msgstr ""
 
 #: website/templates/brands.html:51 website/templates/history.html:45
 #: website/templates/history.html:71 website/templates/history_detail.html:128
-#: website/templates/stats.html:94
+#: website/templates/stats.html:73
 msgid "Wave"
 msgstr ""
 
@@ -841,15 +841,15 @@ msgstr ""
 msgid "Status"
 msgstr ""
 
-#: website/templates/history.html:46 website/templates/stats.html:82
+#: website/templates/history.html:46 website/templates/stats.html:61
 msgid "User"
 msgstr ""
 
-#: website/templates/history.html:47 website/templates/stats.html:83
+#: website/templates/history.html:47 website/templates/stats.html:62
 msgid "Start date"
 msgstr ""
 
-#: website/templates/history.html:48 website/templates/stats.html:84
+#: website/templates/history.html:48 website/templates/stats.html:63
 msgid "End date"
 msgstr ""
 
@@ -883,7 +883,7 @@ msgstr ""
 
 #: website/templates/history.html:73 website/templates/history.html:121
 #: website/templates/history_detail.html:125 website/templates/home.html:75
-#: website/templates/stats.html:112
+#: website/templates/stats.html:91
 msgid "POIs integrated"
 msgstr ""
 
@@ -1056,19 +1056,19 @@ msgstr ""
 msgid "See all"
 msgstr ""
 
-#: website/templates/home.html:76 website/templates/stats.html:113
+#: website/templates/home.html:76 website/templates/stats.html:92
 msgid "Tags added"
 msgstr ""
 
-#: website/templates/home.html:77 website/templates/stats.html:114
+#: website/templates/home.html:77 website/templates/stats.html:93
 msgid "Tags modified"
 msgstr ""
 
-#: website/templates/home.html:78 website/templates/stats.html:141
+#: website/templates/home.html:78 website/templates/stats.html:122
 msgid "Brands integrated"
 msgstr ""
 
-#: website/templates/home.html:79 website/templates/stats.html:125
+#: website/templates/home.html:79 website/templates/stats.html:104
 msgid "Contributors"
 msgstr ""
 
@@ -1201,7 +1201,7 @@ msgstr[1] ""
 msgid "No spider matches these filters."
 msgstr ""
 
-#: website/templates/spiders.html:72 website/templates/stats.html:116
+#: website/templates/spiders.html:72 website/templates/stats.html:95
 msgid "Brands"
 msgstr ""
 
@@ -1235,142 +1235,146 @@ msgstr ""
 msgid "What the integrations brought to OpenStreetMap: volumes, tags enriched, reliability of the spiders and of the changesets."
 msgstr ""
 
-#: website/templates/stats.html:44 website/templates/stats.html:168
-#: website/templates/stats.html:176 website/templates/stats.html:193
-msgid "No data over this period."
-msgstr ""
-
-#: website/templates/stats.html:109
+#: website/templates/stats.html:88
 msgid "Impact"
 msgstr ""
 
-#: website/templates/stats.html:115 website/templates/stats.html:140
-#: website/templates/stats.html:186
+#: website/templates/stats.html:94 website/templates/stats.html:120
+#: website/templates/stats.html:167
 msgid "Integrations"
 msgstr ""
 
-#: website/templates/stats.html:122
+#: website/templates/stats.html:101
 msgid "Quality & community"
 msgstr ""
 
-#: website/templates/stats.html:124
+#: website/templates/stats.html:103
 msgid "Spider reliability"
 msgstr ""
 
-#: website/templates/stats.html:126
+#: website/templates/stats.html:105
 msgid "Brands still missing from ATP"
 msgstr ""
 
-#: website/templates/stats.html:127
+#: website/templates/stats.html:106
 msgid "Brands awaiting a spider fix"
 msgstr ""
 
-#: website/templates/stats.html:130
+#: website/templates/stats.html:109
 msgid "day"
 msgstr ""
 
-#: website/templates/stats.html:130
+#: website/templates/stats.html:109
 msgid "week"
 msgstr ""
 
-#: website/templates/stats.html:130
+#: website/templates/stats.html:109
 msgid "month"
 msgstr ""
 
-#: website/templates/stats.html:139
+#: website/templates/stats.html:119
 msgid "Running total"
 msgstr ""
 
-#: website/templates/stats.html:142
+#: website/templates/stats.html:121
+msgid "Brands reported"
+msgstr ""
+
+#: website/templates/stats.html:123
 msgid "Brands rejected"
 msgstr ""
 
-#: website/templates/stats.html:143
+#: website/templates/stats.html:124
 msgid "Accepted"
 msgstr ""
 
-#: website/templates/stats.html:144
+#: website/templates/stats.html:125
 msgid "Refused"
 msgstr ""
 
-#: website/templates/stats.html:151
+#: website/templates/stats.html:132
 msgid "Pace and progress"
 msgstr ""
 
-#: website/templates/stats.html:153
+#: website/templates/stats.html:134
 #, python-format
 msgid "What each %(unit)s brought to OpenStreetMap, additions and modifications stacked, and what each adds up to on the right-hand scale."
 msgstr ""
 
-#: website/templates/stats.html:158
+#: website/templates/stats.html:139
 #, python-format
 msgid "%(period)s: %(pois)s POIs, running total %(cumulative)s. "
 msgstr ""
 
-#: website/templates/stats.html:164
+#: website/templates/stats.html:145
 msgid "Tags enriched"
 msgstr ""
 
-#: website/templates/stats.html:164
+#: website/templates/stats.html:145
 msgid "Per tag, the POIs where it was added and those where it was modified."
 msgstr ""
 
-#: website/templates/stats.html:172
+#: website/templates/stats.html:149 website/templates/stats.html:157
+#: website/templates/stats.html:174 website/templates/stats.html:183
+msgid "No data over this period."
+msgstr ""
+
+#: website/templates/stats.html:153
 msgid "Most integrated brands"
 msgstr ""
 
-#: website/templates/stats.html:172
+#: website/templates/stats.html:153
 msgid "Per brand, the POIs enriched by each wave."
 msgstr ""
 
-#: website/templates/stats.html:182
+#: website/templates/stats.html:163
 msgid "Integrations per contributor"
 msgstr ""
 
-#: website/templates/stats.html:183
+#: website/templates/stats.html:164
 msgid "OSM contributors ranked by integration volume."
 msgstr ""
 
-#: website/templates/stats.html:197
+#: website/templates/stats.html:178
 msgid "Missing brands added"
 msgstr ""
 
-#: website/templates/stats.html:198
+#: website/templates/stats.html:179
 msgid "OSM contributors ranked by the number of brands missing from ATP they added."
 msgstr ""
 
-#: website/templates/stats.html:204
+#: website/templates/stats.html:189
 msgid "Reliability of the ATP data"
 msgstr ""
 
-#: website/templates/stats.html:205
+#: website/templates/stats.html:190
 #, python-format
 msgid "Share of the brands whose integration was accepted, per %(unit)s. A brand counts once, whatever the volume behind it; a period without data is empty."
 msgstr ""
 
-#: website/templates/stats.html:207
+#: website/templates/stats.html:192
 #, python-format
 msgid "%(period)s: %(rate)s %% reliability. "
 msgstr ""
 
-#: website/templates/stats.html:210
+#: website/templates/stats.html:195
 msgid "No review over this period."
 msgstr ""
 
-#: website/templates/stats.html:213
+#: website/templates/stats.html:198
 msgid "Reliability of the OSM data"
 msgstr ""
 
-#: website/templates/stats.html:213
+#: website/templates/stats.html:198
 msgid "A changeset is almost always refused because the local copy of OpenStreetMap has aged: one of the POIs no longer carries the same version in OSM and in the atp2osm database. The API then rejects the changeset as a whole."
 msgstr ""
 
-#: website/templates/stats.html:215
+#: website/templates/stats.html:200
 #, python-format
 msgid "%(period)s: %(rate)s %% of changesets accepted. "
 msgstr ""
 
-#: website/templates/stats.html:218
+#: website/templates/stats.html:203
 msgid "No changeset over this period."
 msgstr ""
 
