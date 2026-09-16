@@ -40,6 +40,11 @@
     </details>
     </div>
     <button type="submit" class="btn btn-sm btn-primary"><i class="iconoir-search" aria-hidden="true"></i> {{ _('Search') }}</button>
+    {# Whatever narrows the page — a search, a chip, a quick filter — one
+       button drops it all. #}
+    {% if filters %}
+    <a href="{{ reset_url }}" class="btn btn-sm btn-ghost">{{ _('Reset') }}</a>
+    {% endif %}
     <div class="ml-auto">{{ caller() }}</div>
 </div>
 <div class="filter-chips flex items-center gap-2 mb-4" data-filter-chips {{ '' if active else 'hidden' }}>
@@ -82,6 +87,5 @@
         </button>
     </div>
     {% endfor %}
-    <a href="{{ reset_url }}" class="btn btn-sm btn-outline border-base-content/20 shrink-0">{{ _('Reset') }}</a>
 </div>
 {% endmacro %}
