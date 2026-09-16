@@ -14,45 +14,6 @@
     height: calc(var(--rows) * 1.5rem + 3rem);
 }
 
-.bar-list {
-    display: grid;
-    grid-template-columns: minmax(6rem, 11rem) 1fr auto;
-    align-items: center;
-    gap: 0.25rem 0.5rem;
-}
-
-.bar-list li {
-    display: contents;
-}
-
-.bar-label {
-    font-size: 0.8rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.bar-track {
-    background: var(--color-base-200);
-    border-radius: 3px;
-    height: 0.9rem;
-}
-
-.bar-fill {
-    display: block;
-    width: var(--bar);
-    min-width: 2px;
-    height: 100%;
-    border-radius: 3px;
-    background: var(--color-primary);
-}
-
-.bar-value {
-    font-size: 0.8rem;
-    font-variant-numeric: tabular-nums;
-    text-align: right;
-}
-
 /* The POI/integration switch swaps two pre-rendered rankings — no reload,
    no script. */
 .rank-pois,

@@ -37,27 +37,6 @@
 {% block title %}{{ _('Statistics') }}{% endblock %}
 {% block subtitle %}{{ _('What the integrations brought to OpenStreetMap: volumes, tags enriched, reliability of the spiders and of the changesets.') }}{% endblock %}
 
-{# Sorted horizontal bars: the most readable form to compare named
-    categories. Label and value are text, so there is nothing to duplicate for
-    screen readers. #}
-{% macro bar_list(rows, empty=None) %}
-{% set empty = empty or _('No data over this period.') %}
-{% set top = rows[0].value if rows else 0 %}
-{% if rows %}
-<ul class="bar-list">
-    {% for row in rows %}
-    <li>
-        <span class="bar-label" title="{{ row.label }}">{{ row.label }}</span>
-        <span class="bar-track"><span class="bar-fill" style="--bar: {{ (100 * row.value / top) | round(1) }}%"></span></span>
-        <span class="bar-value">{{ row.value }}</span>
-    </li>
-    {% endfor %}
-</ul>
-{% else %}
-<p class="text-sm muted">{{ empty }}</p>
-{% endif %}
-{% endmacro %}
-
 {% macro card(title, hint='') %}
 <figure class="card bg-base-100 shadow-sm p-4 h-full">
     <figcaption class="mb-3">
@@ -139,6 +118,7 @@
 {{ dict(charts, waves=wave_list, strings={
     'running_total': _('Running total'),
     'integrations': _('Integrations'),
+    'brands_reported': _('Brands reported'),
     'brands_integrated': _('Brands integrated'),
     'brands_rejected': _('Brands rejected'),
     'accepted': _('Accepted'),
@@ -197,7 +177,11 @@
 
     {% call card(_('Missing brands added'),
                  _('OSM contributors ranked by the number of brands missing from ATP they added.')) %}
-    {{ bar_list(reporters) }}
+    {% if reporters %}
+    {{ chart('reporters', reporters | map(attribute='label') | join(', '), rows=reporters | length) }}
+    {% else %}
+    <p class="text-sm muted">{{ _('No data over this period.') }}</p>
+    {% endif %}
     {% endcall %}
 </div>
 
