@@ -28,6 +28,8 @@
       hoverBackgroundColor: token(w.color, 0.75),
       borderRadius: 2,
       stack: "pois",
+      // Drawn under the running-total curves: a lower order paints last.
+      order: 1,
     }));
   }
 

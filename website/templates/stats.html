@@ -129,7 +129,8 @@
 
 {% set unit_label = {'day': _('day'), 'week': _('week'), 'month': _('month')}[unit] %}
 {% set wave_list = [] %}
-{% for n in waves %}{% set added = wave_list.append({'number': n, 'label': wave.label(n) | trim, 'color': wave.color(n) | trim | replace('badge-', '')}) %}{% endfor %}
+{# Filtered on a wave, the charts hold that wave alone: the legend says so. #}
+{% for n in waves if not filters.wave or filters.wave == n %}{% set added = wave_list.append({'number': n, 'label': wave.label(n) | trim, 'color': wave.color(n) | trim | replace('badge-', '')}) %}{% endfor %}
 
 {# The figures of every chart, read by stats.js. The labels go through gettext
    here, where a request has a locale; the colours are daisyUI tokens, resolved
