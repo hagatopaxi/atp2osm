@@ -1,0 +1,70 @@
+# A complete instance: the database, the site and the daily refresh.
+# Next to this file: config.json (jq '.examples[0]' config.schema.json) with
+# app.db pointing at {host: db, name: atp2osm, user: atp2osm}, and .env with
+# the secrets. Then: podman-compose up -d   (or docker compose)
+services:
+  db:
+    image: docker.io/postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: atp2osm
+      POSTGRES_USER: atp2osm
+      POSTGRES_PASSWORD: ${OSM_DB_PASSWORD}
+    volumes:
+      - db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U atp2osm"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  # Migrates once per deploy, before any worker boots (see src/app.py).
+  migrate:
+    image: ${ATP2OSM_IMAGE:-ghcr.io/hagatopaxi/atp2osm:latest}
+    env_file: .env
+    environment:
+      ATP2OSM_CONFIG: /app/config.json
+    volumes:
+      - ./config.json:/app/config.json:ro,Z
+    command: uv run --no-sync python -m src.migrate
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    image: ${ATP2OSM_IMAGE:-ghcr.io/hagatopaxi/atp2osm:latest}
+    env_file: .env
+    environment:
+      ATP2OSM_CONFIG: /app/config.json
+      PORT: ${PORT:-8000}
+    ports:
+      - "${PORT:-8000}:${PORT:-8000}"
+    volumes:
+      - ./config.json:/app/config.json:ro,Z
+      - ./data:/app/data:Z
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  # The scheduler lives here rather than on the host. A deploy that lands
+  # during a refresh lets it finish on the old image: supercronic waits for
+  # the job, and the grace period must outlast the longest run.
+  refresh:
+    image: ${ATP2OSM_IMAGE:-ghcr.io/hagatopaxi/atp2osm:latest}
+    env_file: .env
+    environment:
+      ATP2OSM_CONFIG: /app/config.json
+      ATP2OSM_FORCE: ${ATP2OSM_FORCE:-}
+    volumes:
+      - ./config.json:/app/config.json:ro,Z
+      - ./data:/app/data:Z
+    command: uv run --no-sync python -m src.pipeline setup
+    stop_grace_period: 6h
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+volumes:
+  db:
