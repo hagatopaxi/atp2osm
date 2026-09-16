@@ -1,198 +1,17 @@
-/* Charts of the /stats page: plain CSS, no library for a handful of shapes.
-
-   Width computed from the bar count (--bars, set inline): the chart fills its
-   card when there is room, and scrolls once the bars would fall under 3rem. */
-/* overflow-x: auto turns overflow-y into auto as well, and the horizontal
-   scrollbar eats enough height to trigger a vertical one: a second scroller
-   inside the page. Nothing overflows upwards, so hiding that axis is safe. */
-.series-scroll {
-    overflow-x: auto;
-    overflow-y: hidden;
-}
-
-.series-width {
-    width: max(100%, calc(var(--bars) * 3rem));
-}
-
-.series-chart {
+/* Charts of the /stats page. Chart.js draws into a canvas that fills its box,
+   so the box is what carries the size: a fixed height for a time series, one
+   line per bar for a ranking (--rows, set inline). */
+.chart-box {
     position: relative;
-    display: flex;
-    align-items: stretch;
-    height: 9rem;
-    /* Room for the value printed above the tallest bar. */
-    padding-top: 1.25rem;
+    height: 12rem;
 }
 
-/* Full-height hit area, so the tooltip is reachable even where the bar is flat.
-   Columns are gapless — the bar insets itself — which puts their centres exactly
-   where the curve, drawn across the chart's full width, has its points. */
-.series-col {
-    position: relative;
-    flex: 1 1 0;
+.chart-box-tall {
+    height: 18rem;
 }
 
-.series-col::after {
-    content: attr(data-value);
-    position: absolute;
-    bottom: var(--bar);
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 0.7rem;
-    line-height: 1.25rem;
-    /* Wider than its column on mobile: it overflows rather than wrapping. */
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
-    color: var(--color-base-content);
-    opacity: 0.6;
-}
-
-.series-bar {
-    position: absolute;
-    inset: auto 2px 0 2px;
-    min-height: 2px;
-    height: var(--bar);
-    border-radius: 2px 2px 0 0;
-    /* Faded to keep the cumulative line readable on top. */
-    background: color-mix(in oklab, var(--color-primary) 35%, transparent);
-}
-
-.series-col:hover .series-bar {
-    background: color-mix(in oklab, var(--color-primary) 70%, transparent);
-}
-
-/* Inside a card rather than full width: the chart takes whatever height the
-   grid row gives it, the caption and legend keeping their own. */
-.series-grow,
-.series-grow .series-width {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-}
-
-.series-chart-mini {
-    height: auto;
-    flex: 1;
-    min-height: 5rem;
-}
-
-/* Stacked column normalised to 100%: accepted at the bottom, refused filling
-   whatever is left above. */
-.series-stack-ok,
-.series-stack-ko {
-    position: absolute;
-    left: 2px;
-    right: 2px;
-}
-
-.series-stack-ok {
-    bottom: 0;
-    height: var(--ok);
-    background: color-mix(in oklab, var(--color-success) 60%, transparent);
-}
-
-.series-stack-ko {
-    top: 0;
-    bottom: var(--ok);
-    border-radius: 2px 2px 0 0;
-    background: color-mix(in oklab, var(--color-error) 60%, transparent);
-}
-
-.series-col:hover .series-stack-ok {
-    background: var(--color-success);
-}
-
-.series-col:hover .series-stack-ko {
-    background: var(--color-error);
-}
-
-/* The native title waits a second before showing; this one is immediate. It
-   stays inside the chart box, which the scroll container clips vertically, and
-   sticks to the edges on the first and last columns so it is never cut off. */
-.series-tip {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1;
-    display: none;
-    padding: 0.15rem 0.4rem;
-    border-radius: 4px;
-    background: var(--color-base-content);
-    color: var(--color-base-100);
-    font-size: 0.7rem;
-    white-space: nowrap;
-    pointer-events: none;
-}
-
-.series-col:hover .series-tip {
-    display: block;
-}
-
-.series-col:first-child .series-tip {
-    left: 0;
-    transform: none;
-}
-
-.series-col:last-child .series-tip {
-    left: auto;
-    right: 0;
-    transform: none;
-}
-
-/* One dot per point of the cumulative curve, so a value is read, not guessed
-   from the slope. */
-.series-dot {
-    position: absolute;
-    bottom: var(--cumul);
-    left: 50%;
-    width: 0.4rem;
-    height: 0.4rem;
-    border-radius: 50%;
-    background: var(--color-primary);
-    transform: translate(-50%, 50%);
-    transition: width 150ms ease, height 150ms ease;
-}
-
-.series-col:hover .series-dot {
-    width: 0.7rem;
-    height: 0.7rem;
-}
-
-.legend-swatch {
-    width: 0.75rem;
-    height: 0.75rem;
-    border-radius: 2px;
-    flex-shrink: 0;
-}
-
-.legend-swatch-bar {
-    background: color-mix(in oklab, var(--color-primary) 35%, transparent);
-}
-
-.legend-swatch-line {
-    height: 0;
-    border-top: 2px solid var(--color-primary);
-    border-radius: 0;
-}
-
-/* Laid over the bars, below the labels' gutter. Both dimensions are stated:
-   an SVG is a replaced element, so with height auto it ignores `bottom` and
-   falls back on its 1:1 ratio — as tall as the chart is wide. */
-.series-line {
-    position: absolute;
-    display: block;
-    top: 1.25rem;
-    left: 0;
-    width: 100%;
-    height: calc(100% - 1.25rem);
-    pointer-events: none;
-}
-
-.series-line polyline {
-    fill: none;
-    stroke: var(--color-primary);
-    stroke-width: 2;
-    vector-effect: non-scaling-stroke;
+.chart-box-rows {
+    height: calc(var(--rows) * 1.5rem + 3rem);
 }
 
 .bar-list {
@@ -232,18 +51,6 @@
     font-size: 0.8rem;
     font-variant-numeric: tabular-nums;
     text-align: right;
-}
-
-.stacked-bar {
-    display: flex;
-    height: 1.25rem;
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-/* Second ranking of the contributors pair, told apart by colour alone. */
-.bar-fill-alt {
-    background: var(--color-info);
 }
 
 /* The POI/integration switch swaps two pre-rendered rankings — no reload,

@@ -46,9 +46,15 @@ def home():
                     UNION
                     SELECT osm_user_id FROM todo_brands
                 ) u) AS contributors,
+                -- Tags per wave: added by wave 1, modified by wave 2.
                 COALESCE((SELECT SUM(v.value::int)
                           FROM import_history h,
-                               LATERAL jsonb_each_text(COALESCE(h.tags_count, '{}'::jsonb)) v), 0) AS tags_added
+                               LATERAL jsonb_each_text(COALESCE(h.tags_count, '{}'::jsonb)) v
+                          WHERE h.wave = 1), 0) AS tags_added,
+                COALESCE((SELECT SUM(v.value::int)
+                          FROM import_history h,
+                               LATERAL jsonb_each_text(COALESCE(h.tags_count, '{}'::jsonb)) v
+                          WHERE h.wave = 2), 0) AS tags_modified
             FROM import_history
         """).fetchone()
         data_imports = cursor.execute("""

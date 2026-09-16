@@ -18,7 +18,7 @@
 {% macro color(number) %}{{ {1: 'badge-info', 2: 'badge-warning'}.get(number, 'badge-ghost') }}{% endmacro %}
 
 {% macro badge(number) %}
-<span class="badge badge-soft join-item {{ color(number) | trim }} whitespace-nowrap">
+<span class="badge join-item {{ color(number) | trim }} whitespace-nowrap">
     <i class="{{ icon(number) | trim }}" aria-hidden="true"></i>
     <span class="list-hide">{{ label(number) | trim }}</span><span class="list-only">{{ short_label(number) | trim }}</span>
 </span>

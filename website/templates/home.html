@@ -70,14 +70,15 @@
     </a>
 </h2>
 
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-3xl">
-    {% for icon, label, value in [
-        ("iconoir-database-check", _('POIs integrated'),  stats["total_nodes_updated"]),
-        ("iconoir-label",          _('Tags added'),      stats["tags_added"]),
-        ("iconoir-shop",           _('Brands integrated'), stats["brands_imported"]),
-        ("iconoir-community",      _('Contributors'),    stats["contributors"])
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 max-w-4xl">
+    {% for icon, label, value, color in [
+        ("iconoir-database-check", _('POIs integrated'),   stats["total_nodes_updated"], ''),
+        ("iconoir-plus-circle",    _('Tags added'),        stats["tags_added"],          'text-info'),
+        ("iconoir-edit-pencil",    _('Tags modified'),     stats["tags_modified"],       'text-warning'),
+        ("iconoir-shop",           _('Brands integrated'), stats["brands_imported"],     ''),
+        ("iconoir-community",      _('Contributors'),      stats["contributors"],        '')
     ] %}
-    {{ kpi_card(icon, value, label) }}
+    {{ kpi_card(icon, value, label, color=color) }}
     {% endfor %}
 </div>
 
