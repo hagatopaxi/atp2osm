@@ -6,7 +6,7 @@ from flask import Blueprint, abort, render_template, request, Response, url_for,
 from psycopg.rows import dict_row
 from staticmap import StaticMap, CircleMarker
 
-from src.config import STATIC_DIR
+from src.config import STATIC_DIR, get_settings
 from src.db import get_osmdb
 from src.routes.spiders import SPIDERS_PAGE_LINKED
 from src.extensions import cache
@@ -94,6 +94,19 @@ def robots():
         "robots.txt", sitemap_url=url_for("misc.sitemap", _external=True)
     )
     return Response(body, mimetype="text/plain")
+
+
+@misc_bp.route("/health")
+def health():
+    # A health check that does not reach the database reports a dead site as
+    # alive; a failure here is a 500, which is the answer a probe wants.
+    get_osmdb().execute("SELECT 1")
+    return {"status": "ok"}
+
+
+@misc_bp.route("/version")
+def version():
+    return {"version": get_settings().app_version}
 
 
 @misc_bp.route("/sitemap.xml")
