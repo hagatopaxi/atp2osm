@@ -2,6 +2,7 @@
 
 {% from '_filters.html' import filter_bar with context %}
 {% from '_kpi_card.html' import kpi_card %}
+{% import '_wave.html' as wave with context %}
 
 {% block meta_description %}{{ _('Statistics of the AllThePlaces integrations into OpenStreetMap: POI volume, tags enriched, spider reliability, brands and contributors.') }}{% endblock %}
 {% block page_title %}{{ _('Statistics') }}{% endblock %}
@@ -26,6 +27,11 @@
 
 {% block custom_js %}
 <script src="/static/js/filters.js?v={{ app_version }}"></script>
+{# Chart.js is loaded by this page only, and only when there is something to draw. #}
+{% if kpi.imports %}
+<script src="/static/lib/chart-4.js?v={{ app_version }}" defer></script>
+<script src="/static/js/stats.js?v={{ app_version }}" defer></script>
+{% endif %}
 {% endblock %}
 
 {% block title %}{{ _('Statistics') }}{% endblock %}
@@ -34,21 +40,15 @@
 {# Sorted horizontal bars: the most readable form to compare named
     categories. Label and value are text, so there is nothing to duplicate for
     screen readers. #}
-{% macro bar_list(rows, empty=None, alt=false) %}
+{% macro bar_list(rows, empty=None) %}
 {% set empty = empty or _('No data over this period.') %}
 {% set top = rows[0].value if rows else 0 %}
 {% if rows %}
 <ul class="bar-list">
     {% for row in rows %}
     <li>
-        <span class="bar-label" title="{{ row.label }}">
-            {% if row.label and row.label.startswith('Q') and row.label[1:].isdigit() %}
-                <a href="https://www.wikidata.org/wiki/{{ row.label }}" target="_blank" rel="noopener" class="link font-mono">{{ row.label }}<i class="iconoir-open-new-window" aria-hidden="true"></i></a>
-            {% else %}
-                {{ row.label }}
-            {% endif %}
-        </span>
-        <span class="bar-track"><span class="bar-fill{{ ' bar-fill-alt' if alt }}" style="--bar: {{ (100 * row.value / top) | round(1) }}%"></span></span>
+        <span class="bar-label" title="{{ row.label }}">{{ row.label }}</span>
+        <span class="bar-track"><span class="bar-fill" style="--bar: {{ (100 * row.value / top) | round(1) }}%"></span></span>
         <span class="bar-value">{{ row.value }}</span>
     </li>
     {% endfor %}
@@ -68,24 +68,54 @@
 </figure>
 {% endmacro %}
 
+{# A Chart.js canvas, sized by its box; the summary is what a screen reader
+   gets instead of the drawing. `rows` sizes a horizontal chart to its bars. #}
+{% macro chart(name, summary, rows=0) %}
+<div class="chart-box{{ ' chart-box-rows' if rows }}" style="--rows: {{ rows }}">
+    <canvas data-chart="{{ name }}" role="img" aria-label="{{ summary }}"></canvas>
+</div>
+{% endmacro %}
+
 {% block content %}
 <form method="get" data-autosubmit>
     {% call filter_bar(filters, [
         ('user', _('User'), filter_users),
         ('from', _('Start date'), 'date'),
         ('to', _('End date'), 'date')
-    ], url_for('stats.stats')) %}{% endcall %}
+    ], url_for('stats.stats')) %}
+    {# Quick filter: the wave, one click away — the whole page then compares
+       one typology of change with the other. None selected means every wave;
+       the selected one is vivid, the other one dull. #}
+    {% set others = request.args.to_dict() %}
+    {% set dropped = others.pop('wave', None) %}
+    {# The label floats above the buttons, so they stay on the line of the
+       search field instead of pushing it down. #}
+    <div class="relative">
+        <span class="absolute -top-4 right-0 text-xs muted whitespace-nowrap" id="wave-filter-label">{{ _('Wave') }}</span>
+        <nav class="join" aria-labelledby="wave-filter-label">
+            {% for number in waves %}
+            {% set on = filters.wave == number %}
+            <a href="{{ url_for('stats.stats', wave=number, **others) }}"
+               class="btn btn-sm join-item {{ wave.color(number) | trim | replace('badge-', 'btn-') }} {{ '' if on else 'btn-soft opacity-60' }}"
+               {{ 'aria-current="page"' if on }}>
+                <i class="{{ wave.icon(number) | trim }}" aria-hidden="true"></i> {{ wave.label(number) | trim }}
+            </a>
+            {% endfor %}
+        </nav>
+    </div>
+    {% endcall %}
 </form>
 
 <h2 class="text-sm font-semibold muted mb-2">{{ _('Impact') }}</h2>
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-    {% for icon, value, label in [
-        ("iconoir-database-check", kpi.pois,    _('POIs integrated')),
-        ("iconoir-label",          tags_total,  _('Tags added')),
-        ("iconoir-double-check",   kpi.imports, _('Integrations')),
-        ("iconoir-shop",           kpi.brands,  _('Brands'))
+<div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
+    {% for icon, value, label, color in [
+        ("iconoir-database-check", kpi.pois,        _('POIs integrated'), ''),
+        ("iconoir-plus-circle",    tags_by_wave[1], _('Tags added'),      'text-info'),
+        ("iconoir-edit-pencil",    tags_by_wave[2], _('Tags modified'),   'text-warning'),
+        ("iconoir-double-check",   kpi.imports,     _('Integrations'),    ''),
+        ("iconoir-shop",           kpi.brands,      _('Brands'),          '')
     ] %}
-    {{ kpi_card(icon, value, label, compact=true) }}
+    {{ kpi_card(icon, value, label, compact=true, color=color) }}
     {% endfor %}
 </div>
 
@@ -97,51 +127,56 @@
     {{ kpi_card("iconoir-warning-triangle", awaiting_fix, _('Brands awaiting a spider fix'), compact=true) }}
 </div>
 
+{% set unit_label = {'day': _('day'), 'week': _('week'), 'month': _('month')}[unit] %}
+{% set wave_list = [] %}
+{% for n in waves %}{% set added = wave_list.append({'number': n, 'label': wave.label(n) | trim, 'color': wave.color(n) | trim | replace('badge-', '')}) %}{% endfor %}
+
+{# The figures of every chart, read by stats.js. The labels go through gettext
+   here, where a request has a locale; the colours are daisyUI tokens, resolved
+   in the browser so a theme switch redraws them. #}
+<script type="application/json" id="stats-data">
+{{ dict(charts, waves=wave_list, strings={
+    'running_total': _('Running total'),
+    'integrations': _('Integrations'),
+    'brands_integrated': _('Brands integrated'),
+    'brands_rejected': _('Brands rejected'),
+    'accepted': _('Accepted'),
+    'refused': _('Refused')
+}) | tojson }}
+</script>
+
 {% if series_max > 0 %}
 <figure class="card bg-base-100 shadow-sm p-4 mb-4">
-    {% set unit_label = {'day': _('day'), 'week': _('week'), 'month': _('month')}[unit] %}
     <figcaption class="mb-3">
         <span class="font-semibold text-sm">{{ _('Pace and progress') }}</span>
         <span class="block text-xs muted">
-            {% trans unit=unit_label %}What each {{ unit }} brought to OpenStreetMap, and what it all adds up to. Both series share one scale: the height of a bar reads directly as the share of that period in the total.{% endtrans %}
-        </span>
-        <span class="flex flex-wrap gap-4 text-xs muted mt-1">
-            <span class="flex items-center gap-1"><span class="legend-swatch legend-swatch-bar"></span> {% trans unit=unit_label %}POIs integrated per {{ unit }}{% endtrans %}</span>
-            <span class="flex items-center gap-1"><span class="legend-swatch legend-swatch-line"></span> {{ _('Running total') }}</span>
+            {% trans unit=unit_label %}What each {{ unit }} brought to OpenStreetMap, additions and modifications stacked, and what each adds up to on the right-hand scale.{% endtrans %}
         </span>
     </figcaption>
-    <div class="series-scroll" tabindex="0">
-        <div class="series-width" style="--bars: {{ series | length }}">
-            {# One full-height column per period: the hover catches the whole
-               period, not just the top of a flattened bar. #}
-            <div class="series-chart" role="img"
-                aria-label="{% for p in series %}{% trans period=p.period | dateformat('short'), pois=p.pois, cumulative=p.cumulative %}{{ period }}: {{ pois }} POIs, running total {{ cumulative }}. {% endtrans %}{% endfor %}">
-                {% for p in series %}
-                <div class="series-col" data-value="{{ p.pois }}"
-                    style="--bar: {{ (100 * p.pois / cumulative_max) | round(1) if cumulative_max else 0 }}%; --cumul: {{ (100 * p.cumulative / cumulative_max) | round(1) if cumulative_max else 0 }}%"
->
-                    <span class="series-tip">{{ p.period | dateformat('short') }} — {{ p.pois }} POIs ({% trans count=p.imports %}{{ count }} integration{% pluralize %}{{ count }} integrations{% endtrans %}), {% trans cumulative=p.cumulative %}running total {{ cumulative }}{% endtrans %}</span>
-                    <span class="series-bar"></span>
-                    {% if cumulative_max > 0 %}
-                    <span class="series-dot" data-cumul="{{ p.cumulative }}"></span>
-                    {% endif %}
-                </div>
-                {% endfor %}
-                {% if cumulative_max > 0 and series | length > 1 %}
-                {# The line runs through the centre of the columns, where the dots are. #}
-                <svg class="series-line" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                    <polyline points="{% for p in series %}{{ (100 * (loop.index0 + 0.5) / (series | length)) | round(2) }},{{ (100 - 100 * p.cumulative / cumulative_max) | round(2) }} {% endfor %}" />
-                </svg>
-                {% endif %}
-            </div>
-            <div class="flex justify-between gap-4 text-xs muted mt-1 whitespace-nowrap">
-                <span>{{ series[0].period | dateformat('short') }}</span>
-                <span>{{ series[-1].period | dateformat('short') }}</span>
-            </div>
-        </div>
+    <div class="chart-box chart-box-tall">
+        <canvas data-chart="pace" role="img"
+            aria-label="{% for p in series %}{% trans period=p.period | dateformat('short'), pois=p.pois, cumulative=p.cumulative %}{{ period }}: {{ pois }} POIs, running total {{ cumulative }}. {% endtrans %}{% endfor %}"></canvas>
     </div>
 </figure>
 {% endif %}
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+    {% call card(_('Tags enriched'), _('Per tag, the POIs where it was added and those where it was modified.')) %}
+    {% if tags %}
+    {{ chart('tags', tags | map(attribute='label') | join(', '), rows=tags | length) }}
+    {% else %}
+    <p class="text-sm muted">{{ _('No data over this period.') }}</p>
+    {% endif %}
+    {% endcall %}
+
+    {% call card(_('Most integrated brands'), _('Per brand, the POIs enriched by each wave.')) %}
+    {% if brands %}
+    {{ chart('brands', brands | map(attribute='label') | join(', '), rows=brands | length) }}
+    {% else %}
+    <p class="text-sm muted">{{ _('No data over this period.') }}</p>
+    {% endif %}
+    {% endcall %}
+</div>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
     {% call card(_('Integrations per contributor'),
@@ -151,87 +186,34 @@
         <input class="btn btn-xs join-item" type="radio" name="rank-by" aria-label="{{ _('Integrations') }}" checked />
         <input class="btn btn-xs join-item rank-pois-switch" type="radio" name="rank-by" aria-label="POIs" />
     </div>
-    <div class="rank-imports">{{ bar_list(by_imports) }}</div>
-    <div class="rank-pois">{{ bar_list(by_pois) }}</div>
+    {% if by_imports %}
+    <div class="rank-imports">{{ chart('by_imports', by_imports | map(attribute='label') | join(', '), rows=by_imports | length) }}</div>
+    <div class="rank-pois">{{ chart('by_pois', by_pois | map(attribute='label') | join(', '), rows=by_pois | length) }}</div>
+    {% else %}
+    <p class="text-sm muted">{{ _('No data over this period.') }}</p>
+    {% endif %}
     {% endcall %}
 
     {% call card(_('Missing brands added'),
                  _('OSM contributors ranked by the number of brands missing from ATP they added.')) %}
-    {{ bar_list(reporters, alt=true) }}
+    {{ bar_list(reporters) }}
     {% endcall %}
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-    {% call card(_('Tags enriched')) %}
-    {{ bar_list(tags) }}
-    {% endcall %}
-
-    {% call card(_('Most integrated brands')) %}
-    {{ bar_list(brands) }}
-    {% endcall %}
-
     {% call card(_('Reliability of the ATP data'),
                  gettext('Share of the brands whose integration was accepted, per %(unit)s. A brand counts once, whatever the volume behind it; a period without data is empty.', unit=unit_label)) %}
-    <ul class="flex flex-wrap gap-4 mb-3 text-xs muted">
-        <li class="flex items-center gap-1"><span class="legend-swatch bg-success"></span> {{ _('Brands integrated') }}</li>
-        <li class="flex items-center gap-1"><span class="legend-swatch bg-error"></span> {{ _('Brands rejected') }}</li>
-    </ul>
     {% if spider_series | selectattr('reliability', 'ne', None) | list %}
-    <div class="series-scroll series-grow" tabindex="0">
-        <div class="series-width" style="--bars: {{ spider_series | length }}">
-            <div class="series-chart series-chart-mini" role="img"
-                aria-label="{% for p in spider_series if p.reliability is not none %}{% trans period=p.period | dateformat('short'), rate=p.reliability %}{{ period }}: {{ rate }} % reliability. {% endtrans %}{% endfor %}">
-                {% for p in spider_series %}
-                <div class="series-col" data-value="{{ (p.reliability ~ ' %') if p.reliability is not none else '' }}"
-                    style="--bar: {{ 100 if p.reliability is not none else 0 }}%; --ok: {{ p.reliability or 0 }}%">
-                    <span class="series-tip">{{ p.period | dateformat('short') }} — {% trans count=p.integrated %}{{ count }} brand integrated{% pluralize %}{{ count }} brands integrated{% endtrans %}, {% trans count=p.rejected %}{{ count }} rejected{% pluralize %}{{ count }} rejected{% endtrans %}</span>
-                    {% if p.reliability is not none %}
-                    <span class="series-stack-ok"></span>
-                    <span class="series-stack-ko"></span>
-                    {% endif %}
-                </div>
-                {% endfor %}
-            </div>
-            <div class="flex justify-between gap-4 text-xs muted mt-1 whitespace-nowrap">
-                <span>{{ spider_series[0].period | dateformat('short') }}</span>
-                <span>{{ spider_series[-1].period | dateformat('short') }}</span>
-            </div>
-        </div>
-    </div>
+    {% set summary %}{% for p in spider_series if p.reliability is not none %}{% trans period=p.period | dateformat('short'), rate=p.reliability %}{{ period }}: {{ rate }} % reliability. {% endtrans %}{% endfor %}{% endset %}
+    {{ chart('spiders', summary | trim) }}
     {% else %}
     <p class="text-sm muted">{{ _('No review over this period.') }}</p>
     {% endif %}
     {% endcall %}
     {% call card(_('Reliability of the OSM data'), _('A changeset is almost always refused because the local copy of OpenStreetMap has aged: one of the POIs no longer carries the same version in OSM and in the atp2osm database. The API then rejects the changeset as a whole.')) %}
-    <ul class="flex flex-wrap gap-4 mb-3 text-xs muted">
-        <li class="flex items-center gap-1"><span class="legend-swatch bg-success"></span> {{ _('Accepted') }}</li>
-        <li class="flex items-center gap-1"><span class="legend-swatch bg-error"></span> {{ _('Refused') }}</li>
-    </ul>
     {% if changesets_max %}
-    <div class="series-scroll series-grow" tabindex="0">
-        <div class="series-width" style="--bars: {{ changesets | length }}">
-            {# Normalised columns: the reading is about the success share, not
-               the volume, which the chart above already gives. #}
-            <div class="series-chart series-chart-mini" role="img"
-                aria-label="{% for c in changesets if c.rate is not none %}{% trans period=c.period | dateformat('short'), rate=c.rate %}{{ period }}: {{ rate }} % of changesets accepted. {% endtrans %}{% endfor %}">
-                {% for c in changesets %}
-                <div class="series-col" data-value="{{ (c.rate ~ ' %') if c.rate is not none else '' }}"
-                    style="--bar: {{ 100 if c.rate is not none else 0 }}%; --ok: {{ c.rate or 0 }}%"
->
-                    <span class="series-tip">{{ c.period | dateformat('short') }} — {% trans count=c.ok %}{{ count }} accepted{% pluralize %}{{ count }} accepted{% endtrans %}, {% trans count=c.ko %}{{ count }} refused{% pluralize %}{{ count }} refused{% endtrans %}</span>
-                    {% if c.rate is not none %}
-                    <span class="series-stack-ok"></span>
-                    <span class="series-stack-ko"></span>
-                    {% endif %}
-                </div>
-                {% endfor %}
-            </div>
-            <div class="flex justify-between gap-4 text-xs muted mt-1 whitespace-nowrap">
-                <span>{{ changesets[0].period | dateformat('short') }}</span>
-                <span>{{ changesets[-1].period | dateformat('short') }}</span>
-            </div>
-        </div>
-    </div>
+    {% set summary %}{% for c in changesets if c.rate is not none %}{% trans period=c.period | dateformat('short'), rate=c.rate %}{{ period }}: {{ rate }} % of changesets accepted. {% endtrans %}{% endfor %}{% endset %}
+    {{ chart('changesets', summary | trim) }}
     {% else %}
     <p class="text-sm muted">{{ _('No changeset over this period.') }}</p>
     {% endif %}

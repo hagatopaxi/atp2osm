@@ -131,6 +131,13 @@ def protect_recent_edits(changes: list[dict]) -> list[dict]:
     Raises OsmApiUnavailable when a date could not be read: the caller must
     not take an undecided batch for an empty one.
     """
+    # The development API server holds none of the production objects: every
+    # history read is a 404 there, and the guard would refuse every batch.
+    # Same as the fake OSM API the upload takes in development: nothing is
+    # protected, nothing is asked.
+    if get_settings().is_dev:
+        return list(changes)
+
     threshold = _threshold()
     kept = []
 

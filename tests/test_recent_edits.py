@@ -4,12 +4,17 @@ The API is never called: the version list and the bot verdict are handed over
 directly, which is what the two functions under test read.
 """
 
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 
 import pytest
 
 import src.osm_history as osm_history
+from src.config import get_settings
 from src.osm_history import protect_recent_edits, value_set_at
+
+
+pytestmark = pytest.mark.usefixtures("guard_on")
 
 NOW = datetime.now(timezone.utc)
 OLD = NOW - timedelta(weeks=52)
@@ -139,3 +144,12 @@ def test_the_protection_is_per_tag_not_per_object(api):
 def test_an_object_without_history_dates_nothing():
     """`elements: []` from the API: no version, no date, no changeset."""
     assert value_set_at([], "phone") == (None, None)
+
+
+def test_in_development_nothing_is_protected(monkeypatch):
+    """The development API server holds none of the objects: the guard would
+    refuse every batch, so it stands aside there."""
+    monkeypatch.setattr(osm_history, "get_settings", lambda: replace(get_settings(), env="DEVELOPMENT"))
+    monkeypatch.setattr(osm_history, "versions", lambda *a: pytest.fail("API read"))
+    changes = [change({"phone": "0123456789"}, {"phone": "0987654321"}, RECENT)]
+    assert protect_recent_edits(changes) == changes

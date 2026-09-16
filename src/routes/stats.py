@@ -7,7 +7,8 @@ from flask import Blueprint, Response, render_template, request
 from psycopg.rows import dict_row
 
 from src.db import get_osmdb
-from src.matching import BLOCKED_BRANDS_SQL
+from flask_babel import format_date
+from src.matching import BLOCKED_BRANDS_SQL, WAVES_BY_NUMBER
 from src.utils import TODO_NOT_IN_ATP_SQL, build_filters, fetch_osm_users
 
 logger = logging.getLogger(__name__)
@@ -17,6 +18,7 @@ stats_bp = Blueprint("stats", __name__)
 FILTERS = {
     "q": ("brand_name", "brand_wikidata"),
     "user": "osm_user_id",
+    "wave": "wave",
     "date": "import_date",
 }
 
@@ -41,7 +43,8 @@ SERIES_SQL = """
     )
     SELECT p.period,
            COALESCE(SUM(h.items_count), 0)::int AS pois,
-           COUNT(h.id)                          AS imports
+           COUNT(h.id)                          AS imports,
+           {per_wave}
     FROM periods p
     LEFT JOIN import_history h
            ON date_trunc('{unit}', h.import_date)::date = p.period
@@ -50,48 +53,50 @@ SERIES_SQL = """
     ORDER BY p.period
 """
 
-# tags_count is a JSONB map {tag: number of POIs where it was added}.
+# One column per wave, so the chart stacks additions and modifications.
+PER_WAVE_SQL = ", ".join(
+    f"COALESCE(SUM(h.items_count) FILTER (WHERE h.wave = {w}), 0)::int AS wave_{w}"
+    for w in WAVES_BY_NUMBER
+)
+
+# tags_count is a JSONB map {tag: number of POIs where it was added}. Split by
+# wave: a tag added in wave 1 and overwritten in wave 2 is two readings.
 TAGS_SQL = """
-    SELECT t.key AS label, SUM(t.value::int)::int AS value
+    SELECT t.key AS label, h.wave, SUM(t.value::int)::int AS value
     FROM import_history h,
          LATERAL jsonb_each_text(COALESCE(h.tags_count, '{{}}'::jsonb)) t
     {where}
-    GROUP BY t.key
-    ORDER BY value DESC
+    GROUP BY 1, 2
 """
 
 BRANDS_SQL = """
-    SELECT COALESCE(brand_name, brand_wikidata) AS label,
-           SUM(items_count)::int                AS value
-    FROM import_history {where}
-    GROUP BY 1
-    HAVING SUM(items_count) > 0
-    ORDER BY value DESC
+    SELECT COALESCE(h.brand_name, h.brand_wikidata) AS label,
+           h.wave,
+           SUM(h.items_count)::int                  AS value
+    FROM import_history h {where}
+    GROUP BY 1, 2
+    HAVING SUM(h.items_count) > 0
 """
 
-# Two ways of contributing, ranked separately. The brand filter reaches
+# Two ways of contributing, ranked separately: integrations per wave, and
+# reports of missing brands, which belong to no wave. The brand filter reaches
 # todo_brands too, the period one applies to created_at there.
 USERS_SQL = """
-    WITH contributions AS (
-        SELECT osm_user_id,
-               COUNT(*)::int                        AS imports,
-               COALESCE(SUM(items_count), 0)::int   AS pois,
-               0                                    AS todos
-        FROM import_history {where}
-        GROUP BY 1
-        UNION ALL
-        SELECT osm_user_id, 0, 0, COUNT(*)::int
-        FROM (SELECT osm_user_id, brand_name, brand_wikidata,
-                     created_at AS import_date
-              FROM todo_brands) todo_brands
-        {where}
-        GROUP BY 1
-    )
-    SELECT osm_user_id          AS label,
-           SUM(imports)::int    AS imports,
-           SUM(pois)::int       AS pois,
-           SUM(todos)::int      AS todos
-    FROM contributions
+    SELECT osm_user_id                        AS label,
+           wave,
+           COUNT(*)::int                      AS imports,
+           COALESCE(SUM(items_count), 0)::int AS pois,
+           0                                  AS todos
+    FROM import_history {where}
+    GROUP BY 1, 2
+    UNION ALL
+    SELECT osm_user_id, NULL, 0, 0, COUNT(*)::int
+    FROM (SELECT osm_user_id, brand_name, brand_wikidata,
+                 created_at AS import_date,
+                 -- A report belongs to no wave: the wave filter drops it.
+                 NULL::smallint AS wave
+          FROM todo_brands) todo_brands
+    {where}
     GROUP BY 1
 """
 
@@ -195,12 +200,13 @@ def compute(args):
         kpi = cursor.execute(KPI_SQL.format(where=where), params).fetchone()
         series = cursor.execute(
             SERIES_SQL.format(
-                unit=unit, start=start, end=end, extra=aliased.replace("WHERE ", "AND ", 1)
+                unit=unit, start=start, end=end, per_wave=PER_WAVE_SQL,
+                extra=aliased.replace("WHERE ", "AND ", 1),
             ),
             params,
         ).fetchall()
         tags = cursor.execute(TAGS_SQL.format(where=aliased), params).fetchall()
-        brands = cursor.execute(BRANDS_SQL.format(where=where), params).fetchall()
+        brands = cursor.execute(BRANDS_SQL.format(where=aliased), params).fetchall()
         # The clause appears twice in the query, so its params do too.
         users = cursor.execute(USERS_SQL.format(where=where), params * 2).fetchall()
         spiders = cursor.execute(SPIDERS_SQL.format(where=where), params).fetchall()
@@ -227,11 +233,14 @@ def compute(args):
     for row in users:
         row["label"] = names.get(row["label"], str(row["label"]))
 
-    # Two rankings out of one query: integrations and missing brands reported.
-    # Integrations ship pre-sorted both ways, the switch is pure CSS.
+    # Three rankings out of one query: integrations and POIs, split by wave,
+    # and missing brands reported. The integrations ship both ways, the
+    # switch is pure CSS.
     def rank(key):
-        rows = ({"label": u["label"], "value": u[key]} for u in users if u[key])
-        return sorted(rows, key=lambda u: u["value"], reverse=True)[:TOP_N]
+        rows = [
+            {"label": u["label"], "wave": u["wave"], "value": u[key]} for u in users if u[key]
+        ]
+        return _stack(rows)[:TOP_N]
 
 
     # A spider is rejected only when nothing of it ever made it through: one
@@ -252,28 +261,61 @@ def compute(args):
         sent = row["ok"] + row["ko"]
         row["rate"] = round(100 * row["ok"] / sent) if sent else None
 
-    # The bars show the rhythm, the running total shows the progress.
-    total = 0
+    # The bars show the rhythm, the running totals show the progress — one
+    # per wave, so additions and modifications each have their curve.
+    totals = dict.fromkeys(WAVES_BY_NUMBER, 0)
     for row in series:
-        total += row["pois"]
-        row["cumulative"] = total
+        for w in totals:
+            totals[w] += row[f"wave_{w}"]
+            row[f"cumulative_{w}"] = totals[w]
+
+    all_tags = _stack(tags)
+    tags = all_tags[:TOP_N]
+    by_imports, by_pois = rank("imports"), rank("pois")
+    brands = _stack(brands)[:TOP_N]
+
+    # What Chart.js draws, shaped as series. The wave labels are added by the
+    # template, where a locale exists to resolve them.
+    period = lambda rows: [format_date(r["period"], "short") for r in rows]
+    charts = {
+        "pace": {
+            "labels": period(series),
+            "waves": {w: [r[f"wave_{w}"] for r in series] for w in WAVES_BY_NUMBER},
+            "cumulative": {w: [r[f"cumulative_{w}"] for r in series] for w in WAVES_BY_NUMBER},
+            "imports": [r["imports"] for r in series],
+        },
+        "by_imports": _ranking(by_imports),
+        "by_pois": _ranking(by_pois),
+        "tags": _ranking(tags),
+        "brands": _ranking(brands),
+        "spiders": {
+            "labels": period(spider_series),
+            "ok": [r["integrated"] for r in spider_series],
+            "ko": [r["rejected"] for r in spider_series],
+        },
+        "changesets": {
+            "labels": period(changesets),
+            "ok": [r["ok"] for r in changesets],
+            "ko": [r["ko"] for r in changesets],
+        },
+    }
 
     return dict(
         kpi=kpi,
         # Same definition as the contributors panels below, filters included.
-        contributors=len(users),
+        contributors=len({u["label"] for u in users}),
         missing=missing,
         awaiting_fix=awaiting_fix,
-        by_imports=rank("imports"),
-        by_pois=rank("pois"),
+        by_imports=by_imports,
+        by_pois=by_pois,
         reporters=rank("todos"),
         series=series,
         series_max=max((r["pois"] for r in series), default=0),
-        cumulative_max=total,
         unit=unit,
-        tags=tags[:TOP_N],
-        tags_total=sum(t["value"] for t in tags),
-        brands=brands[:TOP_N],
+        charts=charts,
+        tags=tags,
+        tags_by_wave={w: sum(t["by_wave"].get(w, 0) for t in all_tags) for w in WAVES_BY_NUMBER},
+        brands=brands,
         spider_series=spider_series,
         spiders_reliability=reliability,
         changesets=changesets,
@@ -286,9 +328,33 @@ def compute(args):
     )
 
 
+def _stack(rows):
+    """Rank (label, wave, value) rows by total, one row per label.
+
+    Each row keeps its split, `by_wave`, for the stacked bar that compares the
+    two typologies of change.
+    """
+    stacked = {}
+    for row in rows:
+        entry = stacked.setdefault(
+            row["label"], {"label": row["label"], "value": 0, "by_wave": {}}
+        )
+        entry["value"] += row["value"]
+        entry["by_wave"][row["wave"]] = row["value"]
+    return sorted(stacked.values(), key=lambda r: r["value"], reverse=True)
+
+
+def _ranking(rows):
+    """A stacked ranking, one horizontal bar per label."""
+    return {
+        "labels": [r["label"] for r in rows],
+        "waves": {w: [r["by_wave"].get(w, 0) for r in rows] for w in WAVES_BY_NUMBER},
+    }
+
+
 def _alias(where, alias="h"):
     """Qualify the filtered columns with the import_history alias."""
-    for column in ("brand_name", "brand_wikidata", "osm_user_id", "import_date"):
+    for column in ("brand_name", "brand_wikidata", "osm_user_id", "wave", "import_date"):
         where = where.replace(column, f"{alias}.{column}")
     return where
 
