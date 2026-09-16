@@ -1,8 +1,0 @@
-[Unit]
-Description=Daily timer for ${PROJECT_NAME} data refresh
-
-[Timer]
-OnCalendar=${REFRESH_SCHEDULE} ${TIMEZONE}
-
-[Install]
-WantedBy=timers.target

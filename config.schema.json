@@ -256,10 +256,10 @@
           "default": ""
         },
         "refresh_schedule": {
-          "description": "When the daily ATP + OSM refresh runs, in systemd OnCalendar syntax, read in the country's timezone. Pick an hour when the machine is idle: the refresh downloads and imports the whole country.",
+          "description": "When the daily ATP + OSM refresh runs, in cron syntax (minute hour day month weekday), read in the country's timezone. Pick an hour when the machine is idle: the refresh downloads and imports the whole country.",
           "type": "string",
           "minLength": 1,
-          "default": "*-*-* 04:00:00"
+          "default": "0 4 * * *"
         },
         "recent_edit_weeks": {
           "type": "integer",
@@ -425,7 +425,7 @@
         "osm_api_host": "https://api.openstreetmap.org",
         "source_repo_url": "https://github.com/hagatopaxi/atp2osm-import",
         "translations_dir": "",
-        "refresh_schedule": "*-*-* 04:00:00",
+        "refresh_schedule": "0 4 * * *",
         "recent_edit_weeks": 12,
         "db": {
           "name": "",

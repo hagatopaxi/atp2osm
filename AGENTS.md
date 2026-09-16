@@ -72,9 +72,10 @@ podman-compose up -d
 # Import OSM PBF data into PostGIS (local dev, via container)
 podman-compose run osm2pgsql osm2pgsql --output flex -S /osm2pgsql/generic.lua -d o2p -U o2p -H 127.0.0.1 -P 5432 /data/osm/<file>.osm.pbf
 
-# Refresh all data (ATP + OSM) — runs daily via systemd timer in production
+# Refresh all data (ATP + OSM) — runs daily from supercronic inside the
+# refresh container in production (python -m src.pipeline setup)
 # Manual trigger on server:
-#   systemctl --user start atp2osm-gwenael-leger-fr-refresh.service
+#   ./run-pipeline.sh
 # Manual trigger locally:
 #   ATP2OSM_CONFIG=./config.json OSM_DB_PASSWORD=... ./run-pipeline.sh
 # Rebuild everything, ignoring what data_imports and the table stamps say
@@ -89,7 +90,7 @@ podman-compose run osm2pgsql osm2pgsql --output flex -S /osm2pgsql/generic.lua -
 ## Architecture
 
 **Data pipeline** (runs outside the web server, via `run-pipeline.sh` and `src/pipeline/`):
-1. `run-pipeline.sh` — Entry point of the daily refresh: runs `src/pipeline` inside the container via podman. Copied into the project directory on every deploy. Triggered by a systemd timer (04:00 Europe/Paris). A branch no-ops when nothing it depends on has moved — *including its own code*: see **Rebuild guards** below.
+1. `run-pipeline.sh` — Entry point of the daily refresh: runs `src/pipeline` inside the container via podman, for a manual run. Copied into the project directory on every deploy. The daily run is scheduled by `python -m src.pipeline setup` (supercronic) in the long-lived `refresh` container, at `app.refresh_schedule` in the country's timezone; a restart during a run waits for it to finish. A branch no-ops when nothing it depends on has moved — *including its own code*: see **Rebuild guards** below.
 2. `src/pipeline/` — Python module orchestrating the whole pipeline: OSM PBF download from Geofabrik, osm2pgsql import, ATP parquet download, load into `atp_places` through DuckDB, materialized view refresh.
 3. `osm2pgsql/generic.lua` — Flex output style that imports OSM PBF into `points`, `polygons` and `subdivisions` tables in PostGIS (SRID 4326). Administrative boundaries take a separate path, before the POI filters, down to `ATP2OSM_ADMIN_LEVEL_MAX` (`country.admin_level_max`, 8 in France) — deeper than `country.admin_level`, the level the attachment reads, so lowering that one is a SQL filter rather than a reimport. Two filters run on the POIs: objects that are definitely not places (roads, boundaries, transport…) and objects carrying none of the attributes a match can key on — no name, brand, email, phone or website. The second one drops ~95% of the objects.
 
@@ -104,7 +105,7 @@ In development the version is a constant, so nothing rebuilds on its own: rerun 
 **Swaps** — a rebuilding step never drops what the site reads. It builds the object beside the live one (`mv_places_new`, `atp_places_new`, the `osm_import` schema osm2pgsql writes into) and `_matview.swap()` renames it in at the end, in the transaction that records the import: the exclusive lock is held for a rename, and a failed build leaves the live object as it was. The live one retires as `<name>_old` rather than being dropped — `mv_places_brand` is materialized on `mv_places`, `mv_places` on `points`, and each keeps serving until its own swap. `mv-brand` disposes of the retired chain once it has swapped the brand view, and only what nothing depends on any more. So the site serves throughout a refresh; the `pending` row of `data_imports` is a status the home page shows, not a maintenance flag.
 
 **Deploy** (`deploy/run` — git hook `post-receive`):
-- Builds the container image, writes the `atp2osm.container` Quadlet, writes the `refresh.service` + `refresh.timer` systemd units from the `deploy/` templates, then runs `daemon-reload` + `restart` + `enable timer` directly.
+- Builds the container image, writes the `atp2osm.container` and `refresh.container` Quadlets from the `deploy/` templates, then runs `daemon-reload` + `restart` directly. Everyone else deploys through the root `compose.yml`, which runs the same three containers.
 - One-time server-side provisioning: `loginctl enable-linger $USER` (keeps the services running without an open session).
 
 **Web application** (`src/app.py`, Flask):

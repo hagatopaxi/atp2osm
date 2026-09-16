@@ -139,4 +139,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # Run through the imported module, not this __main__ one: a .py migration
+    # subclasses src.migrate.Migration, and the runner must hold the same
+    # class object to recognise it. A fresh database hits every migration.
+    from src.migrate import main as _main
+
+    _main()

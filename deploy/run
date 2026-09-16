@@ -52,24 +52,24 @@ echo "--> [3/3] Writing unit files..."
 # Read the settings the units need through the image just built: it carries the
 # schema, applies the defaults, and refuses a configuration the app would refuse
 # to start on — so a bad file fails here rather than at the first restart.
-read -r PORT TIMEZONE REFRESH_SCHEDULE < <(podman run --rm \
+read -r PORT REFRESH_SCHEDULE < <(podman run --rm \
   -v "$CONFIG:/app/config.json:ro,Z" \
   --env ATP2OSM_CONFIG=/app/config.json \
   --env OSM_DB_PASSWORD=- --env OSM_OAUTH_CLIENT_ID=- \
   --env OSM_OAUTH_CLIENT_SECRET=- --env SECRET_KEY=- \
   "${IMAGE_NAME}:${GIT_SHORT}" \
   uv run --no-sync python -c \
-  "from src.config import get_settings as s; c = s(); print(c.port, c.country.timezone, c.refresh_schedule)")
+  "from src.config import get_settings as s; c = s(); print(c.port, c.refresh_schedule)")
 
 if [ -z "${REFRESH_SCHEDULE:-}" ]; then
   echo "ERROR: could not read $CONFIG — see the error above" >&2
   exit 1
 fi
-echo "    port $PORT, refresh $REFRESH_SCHEDULE $TIMEZONE"
+echo "    port $PORT, refresh at $REFRESH_SCHEDULE"
 mkdir -p "$QUADLET_DIR" "$SYSTEMD_USER_DIR" "$PROJECT_DIR/data" "$PROJECT_DIR/logs"
 
 export PROJECT_NAME PROJECT_DIR IMAGE_NAME CONTAINER_NAME GIT_SHORT
-export PORT TIMEZONE REFRESH_SCHEDULE
+export PORT
 
 # Container Quadlet. A translations/ directory next to the configuration is
 # mounted when it exists: that is how a deployment ships a language of its own.
@@ -80,9 +80,12 @@ if [ -d "$PROJECT_DIR/translations" ]; then
   echo "    Mounting $PROJECT_DIR/translations"
 fi
 
-# Refresh timer units
-envsubst < "$WORK_DIR/deploy/refresh.service" > "$SYSTEMD_USER_DIR/${CONTAINER_NAME}-refresh.service"
-envsubst < "$WORK_DIR/deploy/refresh.timer"   > "$SYSTEMD_USER_DIR/${CONTAINER_NAME}-refresh.timer"
+# Refresh Quadlet: the scheduler runs in the image, no timer on the host.
+envsubst < "$WORK_DIR/deploy/refresh.container" > "$QUADLET_DIR/${CONTAINER_NAME}-refresh.container"
+# The host timer it replaces: the unit files must go before daemon-reload, or
+# the generated service and the old one collide on the name.
+systemctl --user disable --now "${CONTAINER_NAME}-refresh.timer" 2>/dev/null || true
+rm -f "$SYSTEMD_USER_DIR/${CONTAINER_NAME}-refresh.service" "$SYSTEMD_USER_DIR/${CONTAINER_NAME}-refresh.timer"
 
 # Keep runner entry point up to date on each deploy
 # (src/, osm2pgsql/, etc. live inside the container image)
@@ -108,10 +111,11 @@ podman run --rm --network host \
   "${IMAGE_NAME}:${GIT_SHORT}" \
   uv run --no-sync python -m src.migrate
 
-# Reload systemd, restart container, enable refresh timer
+# Reload systemd, restart both containers. The refresh one stops when its
+# running job is over, so this returns at once and the swap happens later.
 systemctl --user daemon-reload
 systemctl --user restart "${CONTAINER_NAME}.service"
-systemctl --user enable --now "${CONTAINER_NAME}-refresh.timer"
+systemctl --user restart --no-block "${CONTAINER_NAME}-refresh.service"
 
 # Keep the 3 most recent git-tagged images, remove older ones
 echo "    Pruning old images (keeping last 3)..."
@@ -125,5 +129,5 @@ echo ""
 echo "==> Done — $PROJECT_NAME deploying on port $PORT"
 echo "    Image:        ${IMAGE_NAME}:latest (${GIT_SHORT})"
 echo "    Container:    ${CONTAINER_NAME}.service (restarted)"
-echo "    Refresh:      ${CONTAINER_NAME}-refresh.timer (daily, full)"
+echo "    Refresh:      ${CONTAINER_NAME}-refresh.service (daily, in-container cron)"
 echo "    Follow logs:  journalctl --user -u ${CONTAINER_NAME}.service -f"

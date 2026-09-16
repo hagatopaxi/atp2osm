@@ -44,16 +44,28 @@ Every push to `main` builds `ghcr.io/hagatopaxi/atp2osm` (`:latest`
 and `:<git-short>`). Nothing in it is French: it serves the
 country its mounted `config.json` describes.
 
+`compose.yml` runs a complete instance — PostGIS, the site and the daily
+refresh — from three files in one directory:
+
 ```
-podman run -d --name atp2osm --network host \
-  --env-file .env --env ATP2OSM_CONFIG=/app/config.json --env PORT=8000 \
-  -v ./config.json:/app/config.json:ro,Z -v ./data:/app/data:Z \
-  ghcr.io/hagatopaxi/atp2osm:latest
+curl -O https://raw.githubusercontent.com/hagatopaxi/atp2osm/main/compose.yml
+jq '.examples[0]' config.schema.json > config.json   # then edit: your country,
+                                                     # app.db = {host: db, name: atp2osm, user: atp2osm}
+cp .env.sample .env                                  # the secrets
+podman-compose up -d                                 # or: docker compose up -d
 ```
 
-A `translations/` directory mounted on `/app/translations` adds a language the
-product does not ship. The daily refresh is the same image running
-`python -m src.pipeline` (see `run-pipeline.sh`).
+The refresh runs inside the `refresh` container, at `app.refresh_schedule`
+in the country's timezone — no scheduler to install on the host. A deploy
+that lands during a refresh lets it finish on the old image, then restarts
+on the new one. To run it by hand:
+
+```
+podman-compose exec refresh uv run --no-sync python -m src.pipeline
+```
+
+A `translations/` directory mounted on `/app/translations` (a compose
+override file) adds a language the product does not ship.
 
 ## Start the server
 
@@ -91,5 +103,5 @@ ATP2OSM_CONFIG=./config.json uv run --env-file .env python -m src.pipeline
 A fresh database gets its schema from the app, which runs the migrations at
 startup: start the server once before the first pipeline run.
 
-In production it runs daily, on a systemd timer whose hour and timezone come
-from the configuration.
+In production it runs daily, from a cron inside the `refresh` container,
+whose hour and timezone come from the configuration.

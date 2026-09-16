@@ -6,6 +6,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+# Cron for containers: runs the daily refresh in the image that carries the
+# pipeline, so a deployment needs no scheduler on the host.
+ADD --chmod=755 https://github.com/aptible/supercronic/releases/download/v0.2.49/supercronic-linux-amd64 /bin/supercronic
 
 WORKDIR /app
 
