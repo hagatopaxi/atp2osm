@@ -60,6 +60,10 @@ Run from the project root with ``python -m src.pipeline [command]``:
 ``list``
     Print all steps in topological order, showing successors and any
     ``lock`` annotation.
+
+``setup``
+    Schedule ``start`` at ``app.refresh_schedule`` in the country's timezone
+    and never return: the entry point of the ``refresh`` container.
 """
 import logging
 import sys

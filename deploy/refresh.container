@@ -1,0 +1,24 @@
+[Unit]
+Description=Daily ATP + OSM data refresh for ${PROJECT_NAME}
+After=network.target
+
+[Container]
+Image=${IMAGE_NAME}:${GIT_SHORT}
+ContainerName=${CONTAINER_NAME}-refresh
+Network=host
+EnvironmentFile=${PROJECT_DIR}/.env
+Environment=ATP2OSM_CONFIG=/app/config.json
+Environment=GIT_COMMIT=${GIT_SHORT}
+Volume=${PROJECT_DIR}/config.json:/app/config.json:ro,Z
+Volume=${PROJECT_DIR}/data:/app/data:Z
+Exec=uv run --no-sync python -m src.pipeline setup
+# A restart during a refresh waits for it: supercronic finishes the job first.
+StopTimeout=21600
+PodmanArgs=--memory 2g --memory-swap 2.5g
+
+[Service]
+Restart=always
+TimeoutStopSec=21600
+
+[Install]
+WantedBy=default.target

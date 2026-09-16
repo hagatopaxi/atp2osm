@@ -51,7 +51,7 @@ def test_the_optional_settings_have_defaults():
     assert settings.country.timezone == "UTC"
     assert settings.source_repo_url.endswith("/atp2osm-import")
     assert load(app={"source_repo_url": ""}).source_repo_url == settings.source_repo_url
-    assert settings.refresh_schedule == "*-*-* 04:00:00"
+    assert settings.refresh_schedule == "0 4 * * *"
     assert settings.pipeline.min_free_gb == 15.0
 
 
