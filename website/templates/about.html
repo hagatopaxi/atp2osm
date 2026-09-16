@@ -28,6 +28,12 @@
             <p class="muted">{% trans cc0='https://creativecommons.org/publicdomain/zero/1.0/' %}The ATP data is published under <a href="{{ cc0 }}" target="_blank" rel="noopener" class="link link-primary">CC0 1.0<i class="iconoir-open-new-window"></i></a> (public domain). It can be used freely, without restriction.{% endtrans %}</p>
         </div>
     </div>
+    <div class="card bg-base-100 shadow-sm">
+        <div class="card-body gap-1 py-3">
+            <h2 class="font-semibold">{{ _('Accessibility') }}</h2>
+            <p class="muted">{% trans wcag='https://www.w3.org/TR/WCAG21/' %}Every page, in light and dark theme, conforms to <a href="{{ wcag }}" target="_blank" rel="noopener" class="link link-primary">WCAG 2.1 level AA<i class="iconoir-open-new-window"></i></a>, as checked by axe and HTML_CodeSniffer before each release.{% endtrans %}</p>
+        </div>
+    </div>
     <p><a href="/docs#licences" class="link link-primary">{{ _('More on the licences in the documentation') }}</a></p>
 </div>
 {% endblock %}
