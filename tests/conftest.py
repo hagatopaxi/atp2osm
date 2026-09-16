@@ -273,3 +273,17 @@ def contributor(web_app):
             sess["user"] = {"osm_id": 42, "name": "reviewer"}
             sess["token"] = {"access_token": "x"}
         yield client
+
+
+@pytest.fixture
+def guard_on(monkeypatch):
+    """Wave 2's guard, as production runs it. It stands aside in development —
+    the dev API server holds none of the objects — so a test exercising it
+    takes this fixture."""
+    from dataclasses import replace
+
+    import src.osm_history as osm_history
+    from src.config import get_settings
+
+    settings = replace(get_settings(), env="PRODUCTION")
+    monkeypatch.setattr(osm_history, "get_settings", lambda: settings)

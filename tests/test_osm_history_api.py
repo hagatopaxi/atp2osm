@@ -15,6 +15,9 @@ from src.config import get_settings
 from src.osm_history import OsmApiUnavailable, is_bot, protect_recent_edits, versions
 
 
+pytestmark = pytest.mark.usefixtures("guard_on")
+
+
 class _Response:
     def __init__(self, status=200, payload=None, body=None):
         self.status_code = status

@@ -23,6 +23,8 @@ import src.routes.brands as brands
 from src.matching import WAVES_BY_NUMBER
 from src.osm_history import OsmApiUnavailable
 
+pytestmark = pytest.mark.usefixtures("guard_on")
+
 OLD = datetime.now(timezone.utc) - timedelta(weeks=52)
 RECENT = datetime.now(timezone.utc) - timedelta(days=2)
 
