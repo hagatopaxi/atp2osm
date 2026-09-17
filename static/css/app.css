@@ -385,6 +385,22 @@ main .card.rejected {
         linear-gradient(to left, color-mix(in oklab, var(--color-base-content) 25%, transparent), transparent) right / 14px 100% no-repeat scroll;
 }
 
+/* The filter bar joins outlined buttons and fields whose borders are
+   translucent. daisyUI overlaps the borders of joined items by one pixel,
+   which doubles a translucent one into a darker seam: here an item past the
+   first drops its start border instead. The fields also lose the inset
+   depth shadow, a stray line under a transparent background. */
+[data-filter-bar] .join > :not(:first-child).join-item,
+[data-filter-bar] .join > :not(:first-child) > .join-item,
+[data-filter-chips] .join > :not(:first-child).join-item,
+[data-filter-chips] .join > :not(:first-child) > .btn {
+    margin-inline-start: 0;
+    border-inline-start-width: 0;
+}
+[data-filter-chips] .join > :is(.input, .select) {
+    box-shadow: none;
+}
+
 /* External links end with Iconoir's "open new window" glyph, an <i> in the
  * markup: the lib only draws on an element bearing its class. */
 a[target="_blank"] > .iconoir-open-new-window {

@@ -51,7 +51,7 @@
     {% for name, label, options in specs %}
     {% set on = name in filters %}
     <div class="join shrink-0" data-chip="{{ name }}" {{ '' if on else 'hidden' }}>
-        <span class="join-item btn btn-sm btn-outline border-base-content/20 no-animation pointer-events-none">{{ label }}</span>
+        <span class="join-item btn btn-sm btn-outline border-base-content/20 font-normal no-animation pointer-events-none">{{ label }}</span>
         {% if options == 'date' %}
         <input type="date" name="{{ name }}" value="{{ filters[name] if on else '' }}"
             class="input input-sm join-item w-40 bg-transparent border-base-content/20 focus:outline-none focus:border-primary" aria-label="{{ label }}" {{ '' if on else 'disabled' }} />

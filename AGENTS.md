@@ -32,6 +32,20 @@ The `.mo` files are build artefacts: gitignored, compiled in the image.
 The OSM changeset comment follows the contributor's language, which `LOCALES`
 constrains to the languages of the country served.
 
+## Icons
+
+`static/lib/iconoir.css` is a subset of Iconoir: only the icons the templates,
+`static/js` and `src` name (the full sheet is 5.7 MB and blinks in on a hard
+reload). After adding or removing an `iconoir-*` class, regenerate it from the
+full sheet of the `iconoir` npm package:
+
+```bash
+uv run python scripts/subset_iconoir.py /path/to/iconoir/css/iconoir.css
+```
+
+It refuses an icon the sheet does not know. Custom icons go in
+`static/css/icown.css`.
+
 ## Commits
 
 Commit messages are written in English too, in the imperative ("Translate…",
