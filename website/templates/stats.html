@@ -75,7 +75,7 @@
             {% for number in waves %}
             {% set on = filters.wave == number %}
             <a href="{{ url_for('stats.stats', wave=number, **others) }}"
-               class="btn btn-sm join-item {{ wave.color(number) | trim | replace('badge-', 'btn-') }} {{ '' if on else 'btn-soft opacity-60' }}"
+               class="btn btn-sm join-item {{ wave.color(number) | trim }} {{ '' if on else 'btn-soft opacity-60' }}"
                {{ 'aria-current="page"' if on }}>
                 <i class="{{ wave.icon(number) | trim }}" aria-hidden="true"></i> {{ wave.label(number) | trim }}
             </a>
@@ -109,7 +109,7 @@
 {% set unit_label = {'day': _('day'), 'week': _('week'), 'month': _('month')}[unit] %}
 {% set wave_list = [] %}
 {# Filtered on a wave, the charts hold that wave alone: the legend says so. #}
-{% for n in waves if not filters.wave or filters.wave == n %}{% set added = wave_list.append({'number': n, 'label': wave.label(n) | trim, 'color': wave.color(n) | trim | replace('badge-', '')}) %}{% endfor %}
+{% for n in waves if not filters.wave or filters.wave == n %}{% set added = wave_list.append({'number': n, 'label': wave.label(n) | trim, 'color': wave.color(n) | trim}) %}{% endfor %}
 
 {# The figures of every chart, read by stats.js. The labels go through gettext
    here, where a request has a locale; the colours are daisyUI tokens, resolved

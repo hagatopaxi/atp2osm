@@ -52,8 +52,8 @@
         ('status', _('Previous status'), [
             ('none',      _('Never integrated'), 'badge-ghost'),
             ('success',   _('Success'),          'badge-success'),
-            ('partial',   _('Partial'),          'badge-warning'),
-            ('cancelled', _('Cancelled'),        'badge-info'),
+            ('partial',   _('Partial'),          'badge-success'),
+            ('cancelled', _('Cancelled'),        'badge-warning'),
             ('error',     _('Error'),            'badge-error')
         ]),
         ('from', _('Last integration after'), 'date'),
@@ -105,8 +105,8 @@
                 } %}
                 {% set status_classes = {
                     "success":   "badge-success",
-                    "partial":   "badge-warning",
-                    "cancelled": "badge-info",
+                    "partial":   "badge-success",
+                    "cancelled": "badge-warning",
                     "error":     "badge-error"
                 } %}
                 {% if row["last_status"] %}

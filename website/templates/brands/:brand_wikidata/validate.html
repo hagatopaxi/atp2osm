@@ -73,7 +73,7 @@
 
     {% if last_import %}
     {% set labels = {"success": _('Success'), "partial": _('Partial'), "cancelled": _('Cancelled'), "error": _('Error')} %}
-    {% set colors = {"success": "success", "partial": "warning", "cancelled": "info", "error": "error"} %}
+    {% set colors = {"success": "success", "partial": "success", "cancelled": "warning", "error": "error"} %}
     {% set c_ = colors.get(last_import.status, 'error') %}
     {% call info_card(c_, 'my-4') %}
         <div class="flex flex-col gap-2">

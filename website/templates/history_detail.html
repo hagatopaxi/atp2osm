@@ -23,7 +23,7 @@
   {% set banner_btn_label = _('Integrate another brand') %}
   {% set banner_btn_href = '/brands' %}
 {% elif s == 'partial' %}
-  {% set banner_kind = 'warning' %}
+  {% set banner_kind = 'success' %}
   {% set banner_text %}
     {%- if entry['items_count'] -%}
       {% trans count=entry['items_count'] %}The integration only partly completed: <strong>{{ count }} POI</strong> enriched, but some subdivisions could not be integrated.{% pluralize %}The integration only partly completed: <strong>{{ count }} POIs</strong> enriched, but some subdivisions could not be integrated.{% endtrans %}
@@ -33,7 +33,7 @@
   {% set banner_btn_label = _('Integrate another brand') %}
   {% set banner_btn_href = '/brands' %}
 {% elif s == 'cancelled' %}
-  {% set banner_kind = 'info' %}
+  {% set banner_kind = 'warning' %}
   {% set banner_text %}{{ _('Your report has been recorded. This feedback is valuable to improve the quality of the AllThePlaces data.') }}{% endset %}
   {% set banner_btn_label = _('See the available brands') %}
   {% set banner_btn_href = '/brands' %}
@@ -88,8 +88,8 @@
                 } %}
                 {% set status_classes = {
                     "success":   "badge-success",
-                    "partial":   "badge-warning",
-                    "cancelled": "badge-info",
+                    "partial":   "badge-success",
+                    "cancelled": "badge-warning",
                     "error":     "badge-error"
                 } %}
                 <dt class="muted">{{ _('Status') }}</dt>

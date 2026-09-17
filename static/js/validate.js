@@ -59,7 +59,7 @@ function extractWikidata(url) {
 function validateData(itemId) {
   const collapse = document.querySelector(`[data-item-id="${itemId}"]`);
   if (collapse) {
-    collapse.classList.add("border-success", "bg-success/10", "validated");
+    collapse.classList.add("validated", "accepted");
     collapse.querySelector(".content").classList.add("hidden");
     checkAllValidated();
   }
@@ -149,7 +149,7 @@ function publishComment() {
   document.getElementById("invalidation_modal").close();
 
   if (collapse) {
-    collapse.classList.add("border-error", "bg-error/10", "validated");
+    collapse.classList.add("validated", "rejected");
     collapse.querySelector(".content").classList.add("hidden");
     checkAllValidated();
   }
