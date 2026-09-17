@@ -124,6 +124,17 @@ main .card {
     border: 1px solid var(--color-base-300);
 }
 
+/* A reviewed card on the validate page: green once accepted, red once
+   rejected. Declared here because `main .card` above outranks a utility. */
+main .card.accepted {
+    border-color: var(--color-success);
+    background-color: color-mix(in oklab, var(--color-success) 10%, var(--color-base-100));
+}
+main .card.rejected {
+    border-color: var(--color-error);
+    background-color: color-mix(in oklab, var(--color-error) 10%, var(--color-base-100));
+}
+
 /* Info cards, see templates/_info_card.html. Built on the daisyUI alert, whose
    variant tints everything: we keep that tint for the icon and the background
    but leave the text in the regular reading colour. */
