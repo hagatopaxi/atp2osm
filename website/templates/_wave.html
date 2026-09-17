@@ -4,9 +4,10 @@
    locale.
 
    Each wave keeps a colour of its own, so a row is read before it is spelled
-   out: blue adds, amber replaces. The badge comes out as a `join-item` without
-   a wrapper — the caller puts it in a `join`, alone or beside the status
-   badge of the same row. #}
+   out: `wave-create` adds, `wave-update` replaces — classes of app.css that
+   feed every daisyUI component (badge, btn, alert) and the charts. The badge
+   comes out as a `join-item` without a wrapper — the caller puts it in a
+   `join`, alone or beside the status badge of the same row. #}
 
 {% macro label(number) %}{% if number == 1 %}{{ _('Adding tags') }}{% elif number == 2 %}{{ _('Modifying tags') }}{% else %}{% trans number=number %}Wave {{ number }}{% endtrans %}{% endif %}{% endmacro %}
 
@@ -15,10 +16,10 @@
 
 {% macro icon(number) %}{{ 'iconoir-edit-pencil' if number == 2 else 'iconoir-plus-circle' }}{% endmacro %}
 
-{% macro color(number) %}{{ {1: 'badge-info', 2: 'badge-warning'}.get(number, 'badge-ghost') }}{% endmacro %}
+{% macro color(number) %}{{ {1: 'wave-create', 2: 'wave-update'}.get(number, 'badge-ghost') }}{% endmacro %}
 
 {% macro badge(number) %}
-<span class="badge join-item {{ color(number) | trim }} whitespace-nowrap">
+<span class="badge badge-soft join-item {{ color(number) | trim }} whitespace-nowrap">
     <i class="{{ icon(number) | trim }}" aria-hidden="true"></i>
     <span class="list-hide">{{ label(number) | trim }}</span><span class="list-only">{{ short_label(number) | trim }}</span>
 </span>

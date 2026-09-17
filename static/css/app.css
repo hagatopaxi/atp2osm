@@ -5,7 +5,49 @@
  *   warning (amber)   attention, something to check before going on
  *   info (blue)       information, a second series next to the primary one
  *   neutral (grey)    no meaning: counts, disabled, secondary text
- * `secondary` and `accent` carry no meaning here and are never used. */
+ *
+ * The waves have colours of their own, apart from the statuses: cyan adds,
+ * yellow modifies — two hues no daisyUI colour of the theme sits on, defined
+ * here and reached only through `wave-create` and `wave-update`. Same values
+ * on both themes, as daisyUI does for info or warning. The classes set the
+ * variables every daisyUI component reads (badge, btn, alert), so `badge
+ * badge-soft wave-update` or `btn wave-create` paint themselves. The charts
+ * read the same tokens (`--color-wave-*`). */
+:root {
+    --color-wave-create: oklch(80% 0.14 205);
+    --color-wave-update: oklch(88% 0.18 100);
+    --color-wave-create-content: oklch(24% 0.05 205);
+    --color-wave-update-content: oklch(28% 0.07 100);
+}
+/* In daisyUI's own layer, where its colour classes sit: a modifier such as
+   `btn-soft` overrides the variables from a layer above, as it does for
+   `btn-info`. */
+@layer utilities.daisyui.l1.l2.l3 {
+    .wave-create {
+        --badge-color: var(--color-wave-create);
+        --badge-fg: var(--color-wave-create-content);
+        --btn-color: var(--color-wave-create);
+        --btn-fg: var(--color-wave-create-content);
+        --alert-color: var(--color-wave-create);
+        --alert-border-color: var(--color-wave-create);
+    }
+    .wave-update {
+        --badge-color: var(--color-wave-update);
+        --badge-fg: var(--color-wave-update-content);
+        --btn-color: var(--color-wave-update);
+        --btn-fg: var(--color-wave-update-content);
+        --alert-color: var(--color-wave-update);
+        --alert-border-color: var(--color-wave-update);
+    }
+}
+
+/* A soft wave badge is tinted deeper than a soft status badge (daisyUI's 8 %
+   fades it): the wave is what a row is read by, so it stands out a little. */
+.badge-soft.wave-create,
+.badge-soft.wave-update {
+    background-color: color-mix(in oklab, var(--badge-color) 22%, var(--color-base-100));
+    border-color: color-mix(in oklab, var(--badge-color) 30%, var(--color-base-100));
+}
 
 /* Sidebar width */
 #sidebar {
