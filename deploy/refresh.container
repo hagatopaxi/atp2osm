@@ -14,7 +14,6 @@ Volume=${PROJECT_DIR}/data:/app/data:Z
 Exec=uv run --no-sync python -m src.pipeline setup
 # A restart during a refresh waits for it: supercronic finishes the job first.
 StopTimeout=21600
-PodmanArgs=--memory 2g --memory-swap 2.5g
 
 [Service]
 Restart=always
