@@ -23,6 +23,7 @@ from src.db import get_osmdb
 from src.extensions import cache
 from src.matching import (
     BLOCKED_BRANDS_SQL,
+    batch_categories,
     batch_scope,
     current_wave,
     get_all,
@@ -286,6 +287,7 @@ def brands_validate(brand_wikidata):
         brand=brand,
         size=len(changes),
         scope=scope,
+        categories=batch_categories(changes),
         items=items,
         wave_number=wave.number,
         last_import=_get_last_import(brand_wikidata),

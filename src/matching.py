@@ -1,6 +1,8 @@
 import random
 import re
 
+from collections import Counter
+
 from psycopg import Cursor
 from psycopg.rows import dict_row
 from typing import Any, NamedTuple
@@ -687,6 +689,31 @@ def select_batch(
     # construction. Truncating before the sample is drawn keeps the review on
     # POIs that will actually be integrated.
     return changes[:max_size]
+
+
+# The keys osm_primary_tag() reads, in its order of preference. Kept next to
+# MATCHED_POI_SQL, which compares the tag the SQL function returns to the one
+# the ATP import stored — the review names the same thing the join compared.
+PRIMARY_KEYS = (
+    "shop", "amenity", "tourism", "office",
+    "leisure", "healthcare", "craft", "landuse",
+)
+
+
+def primary_tag(tags: dict) -> str | None:
+    """`amenity=kindergarten` for an OSM object, or None when it carries none."""
+    return next((f"{key}={tags[key]}" for key in PRIMARY_KEYS if key in tags), None)
+
+
+def batch_categories(changes: list[dict]) -> list[dict]:
+    """The primary tags the batch touches, commonest first.
+
+    What tells a reviewer, before reading a single POI, that a batch of
+    kindergartens holds a picnic site — the symptom of a match made on a name
+    alone.
+    """
+    counts = Counter(primary_tag(change["old_tag"]) for change in changes)
+    return [{"tag": tag, "count": n} for tag, n in counts.most_common()]
 
 
 def batch_scope(changes: list[dict]) -> list[dict]:
