@@ -85,7 +85,10 @@ def seed(conn):
             brand_wikidata TEXT, brand TEXT, name TEXT, opening_hours TEXT,
             website TEXT, phone TEXT, email TEXT, end_date TEXT, spider_id TEXT,
             source_type TEXT, source_uri TEXT, geom TEXT,
-            subdivision_code TEXT, subdivision_name TEXT
+            subdivision_code TEXT, subdivision_name TEXT,
+            -- Last, so the positional INSERTs below stay as they are: the
+            -- matching query only reads it, and NULL is what it tolerates.
+            category TEXT[]
         );
         INSERT INTO atp_places VALUES
             ('atp-1', 'FR', 'Paris', '75001', 'Q999001', 'Babylone', 'Babylone Louvre',
