@@ -124,6 +124,12 @@ local function is_definitely_not_a_place(tags)
     if tags["landuse"] == 'depot' then return true end
     if tags["landuse"] == 'quarry' then return true end
     if tags["landuse"] == 'railway' then return true end
+    if tags["landuse"] == 'residential' then return true end
+
+    -- Boards and artworks take the name of what they stand next to, or the
+    -- commune's: a name they carry is never their own.
+    if tags["tourism"] == 'information' then return true end
+    if tags["tourism"] == 'artwork' then return true end
 
     if tags["railway"] and tags["railway"] ~= 'halt' then return true end
     if tags["railway"] and tags["railway"] ~= 'stop_position' then return true end

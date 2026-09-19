@@ -429,6 +429,21 @@ def import_atp():
                     properties->>'$.@spider'          AS spider_id,
                     NULL::VARCHAR                     AS source_type,
                     properties->>'$.@source_uri'      AS source_uri,
+                    -- The POI's primary tag, in the shape osm_primary_tag()
+                    -- returns for an OSM object, and in the same order of
+                    -- preference: MATCHED_POI_SQL compares the two before
+                    -- trusting an equality of names. 96% of the POIs carry
+                    -- one; the others get NULL, which the join tolerates.
+                    list_filter([
+                        ['shop',       properties->>'$.shop'],
+                        ['amenity',    properties->>'$.amenity'],
+                        ['tourism',    properties->>'$.tourism'],
+                        ['office',     properties->>'$.office'],
+                        ['leisure',    properties->>'$.leisure'],
+                        ['healthcare', properties->>'$.healthcare'],
+                        ['craft',      properties->>'$.craft'],
+                        ['landuse',    properties->>'$.landuse']
+                    ], t -> t[2] IS NOT NULL)[1]      AS category,
                     ST_AsGeoJSON(geom)                AS geom
                 FROM read_parquet('{PARQUET_PATH}')
                 WHERE properties->>'$.addr:country' IN ({countries})

@@ -15,7 +15,6 @@ fountain
 grave_yard
 grit_bin
 hunting_stand
-kindergarten
 library
 loading_dock
 motorcycle_parking

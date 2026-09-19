@@ -30,15 +30,25 @@ SCHEMA = """
         id TEXT, brand TEXT, brand_wikidata TEXT, name TEXT, email TEXT,
         phone TEXT, website TEXT, opening_hours TEXT, country TEXT,
         city TEXT, source_uri TEXT, source_type TEXT, spider_id TEXT,
-        postcode TEXT, subdivision_code TEXT, subdivision_name TEXT, geom TEXT
+        postcode TEXT, subdivision_code TEXT, subdivision_name TEXT,
+        category TEXT[], geom TEXT
     );
 """
 
-OPENING_HOURS_FN = (
-    pathlib.Path(__file__).parent.parent / "migrations" / "026_normalize_opening_hours_fn.sql"
-)
+MIGRATIONS = pathlib.Path(__file__).parent.parent / "migrations"
+OPENING_HOURS_FN = MIGRATIONS / "026_normalize_opening_hours_fn.sql"
+# MATCHED_POI_SQL calls osm_primary_tag() to guard the match on the name.
+PRIMARY_TAG_FN = MIGRATIONS / "019_create_nsi_brands.sql"
 POINT = "ST_SetSRID(ST_MakePoint(2.35, 48.85), 4326)"
 GEOJSON = '{"type":"Point","coordinates":[2.35,48.85]}'
+
+
+def _primary_tag_fn() -> str:
+    """Just osm_primary_tag() out of the NSI migration: the rest of that file
+    builds tables this test has no use for."""
+    body = PRIMARY_TAG_FN.read_text()
+    start = body.index("CREATE OR REPLACE FUNCTION osm_primary_tag")
+    return body[start : body.index("$$ LANGUAGE sql", start)] + "$$ LANGUAGE sql IMMUTABLE;"
 
 
 @pytest.fixture
@@ -46,6 +56,7 @@ def places(db_kwargs):
     with psycopg.connect(**db_kwargs) as conn:
         ensure_normalize_phone(conn)
         conn.execute(OPENING_HOURS_FN.read_text())
+        conn.execute(_primary_tag_fn())
         conn.execute(SCHEMA)
         conn.commit()
         yield conn

@@ -110,7 +110,19 @@ MATCHED_POI_SQL = """
         (
             osm.brand_wikidata = atp.brand_wikidata
             OR LOWER(osm.brand) = LOWER(atp.brand)
-            OR LOWER(osm.name) = LOWER(atp."name")
+            -- A name alone matches whatever else carries it nearby: the
+            -- board that signs the place, the landuse around it, anything
+            -- named after the same commune. Both sides know their primary
+            -- tag, so it has to be the same one — and when ATP carries none
+            -- (a POI in twenty), the name stands on its own as it always
+            -- did.
+            OR (
+                LOWER(osm.name) = LOWER(atp."name")
+                -- Cast: the DuckDB import writes the column as varchar[],
+                -- the migration that added it to the live table as text[].
+                AND (atp.category IS NULL
+                     OR atp.category::text[] = osm_primary_tag(osm.tags))
+            )
             OR LOWER(osm.email) = LOWER(atp.email)
             OR LOWER(REGEXP_REPLACE(osm.website, '^https?://', '', 'i')) = LOWER(REGEXP_REPLACE(atp.website, '^https?://', '', 'i'))
             OR normalize_phone(osm.phone) = normalize_phone(atp.phone)
