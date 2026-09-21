@@ -7,15 +7,22 @@ row untouched, and the backfill must give each one the name the display used
 to look up — no row created, none lost, no count moved.
 """
 
-import importlib.util
 import pathlib
+from collections.abc import Iterator
+from types import ModuleType
+from typing import LiteralString
 
 import psycopg
 import pytest
-from psycopg.rows import dict_row
+from psycopg.rows import DictRow, dict_row
+
+from src.config import Database
+from src.db import code_sql
+from src.migrate import discover_migrations
+from tests.conftest import Connection, load_module, one
 
 MIGRATIONS = pathlib.Path(__file__).parent.parent / "migrations"
-SCHEMA = "test_subdivision_migration"
+SCHEMA: LiteralString = "test_subdivision_migration"
 
 ROWS = [
     # code, items_count, status — codes that stay, and codes that will split
@@ -31,27 +38,25 @@ ROWS = [
 ]
 
 
-def _sql_migrations():
-    from src.migrate import _discover_migrations
-
-    return [(v, p) for v, p in _discover_migrations() if p.suffix == ".sql"]
+def _sql_migrations() -> list[tuple[int, pathlib.Path]]:
+    return [(v, p) for v, p in discover_migrations() if p.suffix == ".sql"]
 
 
 @pytest.fixture
-def conn(db_kwargs):
-    with psycopg.connect(**db_kwargs) as c:
+def conn(test_db: Database) -> Iterator[Connection]:
+    with psycopg.connect(test_db.conninfo) as c:
         c.execute(f"DROP SCHEMA IF EXISTS {SCHEMA} CASCADE")
         c.execute(f"CREATE SCHEMA {SCHEMA}")
         c.execute(f"SET search_path TO {SCHEMA}")
         for version, path in sorted(_sql_migrations()):
             if version > 15:
                 break
-            c.execute(path.read_text())
+            c.execute(code_sql(path.read_text()))
         c.execute(
             """INSERT INTO import_history (brand_wikidata, brand_name, osm_user_id, status)
                VALUES ('Q1', 'Chez Michel', 42, 'success') RETURNING id"""
         )
-        import_id = c.execute("SELECT MAX(id) FROM import_history").fetchone()[0]
+        import_id = one(c.execute("SELECT MAX(id) FROM import_history").fetchone())[0]
         c.cursor().executemany(
             """INSERT INTO import_departements
                    (import_id, departement_number, items_count, status)
@@ -65,46 +70,46 @@ def conn(db_kwargs):
         c.commit()
 
 
-def apply_022(conn):
-    version, path = next(
-        (v, p) for v, p in _sql_migrations() if p.name.startswith("022_")
-    )
-    conn.execute(path.read_text())
+def apply_022(conn: Connection) -> None:
+    _version, path = next((v, p) for v, p in _sql_migrations() if p.name.startswith("022_"))
+    conn.execute(code_sql(path.read_text()))
     conn.commit()
 
 
-def apply_023(conn):
-    path = next(MIGRATIONS.glob("023_*.py"))
-    spec = importlib.util.spec_from_file_location("backfill_023", path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+def apply_023(conn: Connection) -> ModuleType:
+    module = load_module(next(MIGRATIONS.glob("023_*.py")))
     module.BackfillSubdivisionNames(conn).migrate()
     conn.commit()
     return module
 
 
-def rows(conn):
-    return conn.cursor(row_factory=dict_row).execute(
-        "SELECT * FROM import_subdivisions ORDER BY subdivision_code"
-    ).fetchall()
+def rows(conn: Connection) -> list[DictRow]:
+    return (
+        conn.cursor(row_factory=dict_row)
+        .execute("SELECT * FROM import_subdivisions ORDER BY subdivision_code")
+        .fetchall()
+    )
 
 
-def test_the_renaming_moves_every_row_untouched(conn):
-    before = conn.cursor(row_factory=dict_row).execute(
-        "SELECT * FROM import_departements ORDER BY departement_number"
-    ).fetchall()
+def test_the_renaming_moves_every_row_untouched(conn: Connection) -> None:
+    before = (
+        conn.cursor(row_factory=dict_row)
+        .execute("SELECT * FROM import_departements ORDER BY departement_number")
+        .fetchall()
+    )
     apply_022(conn)
     after = rows(conn)
 
     assert len(after) == len(before) == len(ROWS)
-    for old, new in zip(before, after):
+    for old, new in zip(before, after, strict=False):
         assert new["subdivision_code"] == old["departement_number"]
         assert new["items_count"] == old["items_count"]
         assert new["status"] == old["status"]
-        assert new["id"] == old["id"] and new["import_id"] == old["import_id"]
+        assert new["id"] == old["id"]
+        assert new["import_id"] == old["import_id"]
 
 
-def test_the_backfill_names_every_row_and_moves_no_count(conn):
+def test_the_backfill_names_every_row_and_moves_no_count(conn: Connection) -> None:
     apply_022(conn)
     module = apply_023(conn)
     after = rows(conn)
@@ -118,22 +123,30 @@ def test_the_backfill_names_every_row_and_moves_no_count(conn):
         assert row["subdivision_name"] == module._DEPARTEMENT_NAMES.get(code, code)
 
 
-def test_no_history_row_is_orphaned_or_duplicated(conn):
+def test_no_history_row_is_orphaned_or_duplicated(conn: Connection) -> None:
     apply_022(conn)
     apply_023(conn)
-    orphans = conn.cursor(row_factory=dict_row).execute(
-        """SELECT COUNT(*) AS n FROM import_subdivisions s
+    orphans = one(
+        conn.cursor(row_factory=dict_row)
+        .execute(
+            """SELECT COUNT(*) AS n FROM import_subdivisions s
            WHERE NOT EXISTS (SELECT 1 FROM import_history h WHERE h.id = s.import_id)"""
-    ).fetchone()["n"]
-    duplicates = conn.cursor(row_factory=dict_row).execute(
-        """SELECT COUNT(*) AS n FROM (
+        )
+        .fetchone()
+    )["n"]
+    duplicates = one(
+        conn.cursor(row_factory=dict_row)
+        .execute(
+            """SELECT COUNT(*) AS n FROM (
                SELECT import_id, subdivision_code FROM import_subdivisions
                GROUP BY 1, 2 HAVING COUNT(*) > 1) d"""
-    ).fetchone()["n"]
+        )
+        .fetchone()
+    )["n"]
     assert (orphans, duplicates) == (0, 0)
 
 
-def test_the_backfill_is_idempotent(conn):
+def test_the_backfill_is_idempotent(conn: Connection) -> None:
     apply_022(conn)
     apply_023(conn)
     before = rows(conn)
@@ -141,7 +154,7 @@ def test_the_backfill_is_idempotent(conn):
     assert rows(conn) == before
 
 
-def test_an_unknown_code_keeps_itself_as_a_name(conn):
+def test_an_unknown_code_keeps_itself_as_a_name(conn: Connection) -> None:
     """The display did the same: DEPARTEMENT_NAMES.get(code, code)."""
     apply_022(conn)
     conn.execute(

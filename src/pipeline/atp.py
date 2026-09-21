@@ -3,38 +3,41 @@ import logging
 import shutil
 import subprocess
 import zipfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from src.pipeline.constants import (
-    ADMIN_LEVEL,
-    ATP_DIR,
-    GEOJSON_DIR,
-    SPLIT_DIR,
-    PARQUET_PATH,
-    SPIDERS_PATH,
-    ATP_HISTORY_URL,
-    ATP_REPO_DIR,
-    ATP_REPO_URL,
-)
+from typing import Any, LiteralString
+
 import duckdb
+import psycopg
 import requests
 from psycopg import sql
 
 from src.config import get_country, get_database
 from src.pipeline import _matview
-from src.pipeline._version import app_version
-from src.pipeline.errors import unavailable_if_unreachable
-from src.pipeline.osm import forget_geofabrik_timestamp
 from src.pipeline._db import (
+    Connection,
     connect,
     last_import_comment,
     last_import_date,
     record_import,
     start_import,
 )
+from src.pipeline._version import app_version
+from src.pipeline.constants import (
+    ADMIN_LEVEL,
+    ATP_DIR,
+    ATP_HISTORY_URL,
+    ATP_REPO_DIR,
+    ATP_REPO_URL,
+    GEOJSON_DIR,
+    PARQUET_PATH,
+    SPIDERS_PATH,
+    SPLIT_DIR,
+)
+from src.pipeline.errors import unavailable_if_unreachable
 from src.pipeline.ndgeojson_to_parquet import convert_to_parquet
+from src.pipeline.osm import forget_geofabrik_timestamp
 from src.utils import delete_file_if_exists, download_large_file
-
 
 logger = logging.getLogger(__name__)
 
@@ -45,15 +48,257 @@ logger = logging.getLogger(__name__)
 # brand name much more often than it is a country (la_halle_fr,
 # au_vieux_campeur, as_24_fr).
 _COUNTRY_CODES = frozenset(
-    """ad ae af ag ai al am ao aq ar as at au aw ax az ba bb bd be bf bg bh bi bj bl bm
-    bn bo bq br bs bt bv bw by bz ca cc cd cf cg ch ci ck cl cm cn co cr cu cv cw cx cy
-    cz de dj dk dm do dz ec ee eg eh er es et fi fj fk fm fo fr ga gb gd ge gf gg gh gi
-    gl gm gn gp gq gr gs gt gu gw gy hk hm hn hr ht hu id ie il im in io iq ir is it je
-    jm jo jp ke kg kh ki km kn kp kr kw ky kz la lb lc li lk lr ls lt lu lv ly ma mc md
-    me mf mg mh mk ml mm mn mo mp mq mr ms mt mu mv mw mx my mz na nc ne nf ng ni nl no
-    np nr nu nz om pa pe pf pg ph pk pl pm pn pr ps pt pw py qa re ro rs ru rw sa sb sc
-    sd se sg sh si sj sk sl sm sn so sr ss st sv sx sy sz tc td tf tg th tj tk tl tm tn
-    to tr tt tv tw tz ua ug um us uy uz va vc ve vg vi vn vu wf ws ye yt za zm zw""".split()
+    [
+        "ad",
+        "ae",
+        "af",
+        "ag",
+        "ai",
+        "al",
+        "am",
+        "ao",
+        "aq",
+        "ar",
+        "as",
+        "at",
+        "au",
+        "aw",
+        "ax",
+        "az",
+        "ba",
+        "bb",
+        "bd",
+        "be",
+        "bf",
+        "bg",
+        "bh",
+        "bi",
+        "bj",
+        "bl",
+        "bm",
+        "bn",
+        "bo",
+        "bq",
+        "br",
+        "bs",
+        "bt",
+        "bv",
+        "bw",
+        "by",
+        "bz",
+        "ca",
+        "cc",
+        "cd",
+        "cf",
+        "cg",
+        "ch",
+        "ci",
+        "ck",
+        "cl",
+        "cm",
+        "cn",
+        "co",
+        "cr",
+        "cu",
+        "cv",
+        "cw",
+        "cx",
+        "cy",
+        "cz",
+        "de",
+        "dj",
+        "dk",
+        "dm",
+        "do",
+        "dz",
+        "ec",
+        "ee",
+        "eg",
+        "eh",
+        "er",
+        "es",
+        "et",
+        "fi",
+        "fj",
+        "fk",
+        "fm",
+        "fo",
+        "fr",
+        "ga",
+        "gb",
+        "gd",
+        "ge",
+        "gf",
+        "gg",
+        "gh",
+        "gi",
+        "gl",
+        "gm",
+        "gn",
+        "gp",
+        "gq",
+        "gr",
+        "gs",
+        "gt",
+        "gu",
+        "gw",
+        "gy",
+        "hk",
+        "hm",
+        "hn",
+        "hr",
+        "ht",
+        "hu",
+        "id",
+        "ie",
+        "il",
+        "im",
+        "in",
+        "io",
+        "iq",
+        "ir",
+        "is",
+        "it",
+        "je",
+        "jm",
+        "jo",
+        "jp",
+        "ke",
+        "kg",
+        "kh",
+        "ki",
+        "km",
+        "kn",
+        "kp",
+        "kr",
+        "kw",
+        "ky",
+        "kz",
+        "la",
+        "lb",
+        "lc",
+        "li",
+        "lk",
+        "lr",
+        "ls",
+        "lt",
+        "lu",
+        "lv",
+        "ly",
+        "ma",
+        "mc",
+        "md",
+        "me",
+        "mf",
+        "mg",
+        "mh",
+        "mk",
+        "ml",
+        "mm",
+        "mn",
+        "mo",
+        "mp",
+        "mq",
+        "mr",
+        "ms",
+        "mt",
+        "mu",
+        "mv",
+        "mw",
+        "mx",
+        "my",
+        "mz",
+        "na",
+        "nc",
+        "ne",
+        "nf",
+        "ng",
+        "ni",
+        "nl",
+        "no",
+        "np",
+        "nr",
+        "nu",
+        "nz",
+        "om",
+        "pa",
+        "pe",
+        "pf",
+        "pg",
+        "ph",
+        "pk",
+        "pl",
+        "pm",
+        "pn",
+        "pr",
+        "ps",
+        "pt",
+        "pw",
+        "py",
+        "qa",
+        "re",
+        "ro",
+        "rs",
+        "ru",
+        "rw",
+        "sa",
+        "sb",
+        "sc",
+        "sd",
+        "se",
+        "sg",
+        "sh",
+        "si",
+        "sj",
+        "sk",
+        "sl",
+        "sm",
+        "sn",
+        "so",
+        "sr",
+        "ss",
+        "st",
+        "sv",
+        "sx",
+        "sy",
+        "sz",
+        "tc",
+        "td",
+        "tf",
+        "tg",
+        "th",
+        "tj",
+        "tk",
+        "tl",
+        "tm",
+        "tn",
+        "to",
+        "tr",
+        "tt",
+        "tv",
+        "tw",
+        "tz",
+        "ua",
+        "ug",
+        "um",
+        "us",
+        "uy",
+        "uz",
+        "va",
+        "vc",
+        "ve",
+        "vg",
+        "vi",
+        "vn",
+        "vu",
+        "wf",
+        "ws",
+        "ye",
+        "yt",
+        "za",
+        "zm",
+        "zw",
+    ]
 )
 
 
@@ -69,15 +314,15 @@ def is_relevant_spider(filename: str) -> bool:
     yet weigh 44% of ATP's POI: nothing to match, a lot to carry.
     """
     stem = filename.rsplit("/", 1)[-1].removesuffix(".geojson").lower()
-    return (
-        stem.rsplit("_", 1)[-1] not in _foreign_country_codes()
-        and "addresses" not in stem
-    )
+    return stem.rsplit("_", 1)[-1] not in _foreign_country_codes() and "addresses" not in stem
 
 
-def select_run(runs, last_date):
+# One run of ATP, as history.json lists it.
+Run = dict[str, Any]
+
+
+def select_run(runs: list[Run], last_date: datetime | None) -> Run | None:
     """Newest ATP run worth downloading, or None if we already have it.
-
     `runs` comes newest-first. A run whose end_time is not strictly newer than
     the last recorded import means ATP published nothing since — the whole ATP
     branch then no-ops for the rest of the pipeline.
@@ -85,12 +330,8 @@ def select_run(runs, last_date):
     for run in runs:
         if not run.get("parquet_url"):
             continue
-        end_time_raw = run.get("end_time")
-        end_time = (
-            datetime.fromisoformat(end_time_raw.replace("Z", "+00:00"))
-            if end_time_raw
-            else None
-        )
+        end_time_raw: str | None = run.get("end_time")
+        end_time = datetime.fromisoformat(end_time_raw) if end_time_raw else None
         if last_date is not None and end_time is not None and end_time <= last_date:
             return None
         return run
@@ -104,30 +345,49 @@ def spider_dates(repo: Path = ATP_REPO_DIR) -> dict[str, str]:
     every file at once. --no-renames matters — rename detection reads the blobs,
     and each one would be fetched on demand, one round-trip at a time.
     """
+    # Fixed git command lines, no shell; git is on the image's PATH.
     if (repo / ".git").exists():
-        subprocess.run(["git", "-C", str(repo), "fetch", "--quiet"], check=True)
-        subprocess.run(
-            ["git", "-C", str(repo), "reset", "--quiet", "--soft", "origin/HEAD"],
+        subprocess.run(["git", "-C", str(repo), "fetch", "--quiet"], check=True)  # noqa: S603, S607
+        subprocess.run(  # noqa: S603
+            ["git", "-C", str(repo), "reset", "--quiet", "--soft", "origin/HEAD"],  # noqa: S607
             check=True,
         )
     else:
-        subprocess.run(
-            ["git", "clone", "--quiet", "--filter=blob:none", "--no-checkout",
-             ATP_REPO_URL, str(repo)],
+        subprocess.run(  # noqa: S603
+            [  # noqa: S607
+                "git",
+                "clone",
+                "--quiet",
+                "--filter=blob:none",
+                "--no-checkout",
+                ATP_REPO_URL,
+                str(repo),
+            ],
             check=True,
         )
-    log = subprocess.run(
-        ["git", "-C", str(repo), "log", "--no-renames", "--format=%cI",
-         "--name-only", "--", "locations/spiders"],
-        check=True, capture_output=True, text=True,
+    log = subprocess.run(  # noqa: S603
+        [  # noqa: S607
+            "git",
+            "-C",
+            str(repo),
+            "log",
+            "--no-renames",
+            "--format=%cI",
+            "--name-only",
+            "--",
+            "locations/spiders",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
     ).stdout
-    return _parse_dated_log(log)
+    return parse_dated_log(log)
 
 
-def _parse_dated_log(log: str) -> dict[str, str]:
+def parse_dated_log(log: str) -> dict[str, str]:
     """`git log --format=%cI --name-only` output: a date, then its files."""
     dates: dict[str, str] = {}
-    date = None
+    date = ""
     for line in log.splitlines():
         if not line:
             continue
@@ -138,7 +398,7 @@ def _parse_dated_log(log: str) -> dict[str, str]:
     return dates
 
 
-def load_spiders(cur, path: Path, table: str) -> None:
+def load_spiders(cur: psycopg.Cursor[Any], path: Path, table: str) -> None:
     """Build `table` from spiders.json, on a declared schema.
 
     The file is ATP's stats.json plus the `updated_at` the download step adds:
@@ -147,8 +407,8 @@ def load_spiders(cur, path: Path, table: str) -> None:
     from here needs a bridging migration too (AGENTS.md, "Pipeline tables and
     the site"): production keeps the old table until this step runs again.
     """
-    with open(path) as infile:
-        spiders = json.load(infile)
+    with path.open() as infile:
+        spiders: list[dict[str, Any]] = json.load(infile)
     cur.execute(
         sql.SQL("""
             CREATE TABLE {} (
@@ -162,18 +422,22 @@ def load_spiders(cur, path: Path, table: str) -> None:
         """).format(sql.Identifier(table))
     )
     cur.executemany(
-        sql.SQL("INSERT INTO {} VALUES (%s, %s, %s, %s, %s, %s)").format(
-            sql.Identifier(table)
-        ),
+        sql.SQL("INSERT INTO {} VALUES (%s, %s, %s, %s, %s, %s)").format(sql.Identifier(table)),
         [
-            (s["spider"], s.get("filename"), s.get("errors"), s.get("features"),
-             s.get("elapsed_time"), s.get("updated_at"))
+            (
+                s["spider"],
+                s.get("filename"),
+                s.get("errors"),
+                s.get("features"),
+                s.get("elapsed_time"),
+                s.get("updated_at"),
+            )
             for s in spiders
         ],
     )
 
 
-def download_atp():
+def download_atp() -> None:
     conn = connect()
     try:
         last_date = last_import_date(conn, "atp")
@@ -197,16 +461,14 @@ def download_atp():
             # whole branch then rebuilds a byte-identical parquet, whose fresh
             # mtime also costs import_atp its own no-op. Clearing the workdir
             # here makes every one of them no-op on the guard it already has.
-            _discard_workdir()
+            discard_workdir()
             # last_date, not the run's end_time: recording an older run would
             # make the displayed source date go backwards. And the stamp is the
             # one already there, not app_version(): what it describes is the
             # atp_places sitting in the database, which this step did not rebuild.
             # Recording the running revision here would tell import_atp the
             # table is up to date when it is not.
-            record_import(
-                conn, "atp", last_date, "skipped", last_import_comment(conn, "atp")
-            )
+            record_import(conn, "atp", last_date, "skipped", last_import_comment(conn, "atp"))
             return
 
         delete_file_if_exists(ATP_DIR / "output.zip")
@@ -220,8 +482,8 @@ def download_atp():
             stats_path = ATP_DIR / "stats.json"
             with unavailable_if_unreachable("ATP"):
                 download_large_file(stats_url, stats_path)
-            with open(stats_path) as infile:
-                spiders = json.load(infile)["results"]
+            with stats_path.open() as infile:
+                spiders: list[dict[str, Any]] = json.load(infile)["results"]
             stats_path.unlink()
             # ponytail: GitHub down costs the dates of this run, not the run.
             try:
@@ -231,7 +493,7 @@ def download_atp():
                 dates = {}
             for spider in spiders:
                 spider["updated_at"] = dates.get(spider["filename"])
-            with open(SPIDERS_PATH, "w") as out:
+            with SPIDERS_PATH.open("w") as out:
                 json.dump(spiders, out)
 
         logger.info("Downloaded ATP run %s", run.get("run_id"))
@@ -240,7 +502,7 @@ def download_atp():
         conn.close()
 
 
-def extract_atp():
+def extract_atp() -> None:
     zip_path = ATP_DIR / "output.zip"
     if not zip_path.exists():
         logger.info("No ATP zip found, skipping extraction")
@@ -265,7 +527,7 @@ def extract_atp():
     logger.info("Extracted ATP zip (%d geojson files)", len(geojson_files))
 
 
-def create_parquet_atp():
+def create_parquet_atp() -> None:
     """Step 5: Create parquet from split NDJSON files."""
     if not SPLIT_DIR.exists() or not any(SPLIT_DIR.glob("*.geojson")):
         logger.info("No split NDJSON files found, skipping parquet creation")
@@ -275,7 +537,7 @@ def create_parquet_atp():
     logger.info("Created parquet from NDJSON files")
 
 
-def _attach_subdivisions(conn, table: str = "atp_places"):
+def attach_subdivisions(conn: Connection, table: str = "atp_places") -> None:
     """Attach every POI in `table` to the administrative subdivision that
     contains it.
 
@@ -302,8 +564,7 @@ def _attach_subdivisions(conn, table: str = "atp_places"):
     with conn.cursor() as cur:
         cur.execute(
             sql.SQL(
-                "ALTER TABLE {} ADD COLUMN subdivision_code TEXT,"
-                " ADD COLUMN subdivision_name TEXT"
+                "ALTER TABLE {} ADD COLUMN subdivision_code TEXT, ADD COLUMN subdivision_name TEXT"
             ).format(sql.Identifier(table))
         )
         cur.execute(
@@ -331,9 +592,7 @@ def _attach_subdivisions(conn, table: str = "atp_places"):
             (ADMIN_LEVEL,),
         )
         cur.execute(
-            sql.SQL("DELETE FROM {} WHERE subdivision_code IS NULL").format(
-                sql.Identifier(table)
-            )
+            sql.SQL("DELETE FROM {} WHERE subdivision_code IS NULL").format(sql.Identifier(table))
         )
         dropped = cur.rowcount
     conn.commit()
@@ -343,7 +602,7 @@ def _attach_subdivisions(conn, table: str = "atp_places"):
 
 # Canonical name to definition. Built under `<name>_new` on the new table and
 # renamed with it: PHONE_INDEXES in src/phone.py names the phone one.
-ATP_PLACES_INDEXES = {
+ATP_PLACES_INDEXES: dict[str, LiteralString] = {
     "atp_places_geom_idx": "USING GIST ((ST_GeomFromGeoJSON(geom)::geography))",
     "atp_places_brand_wikidata_idx": "(brand_wikidata)",
     "atp_places_brand_lower_idx": "(LOWER(brand))",
@@ -357,7 +616,7 @@ ATP_PLACES_INDEXES = {
 }
 
 
-def import_atp():
+def import_atp() -> None:
     conn = connect()
     try:
         if not PARQUET_PATH.exists():
@@ -365,9 +624,7 @@ def import_atp():
                 f"No parquet file at {PARQUET_PATH} — atp-parquet must run first"
             )
 
-        parquet_mtime = datetime.fromtimestamp(
-            PARQUET_PATH.stat().st_mtime, tz=timezone.utc
-        )
+        parquet_mtime = datetime.fromtimestamp(PARQUET_PATH.stat().st_mtime, tz=UTC)
         last_date = last_import_date(conn, "atp")
         version = app_version()
 
@@ -378,9 +635,7 @@ def import_atp():
         ):
             # download_atp already closed the row it opened with 'skipped':
             # recording here too would add a second row for the same run.
-            logger.info(
-                "Parquet not newer than last import (%s), skipping", last_date.date()
-            )
+            logger.info("Parquet not newer than last import (%s), skipping", last_date.date())
             return
 
         try:
@@ -411,6 +666,7 @@ def import_atp():
             # A POI of ours carries the country code or one of its territories':
             # ISO codes Martinique MQ, and ATP follows its sources.
             countries = ", ".join(f"'{c.upper()}'" for c in get_country().territory_codes)
+            # DuckDB, fed a path and the country codes of the configuration.
             ddb.execute(f"""
                 CREATE TABLE pg.atp_places_new AS
                 SELECT
@@ -448,9 +704,9 @@ def import_atp():
                 FROM read_parquet('{PARQUET_PATH}')
                 WHERE properties->>'$.addr:country' IN ({countries})
                     AND geom IS NOT NULL
-            """)
+            """)  # noqa: S608
 
-            _attach_subdivisions(conn, "atp_places_new")
+            attach_subdivisions(conn, "atp_places_new")
 
             logger.info("Creating indexes for atp_places...")
             with conn.cursor() as cur:
@@ -465,7 +721,7 @@ def import_atp():
                     WHERE spider NOT IN (SELECT DISTINCT spider_id FROM atp_places_new)
                 """)
                 _matview.swap(
-                    cur, "TABLE", "atp_places", "atp_places_new", ATP_PLACES_INDEXES
+                    cur, "TABLE", "atp_places", "atp_places_new", tuple(ATP_PLACES_INDEXES)
                 )
                 _matview.swap(cur, "TABLE", "atp_spiders", "atp_spiders_new")
             # Commits the swap with it.
@@ -480,7 +736,7 @@ def import_atp():
         conn.close()
 
 
-def _discard_workdir():
+def discard_workdir() -> None:
     """Erase what a run downloaded and derived, keeping latest.parquet.
 
     The parquet is deliberately kept: it is what lets import_atp no-op on a run
@@ -497,6 +753,6 @@ def _discard_workdir():
         logger.info("Cleaned up %s", path)
 
 
-def cleanup_atp():
+def cleanup_atp() -> None:
     forget_geofabrik_timestamp()
-    _discard_workdir()
+    discard_workdir()

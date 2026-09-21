@@ -16,8 +16,8 @@ OUT = ROOT / "static/lib/iconoir.css"
 SOURCES = [ROOT / "website/templates", ROOT / "static/js", ROOT / "src"]
 
 
-def used_icons():
-    names = set()
+def used_icons() -> set[str]:
+    names: set[str] = set()
     for source in SOURCES:
         for path in source.rglob("*"):
             if path.is_file():
@@ -25,7 +25,7 @@ def used_icons():
     return names
 
 
-def main(full_sheet):
+def main(full_sheet: str) -> None:
     css = Path(full_sheet).read_text()
     icons = used_icons()
     icon_rule = re.compile(r"\.iconoir-([a-z0-9-]+)::before\{[^}]*\}\n?")

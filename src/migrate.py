@@ -3,8 +3,18 @@ import inspect
 import logging
 import pathlib
 import re
+from typing import Any
+
+import psycopg
+
+from src.config import get_settings
+from src.db import code_sql
+from src.phone import ensure_normalize_phone
 
 logger = logging.getLogger(__name__)
+
+Connection = psycopg.Connection[Any]
+Cursor = psycopg.Cursor[Any]
 
 MIGRATIONS_DIR = pathlib.Path(__file__).parent.parent / "migrations"
 
@@ -16,14 +26,14 @@ class Migration:
     connection and calls migrate(). Commit and rollback stay its business.
     """
 
-    def __init__(self, conn):
+    def __init__(self, conn: Connection) -> None:
         self.conn = conn
 
-    def migrate(self):
+    def migrate(self) -> None:
         raise NotImplementedError
 
 
-def _ensure_schema_migrations_table(cursor):
+def _ensure_schema_migrations_table(cursor: Cursor) -> None:
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS schema_migrations (
             version     INTEGER PRIMARY KEY,
@@ -33,18 +43,18 @@ def _ensure_schema_migrations_table(cursor):
     """)
 
 
-def _get_applied_versions(cursor):
+def _get_applied_versions(cursor: Cursor) -> set[int]:
     cursor.execute("SELECT version FROM schema_migrations ORDER BY version;")
-    return {row[0] for row in cursor.fetchall()}
+    return {int(row[0]) for row in cursor.fetchall()}
 
 
-def _discover_migrations():
+def discover_migrations() -> list[tuple[int, pathlib.Path]]:
     """Return sorted list of (version, filepath) from the migrations directory."""
     pattern = re.compile(r"^(\d+)_.+\.(sql|py)$")
-    migrations = []
+    migrations: list[tuple[int, pathlib.Path]] = []
 
     if not MIGRATIONS_DIR.is_dir():
-        logger.warning(f"Migrations directory not found: {MIGRATIONS_DIR}")
+        logger.warning("Migrations directory not found: %s", MIGRATIONS_DIR)
         return migrations
 
     for path in sorted(MIGRATIONS_DIR.iterdir()):
@@ -56,13 +66,15 @@ def _discover_migrations():
     return migrations
 
 
-def _run_python_migration(path, conn):
+def run_python_migration(path: pathlib.Path, conn: Connection) -> None:
     """Load the file, find its Migration subclass, run migrate()."""
     spec = importlib.util.spec_from_file_location(path.stem, path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"{path.name} cannot be loaded as a module")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
 
-    subclasses = [
+    subclasses: list[type[Migration]] = [
         obj
         for _, obj in inspect.getmembers(module, inspect.isclass)
         if issubclass(obj, Migration) and obj is not Migration
@@ -75,7 +87,7 @@ def _run_python_migration(path, conn):
     subclasses[0](conn).migrate()
 
 
-def run_migrations(conn):
+def run_migrations(conn: Connection) -> None:
     """Run all pending SQL migrations.
 
     Production runs this once per deploy (`python -m src.migrate`, from
@@ -93,45 +105,41 @@ def run_migrations(conn):
         # the commit after each migration; it goes with the connection.
         cursor.execute("SELECT pg_advisory_lock(hashtext('schema_migrations'));")
         applied = _get_applied_versions(cursor)
-        migrations = _discover_migrations()
+        migrations = discover_migrations()
         pending = [(v, p) for v, p in migrations if v not in applied]
 
         if not pending:
             logger.info("No pending migrations.")
             return
 
-        logger.info(f"{len(pending)} pending migration(s) to apply.")
+        logger.info("%d pending migration(s) to apply.", len(pending))
 
         for version, path in pending:
-            logger.info(f"Applying migration {path.name}...")
+            logger.info("Applying migration %s...", path.name)
             try:
                 if path.suffix == ".py":
-                    _run_python_migration(path, conn)
+                    run_python_migration(path, conn)
                 else:
-                    cursor.execute(path.read_text(encoding="utf-8"))
+                    cursor.execute(code_sql(path.read_text(encoding="utf-8")))
                 cursor.execute(
                     "INSERT INTO schema_migrations (version, filename) VALUES (%s, %s);",
                     (version, path.name),
                 )
                 conn.commit()
-                logger.info(f"Migration {path.name} applied successfully.")
+                logger.info("Migration %s applied successfully.", path.name)
             except Exception:
                 conn.rollback()
-                logger.exception(f"Migration {path.name} failed.")
+                logger.exception("Migration %s failed.", path.name)
                 raise
 
     logger.info("All migrations applied.")
 
 
-def main():
+def main() -> None:
     """Migrate the database once, outside any web worker."""
-    import psycopg
-    from src.config import get_settings
-    from src.phone import ensure_normalize_phone
-
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     settings = get_settings()
-    with psycopg.connect(**settings.db.connect_kwargs) as conn:
+    with psycopg.connect(settings.db.conninfo) as conn:
         run_migrations(conn)
         # Generated from the country, not migrated into the schema: a new
         # country costs a configuration file, never a migration.

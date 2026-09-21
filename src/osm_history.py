@@ -15,40 +15,42 @@ nothing.
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from functools import lru_cache
+from typing import Any
 
 import requests
 
 from src.config import get_settings
-from src.matching import changed_tags
+from src.matching import Change, changed_tags
+
+# One version of an object, as the OSM API returns it.
+Version = dict[str, Any]
 
 logger = logging.getLogger(__name__)
 
 TIMEOUT = (5, 15)
 
 
-def _headers() -> dict:
+def _headers() -> dict[str, str]:
     settings = get_settings()
     return {"User-Agent": f"atp2osm/{settings.app_version}"}
 
 
 def _threshold() -> datetime:
-    return datetime.now(timezone.utc) - timedelta(
-        weeks=get_settings().recent_edit_weeks
-    )
+    return datetime.now(UTC) - timedelta(weeks=get_settings().recent_edit_weeks)
 
 
-def _parse(value) -> datetime | None:
+def parse_timestamp(value: str | datetime | None) -> datetime | None:
     """An OSM timestamp, or one of ours, as an aware datetime."""
     if not value:
         return None
     if isinstance(value, datetime):
-        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
-    return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        return value if value.tzinfo else value.replace(tzinfo=UTC)
+    return datetime.fromisoformat(str(value))
 
 
-class OsmApiUnavailable(Exception):
+class OsmApiUnavailableError(Exception):
     """The OSM API could not answer a read the protection needs.
 
     Not a value: a read that fails dates nothing, and a tag that cannot be
@@ -60,7 +62,7 @@ class OsmApiUnavailable(Exception):
     """
 
 
-def _get(path: str) -> dict:
+def _get(path: str) -> dict[str, Any]:
     """One read off the OSM API. Reasonable use: sequential, identified."""
     url = f"{get_settings().api_url}/api/0.6/{path}.json"
     try:
@@ -69,13 +71,13 @@ def _get(path: str) -> dict:
         return response.json()
     except (requests.exceptions.RequestException, ValueError) as exc:
         logger.warning("OSM API read failed: %s", url, exc_info=True)
-        raise OsmApiUnavailable(f"{url}: {exc}") from exc
+        raise OsmApiUnavailableError(f"{url}: {exc}") from exc
 
 
-def versions(node_type: str, osm_id: int) -> list[dict]:
+def versions(node_type: str, osm_id: int) -> list[Version]:
     """Every version of an object, oldest first."""
-    elements = _get(f"{node_type}/{osm_id}/history").get("elements") or []
-    return sorted(elements, key=lambda v: v.get("version", 0))
+    elements: list[Version] = _get(f"{node_type}/{osm_id}/history").get("elements") or []
+    return sorted(elements, key=lambda v: int(v.get("version", 0)))
 
 
 @lru_cache(maxsize=4096)
@@ -87,13 +89,18 @@ def is_bot(changeset_id: int) -> bool:
     nature of the edit. A bot that does not declare itself is therefore treated
     as a human and its value is preserved: the doubt benefits what is there.
     """
-    elements = _get(f"changeset/{changeset_id}").get("elements") or []
+    elements: list[Version] = _get(f"changeset/{changeset_id}").get("elements") or []
     if not elements:
         return False
-    return (elements[0].get("tags") or {}).get("bot") == "yes"
+    tags: dict[str, str] = elements[0].get("tags") or {}
+    return tags.get("bot") == "yes"
 
 
-def value_set_at(history: list[dict], key: str) -> tuple[datetime | None, int | None]:
+def _tags(version: Version) -> dict[str, str]:
+    return version.get("tags") or {}
+
+
+def value_set_at(history: list[Version], key: str) -> tuple[datetime | None, int | None]:
     """When the current value of *key* was posted, and by which changeset.
 
     Walking down from the current version, the answer is the oldest consecutive
@@ -104,31 +111,33 @@ def value_set_at(history: list[dict], key: str) -> tuple[datetime | None, int | 
     """
     if not history:
         return None, None
-    current = (history[-1].get("tags") or {}).get(key)
+    current = _tags(history[-1]).get(key)
     setter = history[-1]
     for version in reversed(history[:-1]):
-        if (version.get("tags") or {}).get(key) != current:
+        if _tags(version).get(key) != current:
             break
         setter = version
-    return _parse(setter.get("timestamp")), setter.get("changeset")
+    changeset = setter.get("changeset")
+    return parse_timestamp(setter.get("timestamp")), int(
+        changeset
+    ) if changeset is not None else None
 
 
-def _replaced_tags(change: dict) -> set[str]:
+def _replaced_tags(change: Change) -> set[str]:
     """Keys the diff would overwrite — the only ones the protection is about.
 
     A wave that only adds tags produces none, and then costs no request.
     """
-    old = change.get("old_tag") or {}
-    return {key for key in changed_tags(change) if key in old}
+    return {key for key in changed_tags(change) if key in change["old_tag"]}
 
 
-def protect_recent_edits(changes: list[dict]) -> list[dict]:
+def protect_recent_edits(changes: list[Change]) -> list[Change]:
     """Strip from *changes* every tag a human wrote recently.
 
     Returns the changes worth uploading: one whose every tag was protected
     drops out, since it would be an empty changeset.
 
-    Raises OsmApiUnavailable when a date could not be read: the caller must
+    Raises OsmApiUnavailableError when a date could not be read: the caller must
     not take an undecided batch for an empty one.
     """
     # The development API server holds none of the production objects: every
@@ -139,11 +148,11 @@ def protect_recent_edits(changes: list[dict]) -> list[dict]:
         return list(changes)
 
     threshold = _threshold()
-    kept = []
+    kept: list[Change] = []
 
     for change in changes:
         replaced = _replaced_tags(change)
-        edited = _parse(change.get("osm_timestamp"))
+        edited = parse_timestamp(change["osm_timestamp"])
         # The majority case, and it costs nothing: the object as a whole has
         # not moved since the threshold, so no tag on it can have.
         if replaced and (edited is None or edited >= threshold):
@@ -156,7 +165,9 @@ def protect_recent_edits(changes: list[dict]) -> list[dict]:
                     continue
                 logger.info(
                     "%s/%s: keeping the recent %s",
-                    change["node_type"], change["id"], key,
+                    change["node_type"],
+                    change["id"],
+                    key,
                 )
                 change["tag"][key] = change["old_tag"][key]
 

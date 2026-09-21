@@ -34,11 +34,19 @@ import os
 import pathlib
 import re
 from datetime import timedelta
+from typing import Any
+
+from psycopg.rows import dict_row
 
 from src.matching import get_stats
 from src.migrate import Migration
 
 logger = logging.getLogger(__name__)
+
+# A row of import_history, a change as the log holds it, a child row to write.
+Row = dict[str, Any]
+LoggedChange = dict[str, Any]
+Child = dict[str, Any]
 
 LOGS_DIR = pathlib.Path(
     os.environ.get("ATP2OSM_LOGS_DIR", pathlib.Path(__file__).parent.parent / "logs")
@@ -52,8 +60,8 @@ ERROR_KINDS = {"OSM API": "error_osm_api", "Unknown": "error_unknown"}
 
 
 class BackfillImportDepartements(Migration):
-    def migrate(self):
-        with self.conn.cursor() as cursor:
+    def migrate(self) -> None:
+        with self.conn.cursor(row_factory=dict_row) as cursor:
             cursor.execute(
                 """SELECT id, brand_wikidata, brand_name, import_date, status, comment,
                           items_count, tags_count, changeset_ids
@@ -65,19 +73,17 @@ class BackfillImportDepartements(Migration):
                      )
                    ORDER BY import_date"""
             )
-            rows = [
-                dict(zip([c.name for c in cursor.description], r))
-                for r in cursor.fetchall()
-            ]
+            rows: list[Row] = cursor.fetchall()
 
         # One log file per (folder, day): two integrations landing on the same
         # file overwrote each other. Since the rows are sorted by date, the last
         # one is what the file describes; the earlier ones stay without detail.
         paths = {row["id"]: self._find_log_path(row) for row in rows}
-        claimed = {}
+        claimed: dict[pathlib.Path, int] = {}
         for row in rows:
-            if paths[row["id"]]:
-                claimed[paths[row["id"]]] = row["id"]
+            path = paths[row["id"]]
+            if path is not None:
+                claimed[path] = row["id"]
 
         done = 0
         for row in rows:
@@ -85,7 +91,9 @@ class BackfillImportDepartements(Migration):
             if path is None:
                 logger.warning(
                     "No log for integration %s (%s, %s): left without detail.",
-                    row["id"], row["brand_wikidata"], row["import_date"].date(),
+                    row["id"],
+                    row["brand_wikidata"],
+                    row["import_date"].date(),
                 )
                 self._keep_changeset_ids(row)
                 continue
@@ -93,7 +101,9 @@ class BackfillImportDepartements(Migration):
             if claimed[path] != row["id"]:
                 logger.warning(
                     "Import %s not backfilled: log %s describes integration %s",
-                    row["id"], path, claimed[path],
+                    row["id"],
+                    path,
+                    claimed[path],
                 )
                 self._keep_changeset_ids(row)
                 continue
@@ -106,7 +116,9 @@ class BackfillImportDepartements(Migration):
             if not changes or any("departement_number" not in c for c in changes):
                 logger.warning(
                     "Log %s in the old format (no département): "
-                    "integration %s left without detail.", path, row["id"],
+                    "integration %s left without detail.",
+                    path,
+                    row["id"],
                 )
                 self._keep_changeset_ids(row)
                 continue
@@ -116,7 +128,7 @@ class BackfillImportDepartements(Migration):
 
         logger.info("Backfill done: %d integration(s) detailed.", done)
 
-    def _find_log_path(self, row):
+    def _find_log_path(self, row: Row) -> pathlib.Path | None:
         """The log file of an integration, or None.
 
         The file name comes from the server's local time while the integration
@@ -137,15 +149,18 @@ class BackfillImportDepartements(Migration):
                 if changes and changes[0].get("atp_brand") == row["brand_name"]:
                     logger.info(
                         "Integration %s (%s) found back in %s, matched by name.",
-                        row["id"], row["brand_wikidata"], path.parent.name,
+                        row["id"],
+                        row["brand_wikidata"],
+                        path.parent.name,
                     )
                     return path
         return None
 
-    def _keep_changeset_ids(self, row):
+    def _keep_changeset_ids(self, row: Row) -> None:
         """changeset_ids disappears right after (migration 017): for an
         integration we cannot detail, at least keep a trace of its changesets
-        in the comment."""
+        in the comment.
+        """
         if not row["changeset_ids"]:
             return
         trace = "Changesets : " + ", ".join(str(c) for c in row["changeset_ids"])
@@ -155,9 +170,10 @@ class BackfillImportDepartements(Migration):
                 (trace, row["id"]),
             )
 
-    def _read_log(self, path):
+    def _read_log(self, path: pathlib.Path) -> tuple[list[LoggedChange], list[int] | None]:
         """Return (changes, succeeded); succeeded is None when the log predates
-        the recording of successful changesets."""
+        the recording of successful changesets.
+        """
         decoder = json.JSONDecoder()
         text = path.read_text(encoding="utf-8")
         changes, end = decoder.raw_decode(text)
@@ -165,10 +181,8 @@ class BackfillImportDepartements(Migration):
         succeeded = decoder.raw_decode(rest)[0] if rest else None
         return changes, succeeded
 
-    def _write(self, row, changes, succeeded):
-        children, uploaded = reconstruct(
-            changes, succeeded, row["status"], row["comment"]
-        )
+    def _write(self, row: Row, changes: list[LoggedChange], succeeded: list[int] | None) -> None:
+        children, uploaded = reconstruct(changes, succeeded, row["status"], row["comment"])
         rows = [
             (
                 row["id"],
@@ -198,7 +212,9 @@ class BackfillImportDepartements(Migration):
             )
 
 
-def reconstruct(changes, succeeded, status, comment):
+def reconstruct(
+    changes: list[LoggedChange], succeeded: list[int] | None, status: str, comment: str | None
+) -> tuple[list[Child], list[LoggedChange]]:
     """Per-département detail of an integration, from its log.
 
     *succeeded* is the list of successful changesets, or None when the log
@@ -212,11 +228,10 @@ def reconstruct(changes, succeeded, status, comment):
     # unknown.
     default_error = "error_osm_api" if status.endswith("osm_api") else "error_unknown"
     failed_from_comment = {
-        _pad(dpt): ERROR_KINDS[kind]
-        for kind, dpt in FAILED_DPT_RE.findall(comment or "")
+        _pad(dpt): ERROR_KINDS[kind] for kind, dpt in FAILED_DPT_RE.findall(comment or "")
     }
 
-    by_dpt = {}
+    by_dpt: dict[str, dict[str, Any]] = {}
     for change in changes:
         dpt = _pad(change["departement_number"])
         entry = by_dpt.setdefault(dpt, {"changeset": None, "changes": []})
@@ -226,18 +241,20 @@ def reconstruct(changes, succeeded, status, comment):
     # Some logs did not keep the changeset on each POI. Since the successful
     # ids were recorded in département order, they are handed back in that same
     # order to the départements the comment does not blame.
-    positional = None
+    positional: dict[str, int] | None = None
     if succeeded is not None and any(e["changeset"] is None for e in by_dpt.values()):
         candidates = [d for d in by_dpt if d not in failed_from_comment]
         if len(candidates) != len(succeeded):
             logger.warning(
                 "%d candidate département(s) for %d successful changeset(s): "
-                "the last ones are counted as failed.", len(candidates), len(succeeded),
+                "the last ones are counted as failed.",
+                len(candidates),
+                len(succeeded),
             )
-        positional = dict(zip(candidates, succeeded))
+        positional = dict(zip(candidates, succeeded, strict=False))
 
-    children = []
-    uploaded = []
+    children: list[Child] = []
+    uploaded: list[LoggedChange] = []
     for dpt, entry in by_dpt.items():
         if positional is not None:
             ok = dpt in positional
@@ -262,17 +279,19 @@ def reconstruct(changes, succeeded, status, comment):
             # do not know which one it was.
             changeset = entry["changeset"]
 
-        children.append({
-            "departement_number": dpt,
-            "items_count": len(entry["changes"]),
-            "osm_changeset_id": changeset,
-            "status": "success" if ok else failed_from_comment.get(dpt, default_error),
-            "comment": None if ok else comment,
-        })
+        children.append(
+            {
+                "departement_number": dpt,
+                "items_count": len(entry["changes"]),
+                "osm_changeset_id": changeset,
+                "status": "success" if ok else failed_from_comment.get(dpt, default_error),
+                "comment": None if ok else comment,
+            }
+        )
 
     return children, uploaded
 
 
-def _pad(departement_number) -> str:
+def _pad(departement_number: str | int) -> str:
     """The oldest logs stored the département as an integer (6, 94)."""
     return str(departement_number).zfill(2)

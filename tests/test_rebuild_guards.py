@@ -16,21 +16,30 @@ never missing in between".
 
 import json
 import subprocess
-from datetime import datetime, timedelta, timezone
+from collections.abc import Callable, Iterator
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Any, LiteralString, Never
 
 import psycopg
 import pytest
 import requests
+from psycopg import sql
 
 from src.config import Database
+from src.db import code_sql
 from src.phone import ensure_normalize_phone
 from src.pipeline import _matview, _version, atp, atp2osm, nsi, osm
-from src.pipeline._db import last_import_comment, last_import_date, record_import, start_import
-from src.pipeline.errors import SourceUnavailable
+from src.pipeline._db import record_import, start_import
+from src.pipeline.errors import SourceUnavailableError
 from src.pipeline.ndgeojson_to_parquet import convert_to_parquet
+from tests.conftest import Connection, one
 
-TS = datetime(2026, 8, 27, tzinfo=timezone.utc)
+# A staged HTTP answer, a staged download, what a test does to move an input.
+Download = Callable[..., None]
+Move = Callable[[Connection, pytest.MonkeyPatch], object]
+
+TS = datetime(2026, 8, 27, tzinfo=UTC)
 EARLIER = TS - timedelta(days=1)
 LATER = TS + timedelta(days=1)
 
@@ -63,31 +72,35 @@ OSM_TABLES_SQL = """
 
 
 @pytest.fixture
-def pipeline(migrated_conn, db_kwargs, monkeypatch, tmp_path):
+def pipeline(
+    migrated_conn: Connection, test_db: Database, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> Iterator[Connection]:
     """The pipeline on the throwaway database, with the OSM tables of a
-    previous import in place, and every file it writes under tmp_path."""
+    previous import in place, and every file it writes under tmp_path.
+    """
     # Two ways in: the psycopg connections, and the settings DuckDB and
     # osm2pgsql are handed to reach the same database.
-    test_db = Database(name=db_kwargs["dbname"], user=db_kwargs["user"],
-                       password=db_kwargs["password"], host=db_kwargs["host"],
-                       port=db_kwargs["port"])
     for module in (osm, atp, nsi):
-        monkeypatch.setattr(module, "connect", lambda: psycopg.connect(**db_kwargs))
+        monkeypatch.setattr(module, "connect", lambda: psycopg.connect(test_db.conninfo))
     for module in (osm, atp):
         monkeypatch.setattr(module, "get_database", lambda: test_db)
     monkeypatch.setattr(osm, "GEOFABRIK_TS_PATH", tmp_path / "osm" / "geofabrik-timestamp.txt")
-    monkeypatch.setattr(osm, "GEOFABRIK_REGIONS", {
-        "france": {
-            "url": "https://geofabrik.example/france-latest.osm.pbf",
-            "state_url": "https://geofabrik.example/france-updates/state.txt",
-            "pbf_path": tmp_path / "osm" / "france-latest.osm.pbf",
+    monkeypatch.setattr(
+        osm,
+        "GEOFABRIK_REGIONS",
+        {
+            "france": {
+                "url": "https://geofabrik.example/france-latest.osm.pbf",
+                "state_url": "https://geofabrik.example/france-updates/state.txt",
+                "pbf_path": tmp_path / "osm" / "france-latest.osm.pbf",
+            },
         },
-    })
+    )
 
     conn = migrated_conn
     ensure_normalize_phone(conn)
     conn.execute("DROP TABLE IF EXISTS atp_places, atp_spiders")
-    conn.execute(OSM_TABLES_SQL.format(schema="public"))
+    conn.execute(code_sql(OSM_TABLES_SQL.format(schema="public")))
     conn.execute("""
         CREATE TABLE subdivision_parts AS
             SELECT osm_id, ref, name, admin_level, geom FROM subdivisions;
@@ -109,7 +122,11 @@ def pipeline(migrated_conn, db_kwargs, monkeypatch, tmp_path):
              ORDER BY c.relkind DESC  -- views first: they depend on the tables
         """)
         for kind, name in cur.fetchall():
-            cur.execute(f"DROP {'MATERIALIZED VIEW' if kind == 'm' else 'TABLE'} IF EXISTS {name} CASCADE")
+            cur.execute(
+                sql.SQL("DROP {} IF EXISTS {} CASCADE").format(
+                    sql.SQL("MATERIALIZED VIEW" if kind == "m" else "TABLE"), sql.Identifier(name)
+                )
+            )
         cur.execute(f"DROP SCHEMA IF EXISTS {osm.IMPORT_SCHEMA} CASCADE")
         cur.execute("""
             CREATE TABLE atp_places (id TEXT, spider_id TEXT, brand_wikidata TEXT, brand TEXT);
@@ -119,7 +136,7 @@ def pipeline(migrated_conn, db_kwargs, monkeypatch, tmp_path):
     conn.commit()
 
 
-def imports(conn, kind):
+def imports(conn: Connection, kind: str) -> list[tuple[Any, ...]]:
     """(date, status, comment) of every row of that datasource, oldest first."""
     return conn.execute(
         "SELECT date, status, comment FROM data_imports WHERE type = %s ORDER BY id",
@@ -127,21 +144,26 @@ def imports(conn, kind):
     ).fetchall()
 
 
-def oid(conn, name):
+def oid(conn: Connection, name: str) -> int | None:
     # A name resolved inside an open transaction is the one that transaction
     # first saw: the step swapped on a connection of its own, so look afresh.
     conn.rollback()
-    return conn.execute("SELECT to_regclass(%s)::oid", (name,)).fetchone()[0]
+    return one(conn.execute("SELECT to_regclass(%s)::oid", (name,)).fetchone())[0]
 
 
-def stamp(conn, name, sig, kind="TABLE"):
+def count(conn: Connection, query: LiteralString) -> int:
+    """The number a counting query answers."""
+    return int(one(conn.execute(query).fetchone())[0])
+
+
+def stamp(conn: Connection, name: str, sig: str, kind: LiteralString = "TABLE") -> None:
     with conn.cursor() as cur:
         _matview.stamp(cur, name, sig, kind)
     conn.commit()
 
 
-def geofabrik(monkeypatch, newest):
-    monkeypatch.setattr(osm, "_newest_geofabrik_timestamp", lambda: newest)
+def geofabrik(monkeypatch: pytest.MonkeyPatch, newest: datetime | None) -> None:
+    monkeypatch.setattr(osm, "newest_geofabrik_timestamp", lambda: newest)
 
 
 # =============================================================================
@@ -150,11 +172,11 @@ def geofabrik(monkeypatch, newest):
 
 
 @pytest.fixture
-def downloads(monkeypatch):
+def downloads(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, Path]]:
     """What download_pbf fetched: (url, path) per call. Writes a file."""
-    calls = []
+    calls: list[tuple[str, Path]] = []
 
-    def download(url, path, session=None):
+    def download(url: str, path: Path, session: object = None) -> None:
         calls.append((url, Path(path)))
         Path(path).write_bytes(b"pbf")
 
@@ -162,7 +184,9 @@ def downloads(monkeypatch):
     return calls
 
 
-def test_nothing_new_and_the_same_revision_skips_the_download(pipeline, monkeypatch, downloads):
+def test_nothing_new_and_the_same_revision_skips_the_download(
+    pipeline: Connection, monkeypatch: pytest.MonkeyPatch, downloads: list[tuple[str, Path]]
+) -> None:
     record_import(pipeline, "osm", TS, "success")
     stamp(pipeline, "points", _version.app_version())
     geofabrik(monkeypatch, TS)
@@ -173,7 +197,9 @@ def test_nothing_new_and_the_same_revision_skips_the_download(pipeline, monkeypa
     assert imports(pipeline, "osm")[-1] == (TS, "skipped", None)
 
 
-def test_newer_data_is_downloaded_and_the_row_stays_open(pipeline, monkeypatch, downloads):
+def test_newer_data_is_downloaded_and_the_row_stays_open(
+    pipeline: Connection, monkeypatch: pytest.MonkeyPatch, downloads: list[tuple[str, Path]]
+) -> None:
     """The row opened here is resolved by osm-views, once the tables are in."""
     record_import(pipeline, "osm", TS, "success")
     stamp(pipeline, "points", _version.app_version())
@@ -186,7 +212,9 @@ def test_newer_data_is_downloaded_and_the_row_stays_open(pipeline, monkeypatch, 
     assert imports(pipeline, "osm")[-1][1] == "pending"
 
 
-def test_a_new_revision_downloads_without_new_data(pipeline, monkeypatch, downloads):
+def test_a_new_revision_downloads_without_new_data(
+    pipeline: Connection, monkeypatch: pytest.MonkeyPatch, downloads: list[tuple[str, Path]]
+) -> None:
     record_import(pipeline, "osm", TS, "success")
     stamp(pipeline, "points", "a-previous-revision")
     geofabrik(monkeypatch, TS)
@@ -196,7 +224,9 @@ def test_a_new_revision_downloads_without_new_data(pipeline, monkeypatch, downlo
     assert len(downloads) == 1
 
 
-def test_tables_that_were_never_stamped_are_reimported(pipeline, monkeypatch, downloads):
+def test_tables_that_were_never_stamped_are_reimported(
+    pipeline: Connection, monkeypatch: pytest.MonkeyPatch, downloads: list[tuple[str, Path]]
+) -> None:
     """A database from before the guards: no stamp is not the current stamp."""
     record_import(pipeline, "osm", TS, "success")
     geofabrik(monkeypatch, TS)
@@ -204,13 +234,17 @@ def test_tables_that_were_never_stamped_are_reimported(pipeline, monkeypatch, do
     assert len(downloads) == 1
 
 
-def test_a_first_run_downloads(pipeline, monkeypatch, downloads):
+def test_a_first_run_downloads(
+    pipeline: Connection, monkeypatch: pytest.MonkeyPatch, downloads: list[tuple[str, Path]]
+) -> None:
     geofabrik(monkeypatch, TS)
     osm.download_pbf()
     assert len(downloads) == 1
 
 
-def test_a_pbf_already_on_disk_is_not_fetched_again(pipeline, monkeypatch, downloads):
+def test_a_pbf_already_on_disk_is_not_fetched_again(
+    pipeline: Connection, monkeypatch: pytest.MonkeyPatch, downloads: list[tuple[str, Path]]
+) -> None:
     """A run that crashed after the download resumes from the file."""
     pbf = osm.GEOFABRIK_REGIONS["france"]["pbf_path"]
     pbf.parent.mkdir(parents=True)
@@ -222,10 +256,12 @@ def test_a_pbf_already_on_disk_is_not_fetched_again(pipeline, monkeypatch, downl
     assert downloads == []
 
 
-def test_a_failed_download_leaves_no_partial_file(pipeline, monkeypatch):
+def test_a_failed_download_leaves_no_partial_file(
+    pipeline: Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
     pbf = osm.GEOFABRIK_REGIONS["france"]["pbf_path"]
 
-    def download(url, path, session=None):
+    def download(_url: str, path: Path, session: object = None) -> Never:
         Path(path).write_bytes(b"half a pl")
         raise requests.ConnectionError("reset by peer")
 
@@ -239,9 +275,11 @@ def test_a_failed_download_leaves_no_partial_file(pipeline, monkeypatch):
     assert not pbf.exists()
 
 
-def test_geofabrik_down_opens_no_row(pipeline, monkeypatch, downloads):
+def test_geofabrik_down_opens_no_row(
+    pipeline: Connection, monkeypatch: pytest.MonkeyPatch, downloads: list[tuple[str, Path]]
+) -> None:
     geofabrik(monkeypatch, None)
-    with pytest.raises(SourceUnavailable):
+    with pytest.raises(SourceUnavailableError):
         osm.download_pbf()
     assert imports(pipeline, "osm") == []
     assert downloads == []
@@ -252,30 +290,63 @@ def test_geofabrik_down_opens_no_row(pipeline, monkeypatch, downloads):
 # =============================================================================
 
 
-@pytest.fixture
-def osm2pgsql(pipeline, db_kwargs, monkeypatch):
-    """osm2pgsql as a function: writes the tables into the import schema, the
-    way the real one does with --create, and records how it was called."""
-    calls = []
+class _Usage:
+    """shutil.disk_usage's answer, the one field the check reads."""
 
-    def run(args, check, env):
+    def __init__(self, free: int) -> None:
+        self.free = free
+
+
+def _plenty_of_disk(_path: Path) -> _Usage:
+    return _Usage(free=10**12)
+
+
+def _almost_full_disk(_path: Path) -> _Usage:
+    return _Usage(free=10**9)
+
+
+def _broken_view(name: str) -> str:
+    return f"CREATE MATERIALIZED VIEW {name} AS SELECT 1/0"
+
+
+# What the staged osm2pgsql recorded of its call.
+Osm2pgsqlCall = dict[str, Any]
+
+
+@pytest.fixture
+def osm2pgsql(
+    pipeline: Connection, test_db: Database, monkeypatch: pytest.MonkeyPatch
+) -> list[Osm2pgsqlCall]:
+    """osm2pgsql as a function: writes the tables into the import schema, the
+    way the real one does with --create, and records how it was called.
+    """
+    calls: list[Osm2pgsqlCall] = []
+
+    def run(args: list[str], check: bool, env: dict[str, str]) -> None:
         calls.append({"args": args, "env": env})
-        with psycopg.connect(**db_kwargs) as c:
-            c.execute(OSM_TABLES_SQL.format(schema=env["ATP2OSM_IMPORT_SCHEMA"]))
+        schema = env["ATP2OSM_IMPORT_SCHEMA"]
+        with psycopg.connect(test_db.conninfo) as c:
+            c.execute(code_sql(OSM_TABLES_SQL.format(schema=schema)))
             # A marker telling the new table from the old one.
-            c.execute(f"INSERT INTO {env['ATP2OSM_IMPORT_SCHEMA']}.points VALUES"
-                      " (999, '{\"name\": \"fresh\"}', ST_SetSRID(ST_Point(0, 0), 4326), 1, 1)")
+            c.execute(
+                sql.SQL(
+                    "INSERT INTO {}.points VALUES"
+                    ' (999, \'{{"name": "fresh"}}\', ST_SetSRID(ST_Point(0, 0), 4326), 1, 1)'
+                ).format(sql.Identifier(schema))
+            )
             c.commit()
 
     monkeypatch.setattr(osm.subprocess, "run", run)
-    monkeypatch.setattr(osm.shutil, "disk_usage", lambda p: type("u", (), {"free": 10**12})())
+    monkeypatch.setattr(osm.shutil, "disk_usage", _plenty_of_disk)
     pbf = osm.GEOFABRIK_REGIONS["france"]["pbf_path"]
     pbf.parent.mkdir(parents=True, exist_ok=True)
     pbf.write_bytes(b"pbf")
     return calls
 
 
-def test_the_import_swaps_the_new_tables_in_and_retires_the_old(pipeline, osm2pgsql):
+def test_the_import_swaps_the_new_tables_in_and_retires_the_old(
+    pipeline: Connection, osm2pgsql: list[Osm2pgsqlCall]
+) -> None:
     before = {t: oid(pipeline, t) for t in osm.OSM_TABLES}
 
     osm.run_osm2pgsql()
@@ -284,34 +355,40 @@ def test_the_import_swaps_the_new_tables_in_and_retires_the_old(pipeline, osm2pg
     assert call["env"]["ATP2OSM_IMPORT_SCHEMA"] == osm.IMPORT_SCHEMA
     assert call["env"]["ATP2OSM_ADMIN_LEVEL_MAX"] == str(osm.ADMIN_LEVEL_MAX)
     assert "PGPASSWORD" in call["env"]
-    assert "-x" in call["args"] and "flex" in call["args"]
+    assert "-x" in call["args"]
+    assert "flex" in call["args"]
     for table in osm.OSM_TABLES:
         assert oid(pipeline, table) != before[table], f"{table} was not swapped"
         assert oid(pipeline, f"{table}_old") == before[table], f"{table} was dropped, not retired"
-    assert pipeline.execute("SELECT count(*) FROM points WHERE node_id = 999").fetchone()[0] == 1
+    assert count(pipeline, "SELECT count(*) FROM points WHERE node_id = 999") == 1
     assert _matview.is_current(pipeline, "points", _version.app_version())
     assert oid(pipeline, f"{osm.IMPORT_SCHEMA}.points") is None
     assert not osm.GEOFABRIK_REGIONS["france"]["pbf_path"].exists()
     # The pieces are cut from the new boundaries.
     assert _matview.is_current(
-        pipeline, "subdivision_parts",
+        pipeline,
+        "subdivision_parts",
         _matview.signature(_version.app_version(), oid(pipeline, "subdivisions")),
     )
 
 
-def test_a_view_on_the_old_tables_keeps_serving_through_the_swap(pipeline, osm2pgsql):
+def test_a_view_on_the_old_tables_keeps_serving_through_the_swap(
+    pipeline: Connection, osm2pgsql: list[Osm2pgsqlCall]
+) -> None:
     pipeline.execute("CREATE MATERIALIZED VIEW mv_places AS SELECT node_id FROM points")
     pipeline.commit()
 
     osm.run_osm2pgsql()
 
-    assert pipeline.execute("SELECT count(*) FROM mv_places").fetchone()[0] == 2
+    assert count(pipeline, "SELECT count(*) FROM mv_places") == 2
 
 
-def test_a_failed_osm2pgsql_leaves_the_live_tables_and_the_pbf(pipeline, osm2pgsql, monkeypatch):
+def test_a_failed_osm2pgsql_leaves_the_live_tables_and_the_pbf(
+    pipeline: Connection, osm2pgsql: list[Osm2pgsqlCall], monkeypatch: pytest.MonkeyPatch
+) -> None:
     before = {t: oid(pipeline, t) for t in osm.OSM_TABLES}
 
-    def fail(args, check, env):
+    def fail(_args: list[str], check: bool, env: dict[str, str]) -> Never:
         raise subprocess.CalledProcessError(1, "osm2pgsql")
 
     monkeypatch.setattr(osm.subprocess, "run", fail)
@@ -325,18 +402,22 @@ def test_a_failed_osm2pgsql_leaves_the_live_tables_and_the_pbf(pipeline, osm2pgs
     assert osm.GEOFABRIK_REGIONS["france"]["pbf_path"].exists()
 
 
-def test_a_full_disk_fails_before_osm2pgsql_starts(pipeline, osm2pgsql, monkeypatch):
-    monkeypatch.setattr(osm.shutil, "disk_usage", lambda p: type("u", (), {"free": 10**9})())
+def test_a_full_disk_fails_before_osm2pgsql_starts(
+    pipeline: Connection, osm2pgsql: list[Osm2pgsqlCall], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(osm.shutil, "disk_usage", _almost_full_disk)
     with pytest.raises(RuntimeError, match="free disk"):
         osm.run_osm2pgsql()
     assert osm2pgsql == []
 
 
-def test_the_pieces_are_recut_only_when_the_boundaries_moved(pipeline, osm2pgsql):
+def test_the_pieces_are_recut_only_when_the_boundaries_moved(
+    pipeline: Connection, osm2pgsql: list[Osm2pgsqlCall]
+) -> None:
     osm.run_osm2pgsql()
     pieces = oid(pipeline, "subdivision_parts")
 
-    osm._build_subdivision_parts()
+    osm.build_subdivision_parts()
     assert oid(pipeline, "subdivision_parts") == pieces
 
     osm.GEOFABRIK_REGIONS["france"]["pbf_path"].write_bytes(b"pbf")
@@ -344,12 +425,16 @@ def test_the_pieces_are_recut_only_when_the_boundaries_moved(pipeline, osm2pgsql
     assert oid(pipeline, "subdivision_parts") != pieces
 
 
-def test_a_leftover_import_schema_is_started_over(pipeline, osm2pgsql):
+def test_a_leftover_import_schema_is_started_over(
+    pipeline: Connection, osm2pgsql: list[Osm2pgsqlCall]
+) -> None:
     """A crashed run leaves its schema: --create would fail on the tables in it."""
-    pipeline.execute(f"CREATE SCHEMA {osm.IMPORT_SCHEMA}; CREATE TABLE {osm.IMPORT_SCHEMA}.points (x INT)")
+    pipeline.execute(
+        f"CREATE SCHEMA {osm.IMPORT_SCHEMA}; CREATE TABLE {osm.IMPORT_SCHEMA}.points (x INT)"
+    )
     pipeline.commit()
     osm.run_osm2pgsql()
-    assert pipeline.execute("SELECT count(*) FROM points WHERE node_id = 999").fetchone()[0] == 1
+    assert count(pipeline, "SELECT count(*) FROM points WHERE node_id = 999") == 1
 
 
 # =============================================================================
@@ -357,11 +442,13 @@ def test_a_leftover_import_schema_is_started_over(pipeline, osm2pgsql):
 # =============================================================================
 
 
-def nsi_imported(conn, version="8.0.20260729"):
-    record_import(conn, "nsi", TS, "success", nsi._stamp(version))
+def nsi_imported(conn: Connection, version: str = "8.0.20260729") -> None:
+    record_import(conn, "nsi", TS, "success", nsi.stamp(version))
 
 
-def test_the_first_build_creates_the_view_and_resolves_the_row(pipeline, monkeypatch):
+def test_the_first_build_creates_the_view_and_resolves_the_row(
+    pipeline: Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
     nsi_imported(pipeline)
     start_import(pipeline, "osm")
     geofabrik(monkeypatch, TS)
@@ -373,14 +460,17 @@ def test_the_first_build_creates_the_view_and_resolves_the_row(pipeline, monkeyp
     # The crossing carries nothing a match can key on.
     assert rows == [(101, "node"), (201, "way")]
     indexes = {
-        r[0] for r in pipeline.execute(
+        r[0]
+        for r in pipeline.execute(
             "SELECT indexname FROM pg_indexes WHERE tablename = 'mv_places'"
         ).fetchall()
     }
     assert indexes == set(osm.MV_PLACES_INDEXES)
 
 
-def test_unchanged_inputs_skip_the_rebuild(pipeline, monkeypatch):
+def test_unchanged_inputs_skip_the_rebuild(
+    pipeline: Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
     nsi_imported(pipeline)
     geofabrik(monkeypatch, TS)
     osm.setup_mv_places()
@@ -392,7 +482,7 @@ def test_unchanged_inputs_skip_the_rebuild(pipeline, monkeypatch):
     assert imports(pipeline, "osm")[-1][1] == "skipped"
 
 
-def test_newer_osm_data_rebuilds(pipeline, monkeypatch):
+def test_newer_osm_data_rebuilds(pipeline: Connection, monkeypatch: pytest.MonkeyPatch) -> None:
     nsi_imported(pipeline)
     geofabrik(monkeypatch, TS)
     osm.setup_mv_places()
@@ -406,7 +496,9 @@ def test_newer_osm_data_rebuilds(pipeline, monkeypatch):
     assert imports(pipeline, "osm")[-1] == (LATER, "success", None)
 
 
-def test_a_new_nsi_release_rebuilds_without_new_osm_data(pipeline, monkeypatch):
+def test_a_new_nsi_release_rebuilds_without_new_osm_data(
+    pipeline: Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """The view completes brand:wikidata from nsi_brands: it is an input."""
     nsi_imported(pipeline, "8.0.20260729")
     geofabrik(monkeypatch, TS)
@@ -419,7 +511,9 @@ def test_a_new_nsi_release_rebuilds_without_new_osm_data(pipeline, monkeypatch):
     assert oid(pipeline, "mv_places") != built
 
 
-def test_a_new_revision_rebuilds_without_new_data(pipeline, monkeypatch):
+def test_a_new_revision_rebuilds_without_new_data(
+    pipeline: Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
     nsi_imported(pipeline)
     geofabrik(monkeypatch, TS)
     osm.setup_mv_places()
@@ -431,7 +525,9 @@ def test_a_new_revision_rebuilds_without_new_data(pipeline, monkeypatch):
     assert oid(pipeline, "mv_places") != built
 
 
-def test_geofabrik_down_still_rebuilds_on_the_other_inputs(pipeline, monkeypatch):
+def test_geofabrik_down_still_rebuilds_on_the_other_inputs(
+    pipeline: Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """The OSM data cannot have moved, the NSI release can have."""
     nsi_imported(pipeline, "8.0.20260729")
     geofabrik(monkeypatch, TS)
@@ -450,21 +546,25 @@ def test_geofabrik_down_still_rebuilds_on_the_other_inputs(pipeline, monkeypatch
     assert imports(pipeline, "osm")[-1] == (TS, "success", None)
 
 
-def test_geofabrik_down_on_a_first_run_builds_nothing(pipeline, monkeypatch):
+def test_geofabrik_down_on_a_first_run_builds_nothing(
+    pipeline: Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
     geofabrik(monkeypatch, None)
     osm.setup_mv_places()
     assert oid(pipeline, "mv_places") is None
     assert imports(pipeline, "osm") == []
 
 
-def test_a_failed_build_leaves_the_live_view_and_records_no_success(pipeline, monkeypatch):
+def test_a_failed_build_leaves_the_live_view_and_records_no_success(
+    pipeline: Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
     nsi_imported(pipeline)
     geofabrik(monkeypatch, TS)
     osm.setup_mv_places()
     built = oid(pipeline, "mv_places")
 
     geofabrik(monkeypatch, LATER)
-    monkeypatch.setattr(osm, "_mv_places_sql", lambda name: f"CREATE MATERIALIZED VIEW {name} AS SELECT 1/0")
+    monkeypatch.setattr(osm, "mv_places_sql", _broken_view)
     with pytest.raises(psycopg.Error):
         osm.setup_mv_places()
 
@@ -473,7 +573,9 @@ def test_a_failed_build_leaves_the_live_view_and_records_no_success(pipeline, mo
     assert imports(pipeline, "osm")[-1] == (TS, "success", None)
 
 
-def test_a_new_view_is_built_from_the_new_tables(pipeline, osm2pgsql, monkeypatch):
+def test_a_new_view_is_built_from_the_new_tables(
+    pipeline: Connection, osm2pgsql: list[Osm2pgsqlCall], monkeypatch: pytest.MonkeyPatch
+) -> None:
     """After osm-import, osm-views reads points, not points_old."""
     nsi_imported(pipeline)
     geofabrik(monkeypatch, TS)
@@ -483,7 +585,7 @@ def test_a_new_view_is_built_from_the_new_tables(pipeline, osm2pgsql, monkeypatc
     geofabrik(monkeypatch, LATER)
     osm.setup_mv_places()
 
-    assert pipeline.execute("SELECT count(*) FROM mv_places WHERE osm_id = 999").fetchone()[0] == 1
+    assert count(pipeline, "SELECT count(*) FROM mv_places WHERE osm_id = 999") == 1
 
 
 # =============================================================================
@@ -492,17 +594,17 @@ def test_a_new_view_is_built_from_the_new_tables(pipeline, osm2pgsql, monkeypatc
 
 
 class _Json:
-    def __init__(self, payload):
+    def __init__(self, payload: Any) -> None:  # noqa: ANN401 — whatever the test staged
         self._payload = payload
 
-    def raise_for_status(self):
+    def raise_for_status(self) -> None:
         pass
 
-    def json(self):
+    def json(self) -> Any:  # noqa: ANN401
         return self._payload
 
 
-def run(run_id, end_time):
+def run(run_id: str, end_time: datetime) -> atp.Run:
     return {
         "run_id": run_id,
         "end_time": end_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -513,7 +615,7 @@ def run(run_id, end_time):
 
 
 @pytest.fixture
-def atp_workdir(pipeline, monkeypatch, tmp_path):
+def atp_workdir(pipeline: Connection, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
     """The ATP working directory, with the leftovers of a previous run."""
     workdir = tmp_path / "atp"
     workdir.mkdir()
@@ -526,37 +628,56 @@ def atp_workdir(pipeline, monkeypatch, tmp_path):
 
 
 @pytest.fixture
-def atp_history(monkeypatch):
+def atp_history(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     """ATP's run history, oldest first as it is published, and the files
-    download_atp fetched."""
-    state = {"runs": [], "fetched": []}
+    download_atp fetched.
+    """
+    state: dict[str, Any] = {"runs": [], "fetched": []}
 
-    def get(url, timeout=None):
+    def get(_url: str, timeout: float | None = None) -> _Json:
         if isinstance(state["runs"], Exception):
             raise state["runs"]
         return _Json(state["runs"])
 
-    def download(url, path):
+    def download(url: str, path: Path) -> None:
         state["fetched"].append(url)
         if url.endswith("stats.json"):
-            Path(path).write_text(json.dumps({"results": [
-                {"spider": "babylone_fr", "filename": "locations/spiders/babylone_fr.py",
-                 "errors": 0, "features": 2, "elapsed_time": 1.5},
-            ]}))
+            Path(path).write_text(
+                json.dumps(
+                    {
+                        "results": [
+                            {
+                                "spider": "babylone_fr",
+                                "filename": "locations/spiders/babylone_fr.py",
+                                "errors": 0,
+                                "features": 2,
+                                "elapsed_time": 1.5,
+                            },
+                        ]
+                    }
+                )
+            )
         else:
             Path(path).write_bytes(b"zip")
 
     monkeypatch.setattr(atp.requests, "get", get)
     monkeypatch.setattr(atp, "download_large_file", download)
-    monkeypatch.setattr(atp, "spider_dates", lambda: {
-        "locations/spiders/babylone_fr.py": "2026-08-01T00:00:00+00:00",
-    })
+    monkeypatch.setattr(
+        atp,
+        "spider_dates",
+        lambda: {
+            "locations/spiders/babylone_fr.py": "2026-08-01T00:00:00+00:00",
+        },
+    )
     return state
 
 
-def test_nothing_new_from_atp_skips_and_keeps_the_stamp(pipeline, atp_workdir, atp_history):
+def test_nothing_new_from_atp_skips_and_keeps_the_stamp(
+    pipeline: Connection, atp_workdir: Path, atp_history: dict[str, Any]
+) -> None:
     """The row says 'skipped' with the comment already there: what describes
-    the table in place is the revision that built it, not the one running."""
+    the table in place is the revision that built it, not the one running.
+    """
     record_import(pipeline, "atp", TS, "success", "the-revision-that-built-it")
     atp_history["runs"] = [run("r1", EARLIER), run("r2", TS)]
     (atp_workdir / "geojson").mkdir()
@@ -573,7 +694,9 @@ def test_nothing_new_from_atp_skips_and_keeps_the_stamp(pipeline, atp_workdir, a
     assert (atp_workdir / "latest.parquet").exists()
 
 
-def test_a_new_run_is_downloaded_with_its_dated_spiders(pipeline, atp_workdir, atp_history):
+def test_a_new_run_is_downloaded_with_its_dated_spiders(
+    pipeline: Connection, atp_workdir: Path, atp_history: dict[str, Any]
+) -> None:
     record_import(pipeline, "atp", TS, "success", "v1")
     atp_history["runs"] = [run("r2", TS), run("r3", LATER)]
 
@@ -591,24 +714,33 @@ def test_a_new_run_is_downloaded_with_its_dated_spiders(pipeline, atp_workdir, a
     assert imports(pipeline, "atp")[-1][1] == "pending"
 
 
-def test_a_first_run_takes_the_newest(pipeline, atp_workdir, atp_history):
+def test_a_first_run_takes_the_newest(
+    pipeline: Connection, atp_workdir: Path, atp_history: dict[str, Any]
+) -> None:
     atp_history["runs"] = [run("r1", EARLIER), run("r2", TS)]
     atp.download_atp()
     assert atp_history["fetched"][0] == "https://atp.example/r2/output.zip"
 
 
-def test_atp_unreachable_is_a_source_outage(pipeline, atp_workdir, atp_history):
+def test_atp_unreachable_is_a_source_outage(
+    pipeline: Connection, atp_workdir: Path, atp_history: dict[str, Any]
+) -> None:
     atp_history["runs"] = requests.ConnectionError("dns")
-    with pytest.raises(SourceUnavailable):
+    with pytest.raises(SourceUnavailableError):
         atp.download_atp()
     # The row is left open for the runner to resolve as skipped.
     assert imports(pipeline, "atp")[-1][1] == "pending"
 
 
-def test_github_down_costs_the_dates_not_the_run(pipeline, atp_workdir, atp_history, monkeypatch):
+def test_github_down_costs_the_dates_not_the_run(
+    pipeline: Connection,
+    atp_workdir: Path,
+    atp_history: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     atp_history["runs"] = [run("r3", LATER)]
 
-    def no_git():
+    def no_git() -> Never:
         raise subprocess.CalledProcessError(128, "git")
 
     monkeypatch.setattr(atp, "spider_dates", no_git)
@@ -624,23 +756,30 @@ def test_github_down_costs_the_dates_not_the_run(pipeline, atp_workdir, atp_hist
 # =============================================================================
 
 
-def feature(id, spider, country, lon, lat, **props):
+def feature(
+    feature_id: str, spider: str, country: str, lon: float | None, lat: float | None, **props: str
+) -> dict[str, Any]:
     return {
         "type": "Feature",
-        "id": id,
+        "id": feature_id,
         "properties": {
-            "@spider": spider, "addr:country": country, "brand": "Babylone",
-            "brand:wikidata": "Q1", "name": f"Babylone {id}",
-            "email": "SHOP@Babylone.example", **props,
+            "@spider": spider,
+            "addr:country": country,
+            "brand": "Babylone",
+            "brand:wikidata": "Q1",
+            "name": f"Babylone {feature_id}",
+            "email": "SHOP@Babylone.example",
+            **props,
         },
         "geometry": None if lon is None else {"type": "Point", "coordinates": [lon, lat]},
     }
 
 
 @pytest.fixture
-def parquet(atp_workdir):
+def parquet(atp_workdir: Path) -> Path:
     """A parquet built by the pipeline's own converter, from features of
-    three countries, one of them at sea, one of them without a location."""
+    three countries, one of them at sea, one of them without a location.
+    """
     split = atp_workdir / "split"
     split.mkdir()
     features = [
@@ -652,25 +791,49 @@ def parquet(atp_workdir):
     ]
     (split / "part.geojson").write_text("\n".join(json.dumps(f) for f in features) + "\n")
     convert_to_parquet(split, atp_workdir / "latest.parquet")
-    (atp_workdir / "spiders.json").write_text(json.dumps([
-        {"spider": "babylone_fr", "filename": "locations/spiders/babylone_fr.py",
-         "errors": 0, "features": 3, "elapsed_time": 1.5, "updated_at": "2026-08-01T00:00:00+00:00"},
-        {"spider": "babylone_mq", "filename": "locations/spiders/babylone_mq.py",
-         "errors": 0, "features": 1, "elapsed_time": 0.5, "updated_at": None},
-        {"spider": "babylone_de", "filename": "locations/spiders/babylone_de.py",
-         "errors": 0, "features": 1, "elapsed_time": 0.5, "updated_at": None},
-    ]))
+    (atp_workdir / "spiders.json").write_text(
+        json.dumps(
+            [
+                {
+                    "spider": "babylone_fr",
+                    "filename": "locations/spiders/babylone_fr.py",
+                    "errors": 0,
+                    "features": 3,
+                    "elapsed_time": 1.5,
+                    "updated_at": "2026-08-01T00:00:00+00:00",
+                },
+                {
+                    "spider": "babylone_mq",
+                    "filename": "locations/spiders/babylone_mq.py",
+                    "errors": 0,
+                    "features": 1,
+                    "elapsed_time": 0.5,
+                    "updated_at": None,
+                },
+                {
+                    "spider": "babylone_de",
+                    "filename": "locations/spiders/babylone_de.py",
+                    "errors": 0,
+                    "features": 1,
+                    "elapsed_time": 0.5,
+                    "updated_at": None,
+                },
+            ]
+        )
+    )
     return atp_workdir / "latest.parquet"
 
 
-def atp_rows(conn):
+def atp_rows(conn: Connection) -> list[tuple[Any, ...]]:
     conn.rollback()
     return conn.execute(
         "SELECT id, subdivision_code, subdivision_name, email FROM atp_places ORDER BY id"
     ).fetchall()
 
 
-def test_the_import_keeps_the_country_and_attaches_every_poi(pipeline, parquet):
+def test_the_import_keeps_the_country_and_attaches_every_poi(
+    pipeline: Connection, parquet: Path
+) -> None:
     start_import(pipeline, "atp")
     before = oid(pipeline, "atp_places")
 
@@ -684,20 +847,25 @@ def test_the_import_keeps_the_country_and_attaches_every_poi(pipeline, parquet):
     ]
     assert oid(pipeline, "atp_places_old") == before
     indexes = {
-        r[0] for r in pipeline.execute(
+        r[0]
+        for r in pipeline.execute(
             "SELECT indexname FROM pg_indexes WHERE tablename = 'atp_places'"
         ).fetchall()
     }
     assert indexes == set(atp.ATP_PLACES_INDEXES)
-    spiders = pipeline.execute("SELECT spider, updated_at FROM atp_spiders ORDER BY spider").fetchall()
+    spiders = pipeline.execute(
+        "SELECT spider, updated_at FROM atp_spiders ORDER BY spider"
+    ).fetchall()
     assert [s[0] for s in spiders] == ["babylone_fr", "babylone_mq"]
     assert spiders[0][1] is not None
     (recorded,) = imports(pipeline, "atp")
     assert recorded[1:] == ("success", _version.app_version())
-    assert recorded[0] == datetime.fromtimestamp(parquet.stat().st_mtime, tz=timezone.utc)
+    assert recorded[0] == datetime.fromtimestamp(parquet.stat().st_mtime, tz=UTC)
 
 
-def test_the_same_parquet_by_the_same_revision_is_not_imported_twice(pipeline, parquet):
+def test_the_same_parquet_by_the_same_revision_is_not_imported_twice(
+    pipeline: Connection, parquet: Path
+) -> None:
     atp.import_atp()
     built = oid(pipeline, "atp_places")
 
@@ -707,7 +875,9 @@ def test_the_same_parquet_by_the_same_revision_is_not_imported_twice(pipeline, p
     assert len(imports(pipeline, "atp")) == 1
 
 
-def test_a_new_revision_reimports_the_same_parquet(pipeline, parquet, monkeypatch):
+def test_a_new_revision_reimports_the_same_parquet(
+    pipeline: Connection, parquet: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     atp.import_atp()
     built = oid(pipeline, "atp_places")
 
@@ -718,11 +888,12 @@ def test_a_new_revision_reimports_the_same_parquet(pipeline, parquet, monkeypatc
     assert imports(pipeline, "atp")[-1][2] == "next-deploy"
 
 
-def test_a_newer_parquet_is_imported(pipeline, parquet):
+def test_a_newer_parquet_is_imported(pipeline: Connection, parquet: Path) -> None:
     atp.import_atp()
     built = oid(pipeline, "atp_places")
 
     import os
+
     later = parquet.stat().st_mtime + 3600
     os.utime(parquet, (later, later))
     atp.import_atp()
@@ -730,9 +901,10 @@ def test_a_newer_parquet_is_imported(pipeline, parquet):
     assert oid(pipeline, "atp_places") != built
 
 
-def test_a_skipped_download_is_not_re_imported(pipeline, parquet):
+def test_a_skipped_download_is_not_re_imported(pipeline: Connection, parquet: Path) -> None:
     """download_atp found nothing new and stamped the row with the revision
-    that built the table: the parquet in place is older than that row."""
+    that built the table: the parquet in place is older than that row.
+    """
     atp.import_atp()
     record_import(pipeline, "atp", LATER, "skipped", _version.app_version())
     built = oid(pipeline, "atp_places")
@@ -742,14 +914,16 @@ def test_a_skipped_download_is_not_re_imported(pipeline, parquet):
     assert oid(pipeline, "atp_places") == built
 
 
-def test_a_failed_load_leaves_the_live_table_and_no_success(pipeline, parquet, monkeypatch):
+def test_a_failed_load_leaves_the_live_table_and_no_success(
+    pipeline: Connection, parquet: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     atp.import_atp()
     before = atp_rows(pipeline)
     built = oid(pipeline, "atp_places")
 
     monkeypatch.setattr(atp, "app_version", lambda: "next-deploy")
     (parquet.parent / "spiders.json").unlink()  # the load fails after atp_places_new
-    with pytest.raises(Exception):
+    with pytest.raises(FileNotFoundError):
         atp.import_atp()
 
     assert oid(pipeline, "atp_places") == built
@@ -757,12 +931,12 @@ def test_a_failed_load_leaves_the_live_table_and_no_success(pipeline, parquet, m
     assert [r[1:] for r in imports(pipeline, "atp")] == [("success", _version.app_version())]
 
 
-def test_no_parquet_is_an_error_not_a_skip(pipeline, atp_workdir):
+def test_no_parquet_is_an_error_not_a_skip(pipeline: Connection, atp_workdir: Path) -> None:
     with pytest.raises(FileNotFoundError):
         atp.import_atp()
 
 
-def test_a_leftover_new_table_is_started_over(pipeline, parquet):
+def test_a_leftover_new_table_is_started_over(pipeline: Connection, parquet: Path) -> None:
     """A crashed run left atp_places_new: the next one must not fail on it."""
     pipeline.execute("CREATE TABLE atp_places_new (x INT)")
     pipeline.commit()
@@ -776,20 +950,20 @@ def test_a_leftover_new_table_is_started_over(pipeline, parquet):
 
 
 @pytest.fixture
-def registry(monkeypatch, tmp_path):
+def registry(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> dict[str, Any]:
     """The npm registry's answer, and what download_nsi fetched."""
-    state = {"latest": "8.0.20260729", "fetched": []}
+    state: dict[str, Any] = {"latest": "8.0.20260729", "fetched": []}
 
-    def get(url, timeout=None):
+    def get(_url: str, timeout: float | None = None) -> _Json:
         if isinstance(state["latest"], Exception):
             raise state["latest"]
         return _Json({"dist-tags": {"latest": state["latest"]}})
 
-    def download(url, path):
+    def download(url: str, path: Path) -> None:
         state["fetched"].append(url)
         # What the CDN serves under that URL: the release asked for, unless
         # a test says otherwise.
-        served = state.get("served") or url.split("@")[1].split("/")[0]
+        served = state.get("served") or url.split("@")[1].split("/", maxsplit=1)[0]
         _nsi_file(Path(path), served, [])
 
     monkeypatch.setattr(nsi.requests, "get", get)
@@ -799,101 +973,132 @@ def registry(monkeypatch, tmp_path):
     return state
 
 
-def test_the_same_release_by_the_same_revision_is_not_downloaded(pipeline, registry):
-    record_import(pipeline, "nsi", TS, "success", nsi._stamp("8.0.20260729"))
+def test_the_same_release_by_the_same_revision_is_not_downloaded(
+    pipeline: Connection, registry: dict[str, Any]
+) -> None:
+    record_import(pipeline, "nsi", TS, "success", nsi.stamp("8.0.20260729"))
     nsi.download_nsi()
     assert registry["fetched"] == []
-    assert imports(pipeline, "nsi")[-1][1:] == ("skipped", nsi._stamp("8.0.20260729"))
+    assert imports(pipeline, "nsi")[-1][1:] == ("skipped", nsi.stamp("8.0.20260729"))
 
 
-def test_a_new_release_is_downloaded(pipeline, registry):
-    record_import(pipeline, "nsi", TS, "success", nsi._stamp("8.0.20260729"))
+def test_a_new_release_is_downloaded(pipeline: Connection, registry: dict[str, Any]) -> None:
+    record_import(pipeline, "nsi", TS, "success", nsi.stamp("8.0.20260729"))
     registry["latest"] = "8.0.20260801"
     nsi.download_nsi()
     assert registry["fetched"] == [nsi.NSI_CDN_URL.format(version="8.0.20260801")]
     assert imports(pipeline, "nsi")[-1][1] == "pending"
 
 
-def test_a_new_revision_downloads_the_same_release(pipeline, registry):
+def test_a_new_revision_downloads_the_same_release(
+    pipeline: Connection, registry: dict[str, Any]
+) -> None:
     record_import(pipeline, "nsi", TS, "success", "8.0.20260729+a-previous-revision")
     nsi.download_nsi()
     assert len(registry["fetched"]) == 1
 
 
-def test_a_stale_file_from_the_cdn_is_an_outage_not_an_import(pipeline, registry):
-    """jsDelivr once answered a moving tag from a years-old cache."""
+def test_a_stale_file_from_the_cdn_is_an_outage_not_an_import(
+    pipeline: Connection, registry: dict[str, Any]
+) -> None:
+    """JsDelivr once answered a moving tag from a years-old cache."""
     registry["latest"] = "8.0.20260801"
     registry["served"] = "6.0.20250817"
-    with pytest.raises(SourceUnavailable, match="served 6.0.20250817"):
+    with pytest.raises(SourceUnavailableError, match=r"served 6\.0\.20250817"):
         nsi.download_nsi()
     assert not nsi.NSI_PATH.exists()
 
 
-def test_the_registry_unreachable_is_a_source_outage(pipeline, registry):
+def test_the_registry_unreachable_is_a_source_outage(
+    pipeline: Connection, registry: dict[str, Any]
+) -> None:
     registry["latest"] = requests.ConnectionError("dns")
-    with pytest.raises(SourceUnavailable):
+    with pytest.raises(SourceUnavailableError):
         nsi.download_nsi()
 
 
-def _nsi_file(path, version, brands):
+def _nsi_file(path: Path, version: str, brands: list[tuple[str, str]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({
-        "_meta": {"version": version},
-        "nsi": {"brands/shop/clothes": {"properties": {}, "templates": [], "items": [
-            {"displayName": brand, "id": brand, "locationSet": {"include": ["fr"]},
-             "tags": {"brand": brand, "brand:wikidata": qid, "shop": "clothes"}}
-            for brand, qid in brands
-        ]}},
-    }))
+    path.write_text(
+        json.dumps(
+            {
+                "_meta": {"version": version},
+                "nsi": {
+                    "brands/shop/clothes": {
+                        "properties": {},
+                        "templates": [],
+                        "items": [
+                            {
+                                "displayName": brand,
+                                "id": brand,
+                                "locationSet": {"include": ["fr"]},
+                                "tags": {"brand": brand, "brand:wikidata": qid, "shop": "clothes"},
+                            }
+                            for brand, qid in brands
+                        ],
+                    }
+                },
+            }
+        )
+    )
 
 
-def nsi_brands(conn):
+def nsi_brands(conn: Connection) -> list[tuple[Any, ...]]:
     conn.rollback()
     return conn.execute("SELECT brand FROM nsi_brands ORDER BY brand").fetchall()
 
 
-def test_the_import_stamps_the_release_the_file_carries(pipeline, registry):
+def test_the_import_stamps_the_release_the_file_carries(
+    pipeline: Connection, registry: dict[str, Any]
+) -> None:
     """What is imported is what was downloaded: the registry is not asked
-    again, a release in between would stamp the wrong one."""
+    again, a release in between would stamp the wrong one.
+    """
     registry["latest"] = requests.ConnectionError("registry down since the download")
     _nsi_file(nsi.NSI_PATH, "8.0.20260729", [("Babylone", "Q1")])
 
     nsi.import_nsi()
 
     assert nsi_brands(pipeline) == [("Babylone",)]
-    assert imports(pipeline, "nsi")[-1][1:] == ("success", nsi._stamp("8.0.20260729"))
+    assert imports(pipeline, "nsi")[-1][1:] == ("success", nsi.stamp("8.0.20260729"))
     assert not nsi.NSI_PATH.exists()
 
 
-def test_no_file_means_nothing_to_import(pipeline, registry):
-    pipeline.execute("INSERT INTO nsi_brands (brand_wikidata, brand, name, primary_key, primary_value, tags)"
-                     " VALUES ('Q1', 'Babylone', 'Babylone', 'shop', 'clothes', '{}')")
+def test_no_file_means_nothing_to_import(pipeline: Connection, registry: dict[str, Any]) -> None:
+    pipeline.execute(
+        "INSERT INTO nsi_brands (brand_wikidata, brand, name, primary_key, primary_value, tags)"
+        " VALUES ('Q1', 'Babylone', 'Babylone', 'shop', 'clothes', '{}')"
+    )
     pipeline.commit()
     nsi.import_nsi()
     assert nsi_brands(pipeline) == [("Babylone",)]
     assert imports(pipeline, "nsi") == []
 
 
-def test_a_failed_import_leaves_the_previous_brands(pipeline, registry, monkeypatch):
+def test_a_failed_import_leaves_the_previous_brands(
+    pipeline: Connection, registry: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
     _nsi_file(nsi.NSI_PATH, "8.0.20260729", [("Babylone", "Q1")])
     nsi.import_nsi()
 
     _nsi_file(nsi.NSI_PATH, "8.0.20260801", [("Babylone", "Q1"), ("Nouvelle", "Q2")])
 
-    def broken(nsi_json):
+    def broken(_nsi_json: dict[str, Any]) -> Never:
         raise RuntimeError("unreadable release")
 
     monkeypatch.setattr(nsi, "select_items", broken)
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError, match="unreadable"):
         nsi.import_nsi()
 
     assert nsi_brands(pipeline) == [("Babylone",)]
-    assert imports(pipeline, "nsi")[-1][2] == nsi._stamp("8.0.20260729")
+    assert imports(pipeline, "nsi")[-1][2] == nsi.stamp("8.0.20260729")
     # Kept for the retry.
     assert nsi.NSI_PATH.exists()
 
 
-def test_a_release_replaces_the_previous_one_whole(pipeline, registry):
+def test_a_release_replaces_the_previous_one_whole(
+    pipeline: Connection, registry: dict[str, Any]
+) -> None:
     _nsi_file(nsi.NSI_PATH, "8.0.20260729", [("Babylone", "Q1")])
     nsi.import_nsi()
     _nsi_file(nsi.NSI_PATH, "8.0.20260801", [("Nouvelle", "Q2")])
@@ -907,9 +1112,10 @@ def test_a_release_replaces_the_previous_one_whole(pipeline, registry):
 
 
 @pytest.fixture
-def refreshed(pipeline, parquet, monkeypatch):
+def refreshed(pipeline: Connection, parquet: Path, monkeypatch: pytest.MonkeyPatch) -> Connection:
     """A full first refresh: the OSM views and the ATP table are in, mv-brand
-    has not run yet."""
+    has not run yet.
+    """
     monkeypatch.setattr(atp2osm, "connect", osm.connect)
     nsi_imported(pipeline)
     geofabrik(monkeypatch, TS)
@@ -918,10 +1124,11 @@ def refreshed(pipeline, parquet, monkeypatch):
     return pipeline
 
 
-def relations(conn, pattern):
+def relations(conn: Connection, pattern: str) -> set[str]:
     conn.rollback()
     return {
-        r[0] for r in conn.execute(
+        r[0]
+        for r in conn.execute(
             "SELECT relname FROM pg_class WHERE relnamespace = 'public'::regnamespace"
             " AND relkind IN ('r', 'm') AND relname ~ %s ORDER BY relname",
             (pattern,),
@@ -929,7 +1136,7 @@ def relations(conn, pattern):
     }
 
 
-def test_the_brand_view_counts_the_matches_per_wave(refreshed):
+def test_the_brand_view_counts_the_matches_per_wave(refreshed: Connection) -> None:
     atp2osm.create_mv_places_brand()
 
     rows = refreshed.execute(
@@ -943,27 +1150,45 @@ def test_the_brand_view_counts_the_matches_per_wave(refreshed):
     ]
 
 
-def test_unchanged_inputs_skip_the_brand_view(refreshed):
+def test_unchanged_inputs_skip_the_brand_view(refreshed: Connection) -> None:
     atp2osm.create_mv_places_brand()
     built = oid(refreshed, "mv_places_brand")
     atp2osm.create_mv_places_brand()
     assert oid(refreshed, "mv_places_brand") == built
 
 
+def _osm_data_moved(conn: Connection, _mp: pytest.MonkeyPatch) -> None:
+    record_import(conn, "osm", LATER, "success")
+
+
+def _atp_data_moved(conn: Connection, _mp: pytest.MonkeyPatch) -> None:
+    # The ATP date is the parquet's mtime, today's: only a later one moves it.
+    record_import(
+        conn, "atp", datetime.now(UTC) + timedelta(days=1), "success", _version.app_version()
+    )
+
+
+def _nsi_release_moved(conn: Connection, _mp: pytest.MonkeyPatch) -> None:
+    nsi_imported(conn, "8.0.20260801")
+
+
+def _revision_moved(_conn: Connection, mp: pytest.MonkeyPatch) -> None:
+    mp.setattr(atp2osm, "app_version", lambda: "next-deploy")
+
+
 @pytest.mark.parametrize(
     "move",
     [
-        lambda conn, mp: record_import(conn, "osm", LATER, "success"),
-        # The ATP date is the parquet's mtime, today's: only a later one moves it.
-        lambda conn, mp: record_import(
-            conn, "atp", datetime.now(timezone.utc) + timedelta(days=1), "success", _version.app_version()
-        ),
-        lambda conn, mp: nsi_imported(conn, "8.0.20260801"),
-        lambda conn, mp: mp.setattr(atp2osm, "app_version", lambda: "next-deploy"),
+        _osm_data_moved,
+        _atp_data_moved,
+        _nsi_release_moved,
+        _revision_moved,
     ],
     ids=["osm-data", "atp-data", "nsi-release", "revision"],
 )
-def test_any_input_moving_rebuilds_the_brand_view(refreshed, monkeypatch, move):
+def test_any_input_moving_rebuilds_the_brand_view(
+    refreshed: Connection, monkeypatch: pytest.MonkeyPatch, move: Move
+) -> None:
     atp2osm.create_mv_places_brand()
     built = oid(refreshed, "mv_places_brand")
 
@@ -973,10 +1198,13 @@ def test_any_input_moving_rebuilds_the_brand_view(refreshed, monkeypatch, move):
     assert oid(refreshed, "mv_places_brand") != built
 
 
-def test_the_whole_retired_chain_goes_once_the_brand_view_is_swapped(refreshed, osm2pgsql, monkeypatch):
+def test_the_whole_retired_chain_goes_once_the_brand_view_is_swapped(
+    refreshed: Connection, osm2pgsql: list[Osm2pgsqlCall], monkeypatch: pytest.MonkeyPatch
+) -> None:
     """A full second refresh retires points, polygons, subdivisions, mv_places,
     atp_places and atp_spiders; nothing reads them once the brand view is
-    rebuilt, and mv-brand disposes of them all."""
+    rebuilt, and mv-brand disposes of them all.
+    """
     atp2osm.create_mv_places_brand()
     osm.run_osm2pgsql()
     geofabrik(monkeypatch, LATER)
@@ -985,21 +1213,28 @@ def test_the_whole_retired_chain_goes_once_the_brand_view_is_swapped(refreshed, 
     atp.import_atp()
     monkeypatch.setattr(atp2osm, "app_version", lambda: "next-deploy")
     assert relations(refreshed, "_old") == {
-        "points_old", "polygons_old", "subdivisions_old",
-        "mv_places_old", "atp_places_old", "atp_spiders_old",
+        "points_old",
+        "polygons_old",
+        "subdivisions_old",
+        "mv_places_old",
+        "atp_places_old",
+        "atp_spiders_old",
     }
 
     atp2osm.create_mv_places_brand()
 
     assert relations(refreshed, "_old") == set()
     # The live chain is whole.
-    assert refreshed.execute("SELECT count(*) FROM mv_places_brand").fetchone()[0] == 1
+    assert count(refreshed, "SELECT count(*) FROM mv_places_brand") == 1
 
 
-def test_a_retired_table_still_read_is_kept(refreshed, osm2pgsql, monkeypatch):
-    """points reimported, mv_places not rebuilt yet: the view still reads
+def test_a_retired_table_still_read_is_kept(
+    refreshed: Connection, osm2pgsql: list[Osm2pgsqlCall], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Points reimported, mv_places not rebuilt yet: the view still reads
     points_old and polygons_old, which must survive the disposal. The
-    boundaries, which nothing reads, go."""
+    boundaries, which nothing reads, go.
+    """
     atp2osm.create_mv_places_brand()
     osm.run_osm2pgsql()
     monkeypatch.setattr(atp2osm, "app_version", lambda: "next-deploy")
@@ -1007,17 +1242,19 @@ def test_a_retired_table_still_read_is_kept(refreshed, osm2pgsql, monkeypatch):
     atp2osm.create_mv_places_brand()
 
     assert relations(refreshed, "_old") == {"points_old", "polygons_old"}
-    assert refreshed.execute("SELECT count(*) FROM mv_places").fetchone()[0] == 2
+    assert count(refreshed, "SELECT count(*) FROM mv_places") == 2
 
 
-def test_a_failed_brand_view_leaves_the_live_one_and_the_retired_chain(refreshed, osm2pgsql, monkeypatch):
+def test_a_failed_brand_view_leaves_the_live_one_and_the_retired_chain(
+    refreshed: Connection, osm2pgsql: list[Osm2pgsqlCall], monkeypatch: pytest.MonkeyPatch
+) -> None:
     atp2osm.create_mv_places_brand()
     built = oid(refreshed, "mv_places_brand")
     osm.run_osm2pgsql()
     retired = relations(refreshed, "_old")
     monkeypatch.setattr(atp2osm, "app_version", lambda: "next-deploy")
-    monkeypatch.setattr(atp2osm, "_mv_places_spider_sql",
-                        lambda name: f"CREATE MATERIALIZED VIEW {name} AS SELECT 1/0")
+
+    monkeypatch.setattr(atp2osm, "mv_places_spider_sql", _broken_view)
 
     with pytest.raises(psycopg.Error):
         atp2osm.create_mv_places_brand()
@@ -1031,9 +1268,10 @@ def test_a_failed_brand_view_leaves_the_live_one_and_the_retired_chain(refreshed
 # =============================================================================
 
 
-def test_the_review_reads_its_proposals_off_the_views(refreshed):
+def test_the_review_reads_its_proposals_off_the_views(refreshed: Connection) -> None:
     """brand_matches, unstaged: the matching SQL on the tables and views the
-    refresh just built, through to the proposals the review page shows."""
+    refresh just built, through to the proposals the review page shows.
+    """
     from psycopg.rows import dict_row
 
     from src.matching import get_changes, get_filtered

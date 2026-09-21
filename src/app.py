@@ -3,12 +3,10 @@ import logging
 from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from src.config import TEMPLATE_DIR, STATIC_DIR, CACHE_DIR, get_settings
+from src import i18n, migrate, templating
+from src.config import CACHE_DIR, STATIC_DIR, TEMPLATE_DIR, get_settings
 from src.db import teardown_osmdb
 from src.extensions import cache
-from src import i18n
-from src import migrate
-from src import templating
 from src.routes.auth import auth_bp
 from src.routes.brands import brands_bp
 from src.routes.export import export_bp
@@ -30,13 +28,15 @@ app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.secret_key = settings.secret_key
 
-app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0 if settings.is_dev else 31536000  # dev: always revalidate — prod: cache for a year
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = (
+    0 if settings.is_dev else 31536000
+)  # dev: always revalidate — prod: cache for a year
 app.config["CACHE_TYPE"] = "FileSystemCache"
 app.config["CACHE_DIR"] = CACHE_DIR
 app.config["CACHE_THRESHOLD"] = 1000
 app.config["CACHE_DEFAULT_TIMEOUT"] = 0  # Infinite cache duration
 
-cache.init_app(app)
+cache.init_app(app)  # pyright: ignore[reportUnknownMemberType] — Flask-Caching types `config` loosely
 i18n.init_app(
     app,
     settings.country.locales,

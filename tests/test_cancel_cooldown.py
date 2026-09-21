@@ -1,9 +1,10 @@
-from psycopg.rows import dict_row
+from psycopg.rows import DictRow, dict_row
 
 from src.matching import UNBLOCKED_WAVES_SQL
+from tests.conftest import Connection
 
 
-def _unblocked(conn, spider_updated_at):
+def _unblocked(conn: Connection, spider_updated_at: str | None) -> list[DictRow]:
     conn.execute("""
         CREATE TEMP TABLE mv_places_brand (brand TEXT, brand_wikidata TEXT, subdivision_code TEXT, wave INT, total INT8);
         INSERT INTO mv_places_brand VALUES ('Shop', 'Q1', '75', 1, 3), ('Shop', 'Q1', '75', 2, 1);
@@ -21,13 +22,17 @@ def _unblocked(conn, spider_updated_at):
         conn.rollback()
 
 
-def test_a_cancelled_brand_stays_hidden_until_one_of_its_spiders_changes(migrated_conn):
+def test_a_cancelled_brand_stays_hidden_until_one_of_its_spiders_changes(
+    migrated_conn: Connection,
+) -> None:
     # No cooldown: a year later, an unchanged spider still hides the brand —
     # every wave of it, not just the one turned down.
     assert _unblocked(migrated_conn, "2020-01-01") == []
     assert _unblocked(migrated_conn, None) == []
 
 
-def test_a_spider_edited_after_the_cancellation_brings_the_brand_back(migrated_conn):
+def test_a_spider_edited_after_the_cancellation_brings_the_brand_back(
+    migrated_conn: Connection,
+) -> None:
     rows = _unblocked(migrated_conn, "2030-01-01")
     assert [(r["brand_wikidata"], r["total"]) for r in rows] == [("Q1", 3), ("Q1", 1)]

@@ -8,26 +8,29 @@ makes them complementary — see specs/02_source-nsi.md.
 import json
 import logging
 from collections import defaultdict
-from datetime import datetime, timezone
+from collections.abc import Iterator
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
 
 import requests
 
 from src.config import get_country
-from src.pipeline._version import app_version
-from src.pipeline.constants import PROJECT_ROOT
-from src.pipeline.errors import SourceUnavailable, unavailable_if_unreachable
 from src.pipeline._db import (
     connect,
     last_import_comment,
     record_import,
     start_import,
 )
+from src.pipeline._version import app_version
 from src.pipeline.constants import (
     NSI_CDN_URL,
     NSI_DIR,
     NSI_PATH,
     NSI_REGISTRY_URL,
+    PROJECT_ROOT,
 )
+from src.pipeline.errors import SourceUnavailableError, unavailable_if_unreachable
 from src.utils import download_large_file
 
 logger = logging.getLogger(__name__)
@@ -67,21 +70,52 @@ _TREES = ("brands", "operators")
 # multi-entry, which downgrades it from "applies unconditionally" to "needs a
 # matching primary tag". 71 rows, and 40 brands recover their single-entry
 # shortcut.
-_UNREACHABLE_KEYS = frozenset({
-    "advertising", "aerialway", "aeroway", "barrier", "bicycle_road",
-    "boundary", "admin_level", "busway", "cycleway", "emergency", "geological",
-    "footway", "highway", "lifeguard", "man_made", "military", "natural",
-    "parking", "place", "power", "public_transport", "railway", "route",
-    "sidewalk", "telecom", "traffic_sign", "water", "waterway",
-})
-_UNREACHABLE_LANDUSE = frozenset({
-    "industrial", "construction", "aquaculture", "farmyard", "flowerbed",
-    "depot",
-})
+_UNREACHABLE_KEYS = frozenset(
+    {
+        "advertising",
+        "aerialway",
+        "aeroway",
+        "barrier",
+        "bicycle_road",
+        "boundary",
+        "admin_level",
+        "busway",
+        "cycleway",
+        "emergency",
+        "geological",
+        "footway",
+        "highway",
+        "lifeguard",
+        "man_made",
+        "military",
+        "natural",
+        "parking",
+        "place",
+        "power",
+        "public_transport",
+        "railway",
+        "route",
+        "sidewalk",
+        "telecom",
+        "traffic_sign",
+        "water",
+        "waterway",
+    }
+)
+_UNREACHABLE_LANDUSE = frozenset(
+    {
+        "industrial",
+        "construction",
+        "aquaculture",
+        "farmyard",
+        "flowerbed",
+        "depot",
+    }
+)
 # The file generic.lua reads too: one list, shared.
 _UNREACHABLE_AMENITY = frozenset(
-    line for line in (PROJECT_ROOT / "osm2pgsql" / "not_a_chain_amenity.txt")
-    .read_text().splitlines()
+    line
+    for line in (PROJECT_ROOT / "osm2pgsql" / "not_a_chain_amenity.txt").read_text().splitlines()
     if line and not line.startswith("#")
 )
 
@@ -97,7 +131,13 @@ def _reaches_mv_places(primary_key: str, primary_value: str) -> bool:
     return True
 
 
-def _is_country(location_set: dict) -> bool:
+# One NSI item's tags, and the row nsi_brands takes: QID, brand, name, the
+# primary tag it keys on, and the tags left to write.
+Tags = dict[str, str]
+Item = tuple[str, str | None, str | None, str, str, Tags]
+
+
+def is_country(location_set: dict[str, Any]) -> bool:
     """True when the item applies to the country this instance serves.
 
     NSI locationSets are ISO codes 95% of the time; the remaining *.geojson
@@ -119,37 +159,39 @@ def _is_country(location_set: dict) -> bool:
     here, and an item excluding the world — or Europe — does not.
     """
     codes = get_country().nsi_locations
-    include = [str(x).lower() for x in (location_set.get("include") or [])]
-    exclude = [str(x).lower() for x in (location_set.get("exclude") or [])]
+    included: list[object] = location_set.get("include") or []
+    excluded: list[object] = location_set.get("exclude") or []
+    include = [str(x).lower() for x in included]
+    exclude = [str(x).lower() for x in excluded]
 
-    def here(code):
+    def here(code: str) -> bool:
         return code in codes or code.startswith(tuple(f"{c}-" for c in codes))
 
-    return not any(here(code) for code in exclude) and any(
-        here(code) for code in include
-    )
+    return not any(here(code) for code in exclude) and any(here(code) for code in include)
 
 
-def _candidates(nsi_json: dict):
+def candidate_items(nsi_json: dict[str, Any]) -> Iterator[Item]:
     """Every item that could reach mv_places, tags left unfiltered.
 
     Split out of select_items so the calibration script (scripts/
     calibrate_nsi_tags.py) measures the same population against every NSI tag,
     not only the ones already declared writable.
     """
-    for path, category in nsi_json["nsi"].items():
+    categories: dict[str, dict[str, Any]] = nsi_json["nsi"]
+    for path, category in categories.items():
         tree, primary_key, primary_value = path.split("/")
         if tree not in _TREES:
             continue
         if not _reaches_mv_places(primary_key, primary_value):
             continue
 
-        for item in category.get("items", []):
-            tags = item["tags"]
+        items: list[dict[str, Any]] = category.get("items", [])
+        for item in items:
+            tags: Tags = item["tags"]
             brand_wikidata = tags.get("brand:wikidata")
             if not brand_wikidata:
                 continue
-            if not _is_country(item.get("locationSet") or {}):
+            if not is_country(item.get("locationSet") or {}):
                 continue
 
             yield (
@@ -162,16 +204,16 @@ def _candidates(nsi_json: dict):
             )
 
 
-def select_items(nsi_json: dict) -> list[tuple]:
+def select_items(nsi_json: dict[str, Any]) -> list[Item]:
     """The nsi_brands rows to insert, from the parsed dist/nsi.json.
 
     Pure function, no I/O: this is where every selection rule lives, and the
     only thing the tests need.
     """
     writable = get_country().nsi_writable_tags
-    candidates = [
-        row[:5] + ({k: v for k, v in row[5].items() if k in writable},)
-        for row in _candidates(nsi_json)
+    candidates: list[Item] = [
+        (*row[:5], {k: v for k, v in row[5].items() if k in writable})
+        for row in candidate_items(nsi_json)
     ]
 
     # A brand:wikidata is not a unique key: 2692 QIDs carry several items, and
@@ -184,18 +226,18 @@ def select_items(nsi_json: dict) -> list[tuple]:
     #
     # So the group is kept whole when its written tags agree, and dropped whole
     # when they do not — 2 groups out of 2123.
-    written = defaultdict(set)
+    written: defaultdict[tuple[str, ...], set[str]] = defaultdict(set)
     for row in candidates:
         written[row[0:1] + row[3:5]].add(json.dumps(row[5], sort_keys=True))
     return [row for row in candidates if len(written[row[0:1] + row[3:5]]) == 1]
 
 
-def _stamp(version: str) -> str:
+def stamp(version: str) -> str:
     """What identifies an import: the NSI release and the code reading it."""
     return f"{version}+{app_version()}"
 
 
-def _latest_version() -> str:
+def latest_version() -> str:
     """Newest published NSI version, from the npm registry.
 
     The registry is the authority, not the CDN: jsDelivr answers `@latest` from
@@ -210,24 +252,22 @@ def _latest_version() -> str:
 def _version_date(version: str) -> datetime:
     """Publication date carried by an NSI version (8.0.20260729 -> 2026-07-29)."""
     try:
-        return datetime.strptime(version.rsplit(".", 1)[-1], "%Y%m%d").replace(
-            tzinfo=timezone.utc
-        )
+        return datetime.strptime(version.rsplit(".", 1)[-1], "%Y%m%d").replace(tzinfo=UTC)
     except ValueError:
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
 
 
-def download_nsi():
+def download_nsi() -> None:
     conn = connect()
     try:
         last_stamp = last_import_comment(conn, "nsi")
         start_import(conn, "nsi")
 
         with unavailable_if_unreachable("NSI"):
-            version = _latest_version()
-        if _stamp(version) == last_stamp:
+            version = latest_version()
+        if stamp(version) == last_stamp:
             logger.info("NSI already up-to-date (%s), skipping", version)
-            record_import(conn, "nsi", _version_date(version), "skipped", _stamp(version))
+            record_import(conn, "nsi", _version_date(version), "skipped", stamp(version))
             return
 
         NSI_DIR.mkdir(parents=True, exist_ok=True)
@@ -240,27 +280,26 @@ def download_nsi():
         served = _file_version(NSI_PATH)
         if served != version:
             NSI_PATH.unlink()
-            raise SourceUnavailable(
-                f"NSI: asked for {version}, the CDN served {served}"
-            )
+            raise SourceUnavailableError(f"NSI: asked for {version}, the CDN served {served}")
         logger.info("Downloaded NSI %s", version)
     finally:
         conn.close()
 
 
-def _file_version(path) -> str | None:
+def _file_version(path: Path) -> str | None:
     """The release a dist/json/nsi.json file says it is."""
-    with open(path) as infile:
-        return (json.load(infile).get("_meta") or {}).get("version")
+    with path.open() as infile:
+        meta: dict[str, str] = json.load(infile).get("_meta") or {}
+        return meta.get("version")
 
 
-def import_nsi():
+def import_nsi() -> None:
     if not NSI_PATH.exists():
         logger.info("No NSI file found, skipping import")
         return
 
-    with open(NSI_PATH) as infile:
-        nsi_json = json.load(infile)
+    with NSI_PATH.open() as infile:
+        nsi_json: dict[str, Any] = json.load(infile)
 
     rows = select_items(nsi_json)
     # The file names its own version: what is imported is what was
@@ -278,9 +317,9 @@ def import_nsi():
                 " primary_key, primary_value, tags) FROM STDIN"
             ) as copy:
                 for row in rows:
-                    copy.write_row(row[:-1] + (json.dumps(row[-1]),))
+                    copy.write_row((*row[:-1], json.dumps(row[-1])))
         conn.commit()
-        record_import(conn, "nsi", _version_date(version), "success", _stamp(version))
+        record_import(conn, "nsi", _version_date(version), "success", stamp(version))
         logger.info(
             "Imported %d NSI brands (%d distinct QIDs)",
             len(rows),

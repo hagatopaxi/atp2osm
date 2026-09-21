@@ -24,4 +24,3 @@ ERROR_REASONS = (
     # rejections recorded with it keep their label.
     "other",
 )
-

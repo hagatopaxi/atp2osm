@@ -5,18 +5,26 @@ template is the failure this catches, before a contributor does. What each
 page computes has tests of its own where it matters.
 """
 
-import pytest
-from flask import template_rendered
+from collections.abc import Iterable, Iterator
+from typing import Any
 
-import src.routes.history as history
-import src.routes.misc as misc
-import src.routes.stats as stats
+import pytest
+from flask import Flask, template_rendered
+from flask.testing import FlaskClient
+from jinja2 import Template
+
+from src.routes import history, stats
+from tests.conftest import Connection
+
+
+def _no_users(_ids: Iterable[int]) -> dict[int, str]:
+    return {}
 
 
 @pytest.fixture
-def seeded(migrated_conn, monkeypatch):
+def seeded(migrated_conn: Connection, monkeypatch: pytest.MonkeyPatch) -> Iterator[list[int]]:
     for module in (history, stats):
-        monkeypatch.setattr(module, "fetch_osm_users", lambda ids: {})
+        monkeypatch.setattr(module, "fetch_osm_users", _no_users)
     with migrated_conn.cursor() as cur:
         cur.execute("DROP TABLE IF EXISTS mv_places_brand, mv_places_spider")
         cur.execute("""
@@ -41,11 +49,14 @@ def seeded(migrated_conn, monkeypatch):
             RETURNING id
         """)
         ids = [r[0] for r in cur.fetchall()]
-        cur.execute("""
+        cur.execute(
+            """
             INSERT INTO import_subdivisions (import_id, subdivision_code, subdivision_name, items_count, osm_changeset_id, status, comment)
             VALUES (%s, '75', 'Paris', 12, 1000001, 'success', NULL),
                    (%s, '33', 'Gironde', 0, NULL, 'error_osm_api', 'timeout')
-        """, (ids[0], ids[1]))
+        """,
+            (ids[0], ids[1]),
+        )
     migrated_conn.commit()
     yield ids
     with migrated_conn.cursor() as cur:
@@ -54,9 +65,12 @@ def seeded(migrated_conn, monkeypatch):
 
 
 @pytest.fixture
-def rendered(web_app):
-    names = []
-    record = lambda sender, template, context, **extra: names.append(template.name)
+def rendered(web_app: Flask) -> Iterator[list[str]]:
+    names: list[str] = []
+
+    def record(_sender: Flask, template: Template, **_extra: Any) -> None:  # noqa: ANN401 — the signal's payload
+        names.append(str(template.name))
+
     template_rendered.connect(record, web_app)
     yield names
     template_rendered.disconnect(record, web_app)
@@ -66,59 +80,81 @@ PAGES = ["/", "/brands", "/spiders", "/history", "/stats", "/todo", "/docs", "/a
 
 
 @pytest.mark.parametrize("path", PAGES)
-def test_a_public_page_renders(web_app, seeded, rendered, path):
+def test_a_public_page_renders(
+    web_app: Flask, seeded: list[int], rendered: list[str], path: str
+) -> None:
     res = web_app.test_client().get(path)
     assert res.status_code == 200, res.text[:300]
-    assert rendered and not rendered[0].startswith("errors/")
+    assert rendered
+    assert not rendered[0].startswith("errors/")
 
 
 @pytest.mark.parametrize("path", PAGES)
-def test_a_public_page_renders_for_a_contributor_too(contributor, seeded, path):
+def test_a_public_page_renders_for_a_contributor_too(
+    contributor: FlaskClient, seeded: list[int], path: str
+) -> None:
     assert contributor.get(path).status_code == 200
 
 
 @pytest.mark.parametrize(
     "query",
-    ["?q=old", "?status=error", "?user=43", "?from=2026-01-01&to=2026-12-31", "?sort=brand&dir=asc", "?page=2", "?page=0"],
+    [
+        "?q=old",
+        "?status=error",
+        "?user=43",
+        "?from=2026-01-01&to=2026-12-31",
+        "?sort=brand&dir=asc",
+        "?page=2",
+        "?page=0",
+    ],
 )
-def test_the_history_takes_every_filter(web_app, seeded, query):
+def test_the_history_takes_every_filter(web_app: Flask, seeded: list[int], query: str) -> None:
     assert web_app.test_client().get("/history" + query).status_code == 200
 
 
-def test_the_history_detail_shows_each_integration(web_app, seeded):
+def test_the_history_detail_shows_each_integration(web_app: Flask, seeded: list[int]) -> None:
     client = web_app.test_client()
     for entry_id in seeded:
         assert client.get(f"/history/{entry_id}").status_code == 200
     assert client.get("/history/999999").status_code == 404
 
 
-@pytest.mark.parametrize("query", ["", "?period=30d", "?period=all", "?period=nonsense", "?user=42"])
-def test_the_stats_take_every_period(web_app, seeded, query):
+@pytest.mark.parametrize(
+    "query", ["", "?period=30d", "?period=all", "?period=nonsense", "?user=42"]
+)
+def test_the_stats_take_every_period(web_app: Flask, seeded: list[int], query: str) -> None:
     assert web_app.test_client().get("/stats" + query).status_code == 200
 
 
-@pytest.mark.parametrize("query", ["", "?run=failed", "?run=ok", "?q=baby", "?sort=scraped&dir=asc"])
-def test_the_spiders_take_every_filter(web_app, seeded, query):
+@pytest.mark.parametrize(
+    "query", ["", "?run=failed", "?run=ok", "?q=baby", "?sort=scraped&dir=asc"]
+)
+def test_the_spiders_take_every_filter(web_app: Flask, seeded: list[int], query: str) -> None:
     assert web_app.test_client().get("/spiders" + query).status_code == 200
 
 
-@pytest.mark.parametrize("path, mimetype", [
-    ("/robots.txt", "text/plain"),
-    ("/sitemap.xml", "application/xml"),
-    ("/llms.txt", "text/plain"),
-    ("/favicon.ico", "image/svg+xml"),
-])
-def test_the_language_free_resources_answer(web_app, seeded, path, mimetype):
+@pytest.mark.parametrize(
+    ("path", "mimetype"),
+    [
+        ("/robots.txt", "text/plain"),
+        ("/sitemap.xml", "application/xml"),
+        ("/llms.txt", "text/plain"),
+        ("/favicon.ico", "image/svg+xml"),
+    ],
+)
+def test_the_language_free_resources_answer(
+    web_app: Flask, seeded: list[int], path: str, mimetype: str
+) -> None:
     res = web_app.test_client().get(path)
     assert res.status_code == 200
     assert res.mimetype == mimetype
 
 
-def test_an_unknown_page_is_not_found(web_app, seeded):
+def test_an_unknown_page_is_not_found(web_app: Flask, seeded: list[int]) -> None:
     assert web_app.test_client().get("/no-such-page").status_code == 404
 
 
-def test_the_stats_api_answers_json_to_any_origin(web_app, seeded):
+def test_the_stats_api_answers_json_to_any_origin(web_app: Flask, seeded: list[int]) -> None:
     response = web_app.test_client().get("/api/stats.json?from=2020-01-01")
     assert response.status_code == 200
     assert response.headers["Access-Control-Allow-Origin"] == "*"

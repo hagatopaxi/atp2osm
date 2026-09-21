@@ -1,14 +1,18 @@
 import logging
+from typing import Any, LiteralString
 
+from psycopg import Cursor
+
+from src.db import code_sql
 from src.matching import matched_poi_sql, waves_lateral_sql
 from src.pipeline import _matview
-from src.pipeline._version import app_version
 from src.pipeline._db import connect, last_import_comment, last_import_date
+from src.pipeline._version import app_version
 
 logger = logging.getLogger(__name__)
 
 
-def _mv_places_brand_sql(name: str = "mv_places_brand") -> str:
+def mv_places_brand_sql(name: str = "mv_places_brand") -> str:
     # The wave flags are filtered AFTER deduplication, like apply_on_node()
     # does on the /validate side, otherwise the two counts diverge.
     # One row per (brand, subdivision, wave): get_all() sums the unblocked ones
@@ -27,10 +31,10 @@ def _mv_places_brand_sql(name: str = "mv_places_brand") -> str:
         CROSS JOIN LATERAL (VALUES {waves_lateral_sql()}) AS w(wave, matches)
         WHERE w.matches
         GROUP BY atp_brand_wikidata, subdivision_code, w.wave
-    """
+    """  # noqa: S608 — composed from code constants
 
 
-def _mv_places_spider_sql(name: str = "mv_places_spider") -> str:
+def mv_places_spider_sql(name: str = "mv_places_spider") -> str:
     # ATP POIs that met an OSM object, per spider — the /spiders page's
     # "matched" column. Counted before the wave flags: a match with nothing
     # left to integrate is still a match, that is what measures the deposit.
@@ -39,13 +43,13 @@ def _mv_places_spider_sql(name: str = "mv_places_spider") -> str:
         SELECT spider_id, COUNT(*) AS matched
         FROM ({matched_poi_sql("TRUE")}) matched
         GROUP BY spider_id
-    """
+    """  # noqa: S608 — composed from code constants
 
 
 # What the upstream steps retire, readers first: the old brand view hangs on
 # mv_places_old, which hangs on points_old and polygons_old. Nothing hangs on
 # the old brand view, so the whole chain frees up here, once it is swapped.
-_RETIRED = (
+_RETIRED: tuple[tuple[LiteralString, str], ...] = (
     ("MATERIALIZED VIEW", "mv_places_brand"),
     ("MATERIALIZED VIEW", "mv_places_spider"),
     ("MATERIALIZED VIEW", "mv_places"),
@@ -57,13 +61,13 @@ _RETIRED = (
 )
 
 
-def _drop_retired(cur):
+def _drop_retired(cur: Cursor[Any]) -> None:
     for kind, name in _RETIRED:
         for dropped in _matview.drop_retired(cur, kind, name):
             logger.info("Dropped retired %s", dropped)
 
 
-def create_mv_places_brand():
+def create_mv_places_brand() -> None:
     conn = connect()
     try:
         # It counts matches between mv_places and atp_places, so it has to be
@@ -94,18 +98,14 @@ def create_mv_places_brand():
         with conn.cursor() as cur:
             cur.execute("DROP MATERIALIZED VIEW IF EXISTS mv_places_brand_new;")
             logger.info("Creating mv_places_brand...")
-            cur.execute(_mv_places_brand_sql("mv_places_brand_new"))
+            cur.execute(code_sql(mv_places_brand_sql("mv_places_brand_new")))
             _matview.stamp(cur, "mv_places_brand_new", signature)
-            _matview.swap(
-                cur, "MATERIALIZED VIEW", "mv_places_brand", "mv_places_brand_new"
-            )
+            _matview.swap(cur, "MATERIALIZED VIEW", "mv_places_brand", "mv_places_brand_new")
             cur.execute("DROP MATERIALIZED VIEW IF EXISTS mv_places_spider_new;")
             logger.info("Creating mv_places_spider...")
-            cur.execute(_mv_places_spider_sql("mv_places_spider_new"))
+            cur.execute(code_sql(mv_places_spider_sql("mv_places_spider_new")))
             _matview.stamp(cur, "mv_places_spider_new", signature)
-            _matview.swap(
-                cur, "MATERIALIZED VIEW", "mv_places_spider", "mv_places_spider_new"
-            )
+            _matview.swap(cur, "MATERIALIZED VIEW", "mv_places_spider", "mv_places_spider_new")
             _drop_retired(cur)
         conn.commit()
         logger.info("mv_places_brand created")

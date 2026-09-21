@@ -4,12 +4,14 @@ A remote datasource being down is not a pipeline failure: the SQL tables we
 already hold stay valid and stay in place. Only a step that fails *while
 rebuilding* leaves the database half-done and must stop its branch.
 """
+
+from collections.abc import Generator
 from contextlib import contextmanager
 
 import requests
 
 
-class SourceUnavailable(Exception):
+class SourceUnavailableError(Exception):
     """A remote datasource could not be reached.
 
     The branch keeps running — its downstream steps no-op on unchanged inputs
@@ -20,13 +22,13 @@ class SourceUnavailable(Exception):
     """
 
 
-class PipelineIncomplete(Exception):
+class PipelineIncompleteError(Exception):
     """At least one datasource was skipped; everything else ran."""
 
 
 @contextmanager
-def unavailable_if_unreachable(source: str):
-    """Turn *network* failures inside the block into SourceUnavailable.
+def unavailable_if_unreachable(source: str) -> Generator[None]:
+    """Turn *network* failures inside the block into SourceUnavailableError.
 
     Only requests exceptions: it already covers DNS, connect, read timeout and
     HTTP status. Deliberately not OSError — the downloads write to disk inside
@@ -36,7 +38,7 @@ def unavailable_if_unreachable(source: str):
     """
     try:
         yield
-    except SourceUnavailable:
+    except SourceUnavailableError:
         raise
     except requests.RequestException as exc:
-        raise SourceUnavailable(f"{source} unreachable: {exc}") from exc
+        raise SourceUnavailableError(f"{source} unreachable: {exc}") from exc

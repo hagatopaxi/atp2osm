@@ -1,9 +1,12 @@
 from psycopg.rows import dict_row
 
 from src.routes.spiders import SPIDERS_SQL
+from tests.conftest import Connection
 
 
-def test_history_is_borrowed_from_the_brands_and_deposit_counted_per_spider(migrated_conn):
+def test_history_is_borrowed_from_the_brands_and_deposit_counted_per_spider(
+    migrated_conn: Connection,
+) -> None:
     conn = migrated_conn
     conn.execute("""
         CREATE TEMP TABLE atp_places (id TEXT, spider_id TEXT, brand_wikidata TEXT, brand TEXT);

@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request
 from psycopg.rows import dict_row
 
-from src.db import get_osmdb
+from src.db import code_sql, get_osmdb
 from src.matching import UNBLOCKED_WAVES_SQL
 from src.utils import filter_brands
 
@@ -77,14 +77,14 @@ SPIDERS_SQL = f"""
     FROM atp_spiders s
     LEFT JOIN mv_places_spider m ON m.spider_id = s.spider
     LEFT JOIN per_spider ps ON ps.spider_id = s.spider
-"""
+"""  # noqa: S608 — composed from a code constant
 
 
 @spiders_bp.route("/spiders")
-def spiders():
+def spiders() -> str:
     osmdb = get_osmdb()
     with osmdb.cursor(row_factory=dict_row) as cursor:
-        all_spiders = cursor.execute(SPIDERS_SQL).fetchall()
+        all_spiders = cursor.execute(code_sql(SPIDERS_SQL)).fetchall()
     # In memory like /brands: a few hundred rows, and the badges count the
     # unfiltered set.
     rows, filters = filter_brands(
@@ -94,12 +94,11 @@ def spiders():
     if run in ("ok", "failed"):
         rows = [r for r in rows if (r["errors"] == 0) == (run == "ok")]
         filters["run"] = run
-    sort = request.args.get("sort") if request.args.get("sort") in SORT_COLUMNS else "updated"
+    sort = request.args.get("sort", "updated")
+    sort = sort if sort in SORT_COLUMNS else "updated"
     direction = "asc" if request.args.get("dir") == "asc" else "desc"
     key = SORT_COLUMNS[sort]
-    rows = sorted(
-        rows, key=lambda r: (r[key] is None, r[key]), reverse=direction == "desc"
-    )
+    rows = sorted(rows, key=lambda r: (r[key] is None, r[key]), reverse=direction == "desc")
     return render_template(
         "spiders.html",
         rows=rows,

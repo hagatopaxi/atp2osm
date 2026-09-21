@@ -32,6 +32,34 @@ The `.mo` files are build artefacts: gitignored, compiled in the image.
 The OSM changeset comment follows the contributor's language, which `LOCALES`
 constrains to the languages of the country served.
 
+## Static checks
+
+Ruff and pyright run on everything — `src`, `scripts`, `migrations`, `tests`
+— and both are blocking: the pre-push hook refuses a finding. Ruff selects
+every rule (`select = ["ALL"]`), pyright runs in `strict`. What is excluded
+is listed with its reason in `pyproject.toml`, and nothing else is: a rule
+that is wrong on one line gets a `# noqa: <rule>` there, with the reason
+beside it, never a wider exemption. `RUF100` and
+`reportUnnecessaryTypeIgnoreComment` remove the ones that stop being needed.
+
+```bash
+uv run ruff check --fix . && uv run ruff format .   # lint and format
+uv run pyright                                        # types
+```
+
+Every function is annotated. The shapes the site passes around are named:
+`Change` (a proposal, `src/matching.py`), `Settings`/`Country`/`Database`
+(`src/config.py`), `Region` (`src/pipeline/constants.py`). psycopg only
+takes literal SQL, so a query is either a literal, a `psycopg.sql`
+composition, or — when it is assembled from module constants — passed
+through `code_sql()` (`src/db.py`), which is where that is stated. A
+`fetchone()` is `None` until proven otherwise: the tests wrap it in `one()`.
+
+Libraries that ship no types get a stub in `typings/`, limited to the surface
+the code calls; a stub package from typeshed is preferred when one exists.
+`reportMissingTypeStubs` is off because osmapi is typed inline without a
+`py.typed`.
+
 ## Icons
 
 `static/lib/iconoir.css` is a subset of Iconoir: only the icons the templates,
@@ -239,7 +267,7 @@ osm2pgsql replaced by a function that writes the tables it would, and both
 database — DuckDB and osm2pgsql are handed the settings, not a connection.
 
 The OSM API is never called: in development `BulkUpload` drives
-`_FakeOsmApi`, which records the calls and writes their OSC instead of
+`FakeOsmApi`, which records the calls and writes their OSC instead of
 sending them. So the upload tests exercise the very code path production
 takes — there is no branch that only fires under test. A test that wants a
 failure stages it on that fake, and turns the OSC writing off so it litters

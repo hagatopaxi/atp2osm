@@ -65,48 +65,58 @@ Run from the project root with ``python -m src.pipeline [command]``:
     Schedule ``start`` at ``app.refresh_schedule`` in the country's timezone
     and never return: the entry point of the ``refresh`` container.
 """
+
 import logging
 import sys
 import threading
+from collections.abc import Callable, Iterable
 from concurrent.futures import ThreadPoolExecutor
 
-from src.pipeline.errors import PipelineIncomplete, SourceUnavailable
+from src.pipeline.errors import PipelineIncompleteError, SourceUnavailableError
 
 logger = logging.getLogger(__name__)
 
+Step = Callable[[], None]
+Options = dict[str, str]
+Entry = tuple[Step | None, list[str]] | tuple[Step | None, list[str], Options]
+Pipeline = dict[str, Entry]
+FailureHook = Callable[[str, BaseException], None]
 
-def _noop_failure(step_name, exc):
+
+def _noop_failure(step_name: str, exc: BaseException) -> None:
     """Default failure hook, does nothing."""
+
 
 _step_ctx = threading.local()
 
 
 class StepFormatter(logging.Formatter):
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
         base = super().format(record)
         step = getattr(_step_ctx, "name", None)
         return f"[{step}] {base}" if step else base
 
 
-def _fn(entry):
+def _fn(entry: Entry) -> Step | None:
     return entry[0]
 
 
-def _succs(entry):
+def _succs(entry: Entry) -> list[str]:
     return entry[1]
 
 
-def _opts(entry):
-    return entry[2] if len(entry) > 2 else {}
+def _opts(entry: Entry) -> Options:
+    return entry[2] if len(entry) == 3 else {}  # noqa: PLR2004 — the optional third element
 
 
-def _get_lock_name(entry):
+def _get_lock_name(entry: Entry) -> str | None:
     """Return the lock name for this step, or None."""
     return _opts(entry).get("lock")
 
 
-def _reachable(pipeline, start):
-    visited, queue = set(), [start]
+def _reachable(pipeline: Pipeline, start: str) -> set[str]:
+    visited: set[str] = set()
+    queue = [start]
     while queue:
         node = queue.pop(0)
         if node in visited:
@@ -116,16 +126,16 @@ def _reachable(pipeline, start):
     return visited
 
 
-def _topo_levels(pipeline, nodes):
+def _topo_levels(pipeline: Pipeline, nodes: Iterable[str]) -> list[list[str]]:
     """Group nodes by topological level (used for display only)."""
     subset = set(nodes)
     nexts = {n: [s for s in _succs(pipeline[n]) if s in subset] for n in subset}
-    in_degree = {n: 0 for n in subset}
+    in_degree = dict.fromkeys(subset, 0)
     for succs in nexts.values():
         for s in succs:
             in_degree[s] += 1
 
-    levels = []
+    levels: list[list[str]] = []
     while in_degree:
         ready = sorted(n for n, d in in_degree.items() if d == 0)
         levels.append(ready)
@@ -136,7 +146,7 @@ def _topo_levels(pipeline, nodes):
     return levels
 
 
-def _run_step(pipeline, name, on_failure=_noop_failure):
+def _run_step(pipeline: Pipeline, name: str, on_failure: FailureHook = _noop_failure) -> None:
     fn = _fn(pipeline[name])
     if fn is None:
         return
@@ -152,7 +162,101 @@ def _run_step(pipeline, name, on_failure=_noop_failure):
         _step_ctx.name = None
 
 
-def run(pipeline, nodes, on_failure=_noop_failure):
+class _Run:
+    """One execution of a subset of the pipeline — see run()."""
+
+    def __init__(self, pipeline: Pipeline, nodes: Iterable[str], on_failure: FailureHook) -> None:
+        self.pipeline = pipeline
+        self.on_failure = on_failure
+        self.subset = set(nodes)
+
+        predecessors: dict[str, set[str]] = {n: set() for n in self.subset}
+        for n in self.subset:
+            for s in _succs(pipeline[n]):
+                if s in self.subset:
+                    predecessors[s].add(n)
+        self.initial = [n for n in self.subset if not predecessors[n]]
+
+        # Per-name mutex registry (for lock= option)
+        self._mutexes: dict[str, threading.Lock] = {}
+        self._mutexes_guard = threading.Lock()
+
+        # Shared state, under state_lock. active_count tracks nodes that are
+        # either running or scheduled-but-not-started: incremented for all
+        # initial nodes up front, then atomically decremented (self) /
+        # incremented (successors) so it never hits 0 prematurely.
+        self.state_lock = threading.Lock()
+        self.remaining = {n: len(predecessors[n]) for n in self.subset}
+        self.active_count = len(self.initial)
+        self.done_event = threading.Event()
+        self.errors: list[BaseException] = []
+        self.unavailable: list[SourceUnavailableError] = []
+        self.dead: set[str] = set()
+        self.executor = ThreadPoolExecutor(max_workers=max(1, len(self.subset)))
+
+    def _get_mutex(self, lock_name: str) -> threading.Lock:
+        with self._mutexes_guard:
+            if lock_name not in self._mutexes:
+                self._mutexes[lock_name] = threading.Lock()
+            return self._mutexes[lock_name]
+
+    def _execute(self, name: str) -> None:
+        lock_name = _get_lock_name(self.pipeline[name])
+        mutex = self._get_mutex(lock_name) if lock_name else None
+        try:
+            if mutex:
+                mutex.acquire()
+            try:
+                _run_step(self.pipeline, name, self.on_failure)
+            finally:
+                if mutex:
+                    mutex.release()
+        except SourceUnavailableError as exc:
+            # The source is down, not the branch: downstream steps find no
+            # new input and no-op, leaving the existing tables alone.
+            logger.warning("[%s] %s — branch continues on existing data", name, exc)
+            with self.state_lock:
+                self.unavailable.append(exc)
+        except Exception as exc:  # noqa: BLE001 — recorded, and raised again by run()
+            with self.state_lock:
+                self.errors.append(exc)
+                self.dead.add(name)
+
+    def _run_node(self, name: str) -> None:
+        with self.state_lock:
+            is_dead = name in self.dead
+        if is_dead:
+            logger.warning("[%s] not run: a step it depends on failed", name)
+        else:
+            self._execute(name)
+
+        # A dead node still walks the graph, marking its descendants dead, so
+        # the completion counting stays exact without a second traversal.
+        with self.state_lock:
+            self.active_count -= 1
+            newly_ready: list[str] = []
+            for s in _succs(self.pipeline[name]):
+                if s in self.subset:
+                    if name in self.dead:
+                        self.dead.add(s)
+                    self.remaining[s] -= 1
+                    if self.remaining[s] == 0:
+                        newly_ready.append(s)
+                        self.active_count += 1  # count before submit
+            if self.active_count == 0:
+                self.done_event.set()
+
+        for s in newly_ready:
+            self.executor.submit(self._run_node, s)
+
+    def wait(self) -> None:
+        for name in self.initial:
+            self.executor.submit(self._run_node, name)
+        self.done_event.wait()
+        self.executor.shutdown(wait=True)
+
+
+def run(pipeline: Pipeline, nodes: Iterable[str], on_failure: FailureHook = _noop_failure) -> None:
     """Run pipeline steps as soon as their predecessors complete.
 
     Each branch is fully independent: a step starts the moment all its
@@ -163,109 +267,25 @@ def run(pipeline, nodes, on_failure=_noop_failure):
 
     Failures are contained to their own branch: a step that raises marks its
     descendants dead (they are never executed) while unrelated branches run to
-    completion. A step raising SourceUnavailable does not even do that — its
+    completion. A step raising SourceUnavailableError does not even do that — its
     branch continues, since the downstream steps no-op when their input did
     not change, which is what leaves the existing tables in place.
     """
-    subset = set(nodes)
-    if not subset:
+    execution = _Run(pipeline, nodes, on_failure)
+    if not execution.subset:
         return
-
-    # Build predecessors map from the subset
-    predecessors: dict[str, set[str]] = {n: set() for n in subset}
-    for n in subset:
-        for s in _succs(pipeline[n]):
-            if s in subset:
-                predecessors[s].add(n)
-
-    initial = [n for n in subset if not predecessors[n]]
-    if not initial:
+    if not execution.initial:
         raise RuntimeError("Pipeline has no root nodes (cycle?)")
 
-    # Per-name mutex registry (for lock= option)
-    _mutexes: dict[str, threading.Lock] = {}
-    _mutexes_guard = threading.Lock()
+    execution.wait()
 
-    def _get_mutex(lock_name: str) -> threading.Lock:
-        with _mutexes_guard:
-            if lock_name not in _mutexes:
-                _mutexes[lock_name] = threading.Lock()
-            return _mutexes[lock_name]
-
-    # Shared state
-    state_lock = threading.Lock()
-    remaining = {n: len(predecessors[n]) for n in subset}
-    # active_count tracks nodes that are either running or scheduled-but-not-started.
-    # It is incremented for all initial nodes up front, then atomically
-    # decremented (self) / incremented (successors) inside state_lock so it
-    # never hits 0 prematurely.
-    active_count = [len(initial)]
-    done_event = threading.Event()
-    errors: list[BaseException] = []
-    unavailable: list[SourceUnavailable] = []
-    dead: set[str] = set()
-
-    executor = ThreadPoolExecutor(max_workers=len(subset))
-
-    def _run_node(name: str) -> None:
-        with state_lock:
-            is_dead = name in dead
-        if is_dead:
-            logger.warning("[%s] not run: a step it depends on failed", name)
-        else:
-            lock_name = _get_lock_name(pipeline[name])
-            mutex = _get_mutex(lock_name) if lock_name else None
-            try:
-                if mutex:
-                    mutex.acquire()
-                try:
-                    _run_step(pipeline, name, on_failure)
-                finally:
-                    if mutex:
-                        mutex.release()
-            except SourceUnavailable as exc:
-                # The source is down, not the branch: downstream steps find no
-                # new input and no-op, leaving the existing tables alone.
-                logger.warning("[%s] %s — branch continues on existing data", name, exc)
-                with state_lock:
-                    unavailable.append(exc)
-            except Exception as exc:
-                with state_lock:
-                    errors.append(exc)
-                    dead.add(name)
-
-        # A dead node still walks the graph, marking its descendants dead, so
-        # the completion counting stays exact without a second traversal.
-        with state_lock:
-            active_count[0] -= 1
-            newly_ready: list[str] = []
-            for s in _succs(pipeline[name]):
-                if s in subset:
-                    if name in dead:
-                        dead.add(s)
-                    remaining[s] -= 1
-                    if remaining[s] == 0:
-                        newly_ready.append(s)
-                        active_count[0] += 1  # count before submit
-            if active_count[0] == 0:
-                done_event.set()
-
-        for s in newly_ready:
-            executor.submit(_run_node, s)
-
-    for name in initial:
-        executor.submit(_run_node, name)
-
-    done_event.wait()
-    executor.shutdown(wait=True)
-
-    if errors:
-        raise errors[0]
-    if unavailable:
-        raise PipelineIncomplete("; ".join(str(e) for e in unavailable))
+    if execution.errors:
+        raise execution.errors[0]
+    if execution.unavailable:
+        raise PipelineIncompleteError("; ".join(str(e) for e in execution.unavailable))
 
 
-def main(pipeline, on_failure=_noop_failure):
+def main(pipeline: Pipeline, on_failure: FailureHook = _noop_failure) -> None:
     args = sys.argv[1:]
     cmd = args[0] if args else "start"
 
@@ -273,17 +293,11 @@ def main(pipeline, on_failure=_noop_failure):
         run(pipeline, _reachable(pipeline, "start"), on_failure)
 
     elif cmd == "from":
-        if len(args) < 2:
-            _usage()
-        start = args[1]
-        _check(pipeline, start)
+        start = _step_argument(pipeline, args)
         run(pipeline, _reachable(pipeline, start), on_failure)
 
     elif cmd == "step":
-        if len(args) < 2:
-            _usage()
-        name = args[1]
-        _check(pipeline, name)
+        name = _step_argument(pipeline, args)
         _run_step(pipeline, name, on_failure)
 
     elif cmd == "list":
@@ -293,21 +307,26 @@ def main(pipeline, on_failure=_noop_failure):
                 lock = _get_lock_name(pipeline[name])
                 arrow = f"  →  {', '.join(succs)}" if succs else ""
                 lock_tag = f" [lock={lock}]" if lock else ""
-                print(f"  {name}{arrow}{lock_tag}")
+                print(f"  {name}{arrow}{lock_tag}")  # noqa: T201 — the command's output
         return
 
     else:
         _usage()
 
 
-def _check(pipeline, name):
+def _step_argument(pipeline: Pipeline, args: list[str]) -> str:
+    """The step named after the command, checked against the pipeline."""
+    if len(args) != 2:  # noqa: PLR2004 — the command and its one argument
+        _usage()
+    name = args[1]
     if name not in pipeline:
-        print(f"Unknown step '{name}'. Available: {', '.join(pipeline)}", file=sys.stderr)
+        print(f"Unknown step '{name}'. Available: {', '.join(pipeline)}", file=sys.stderr)  # noqa: T201
         sys.exit(1)
+    return name
 
 
-def _usage():
-    print(
+def _usage() -> None:
+    print(  # noqa: T201 — the command's output
         "Usage:\n"
         "  python -m src.pipeline                 — full pipeline (from start)\n"
         "  python -m src.pipeline start           — same\n"

@@ -1,8 +1,7 @@
-"""
-Shared constants for the ATP2OSM import pipeline.
-"""
+"""Shared constants for the ATP2OSM import pipeline."""
 
 from pathlib import Path
+from typing import TypedDict
 
 from src.config import get_country, get_pipeline
 
@@ -45,9 +44,7 @@ NSI_DIR = PROJECT_ROOT / "data" / "nsi"
 GEOFABRIK_TS_PATH = PROJECT_ROOT / "data" / "osm" / "geofabrik-timestamp.txt"
 NSI_PATH = NSI_DIR / "nsi.json"
 NSI_REGISTRY_URL = "https://registry.npmjs.org/name-suggestion-index"
-NSI_CDN_URL = (
-    "https://cdn.jsdelivr.net/npm/name-suggestion-index@{version}/dist/json/nsi.json"
-)
+NSI_CDN_URL = "https://cdn.jsdelivr.net/npm/name-suggestion-index@{version}/dist/json/nsi.json"
 
 # The finest administrative level a POI is attached to, and the deepest one
 # imported: the attachment falls back down to 2 (the country) when no polygon of
@@ -55,11 +52,20 @@ NSI_CDN_URL = (
 ADMIN_LEVEL = get_country().admin_level
 ADMIN_LEVEL_MAX = get_country().admin_level_max
 
+
+class Region(TypedDict):
+    """One Geofabrik extract: where it is published, where it is kept."""
+
+    url: str
+    state_url: str
+    pbf_path: Path
+
+
 # One entry per Geofabrik extract of the country. The region name is the last
 # path segment, which is also what names the PBF file.
-GEOFABRIK_REGIONS = {
+GEOFABRIK_REGIONS: dict[str, Region] = {
     name: {
-        "url":      f"{GEOFABRIK_BASE}/{path}-latest.osm.pbf",
+        "url": f"{GEOFABRIK_BASE}/{path}-latest.osm.pbf",
         "state_url": f"{GEOFABRIK_BASE}/{path}-updates/state.txt",
         "pbf_path": PROJECT_ROOT / "data" / "osm" / f"{path.split('/')[-1]}-latest.osm.pbf",
     }

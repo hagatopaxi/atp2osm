@@ -2,8 +2,8 @@ import difflib
 import json
 import logging
 import re
-
 from collections import Counter
+from typing import Any
 
 from flask import (
     Blueprint,
@@ -15,14 +15,18 @@ from flask import (
     session,
     url_for,
 )
+from flask.typing import ResponseReturnValue
 from flask_babel import gettext as _
-from psycopg.rows import dict_row
+from psycopg.rows import DictRow, dict_row
 from requests_oauthlib import OAuth2Session
 
 from src.db import get_osmdb
-from src.extensions import cache
+from src.extensions import delete_memoized, memoize
 from src.matching import (
     BLOCKED_BRANDS_SQL,
+    Change,
+    SubdivisionScope,
+    Wave,
     batch_categories,
     batch_scope,
     current_wave,
@@ -34,11 +38,11 @@ from src.matching import (
     sample_for_review,
     select_batch,
 )
-from src.osm_history import OsmApiUnavailable, protect_recent_edits
+from src.osm_history import OsmApiUnavailableError, protect_recent_edits
 from src.routes.auth import auth_required
 from src.upload import BulkUpload
 from src.utils import (
-    _determine_import_status,
+    determine_import_status,
     fetch_osm_users,
     filter_brands,
 )
@@ -50,22 +54,27 @@ brands_bp = Blueprint("brands", __name__)
 # Tags the review page renders with a row of their own, labelled and formatted.
 # Anything else the diff adds is listed generically, so that no change ever
 # reaches OSM without the reviewer having seen it.
-_DETAILED_TAGS = frozenset({
-    "brand",
-    "brand:wikidata",
-    "name",
-    "email",
-    "phone",
-    "website",
-    "opening_hours",
-})
+_DETAILED_TAGS = frozenset(
+    {
+        "brand",
+        "brand:wikidata",
+        "name",
+        "email",
+        "phone",
+        "website",
+        "opening_hours",
+    }
+)
 
 # Where two opening_hours values are cut to be compared: a rule (';') or a
 # time range (','). The separators are kept, so the pieces re-join verbatim.
 _HOURS_SEPARATORS = re.compile(r"([;,])")
 
 
-def highlight_diff(old: str, new: str) -> tuple[list, list]:
+Pieces = list[tuple[str, bool]]
+
+
+def highlight_diff(old: str, new: str) -> tuple[Pieces, Pieces]:
     """The two values as (text, changed) pieces, changed where they differ.
 
     Two opening_hours strings differ in spaces *and* in a time, and the eye
@@ -75,9 +84,13 @@ def highlight_diff(old: str, new: str) -> tuple[list, list]:
     """
     old_parts = _HOURS_SEPARATORS.split(old)
     new_parts = _HOURS_SEPARATORS.split(new)
-    key = lambda parts: [re.sub(r"\s", "", p) for p in parts]  # noqa: E731
+
+    def key(parts: list[str]) -> list[str]:
+        return [re.sub(r"\s", "", p) for p in parts]
+
     matcher = difflib.SequenceMatcher(None, key(old_parts), key(new_parts), autojunk=False)
-    old_out, new_out = [], []
+    old_out: Pieces = []
+    new_out: Pieces = []
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
         changed = tag != "equal"
         old_out.extend((p, changed) for p in old_parts[i1:i2])
@@ -95,7 +108,7 @@ SORT_COLUMNS = {
 }
 
 
-def _get_blocking_import(brand_wikidata: str, wave: int):
+def _get_blocking_import(brand_wikidata: str, wave: int) -> DictRow | None:
     """Changeset-less import still under cooldown on this wave, or None.
 
     Only ever blocks the whole brand: a cancellation, or a pre-migration row,
@@ -111,14 +124,15 @@ def _get_blocking_import(brand_wikidata: str, wave: int):
                 FROM ({BLOCKED_BRANDS_SQL}) blocking
                 WHERE brand_wikidata = %s AND (wave = %s OR status = 'cancelled')
                 ORDER BY import_date DESC
-                LIMIT 1""",
+                LIMIT 1""",  # noqa: S608 — a code constant
             (brand_wikidata, wave),
         ).fetchone()
 
 
-def _get_last_import(brand_wikidata: str):
+def _get_last_import(brand_wikidata: str) -> DictRow | None:
     """Latest integration of the brand, or None — shown on /validate so the
-    reviewer knows what went wrong last time (status and comments)."""
+    reviewer knows what went wrong last time (status and comments).
+    """
     osmdb = get_osmdb()
     with osmdb.cursor(row_factory=dict_row) as cursor:
         last = cursor.execute(
@@ -130,9 +144,7 @@ def _get_last_import(brand_wikidata: str):
             (brand_wikidata,),
         ).fetchone()
     if last:
-        last["osm_user_name"] = fetch_osm_users([last["osm_user_id"]]).get(
-            last["osm_user_id"]
-        )
+        last["osm_user_name"] = fetch_osm_users([last["osm_user_id"]]).get(last["osm_user_id"])
     return last
 
 
@@ -143,18 +155,19 @@ def _get_last_import(brand_wikidata: str):
 MATCHES_TIMEOUT = 30 * 60
 
 
-@cache.memoize(timeout=MATCHES_TIMEOUT)
-def brand_matches(brand_wikidata, wave):
+@memoize(timeout=MATCHES_TIMEOUT)
+def brand_matches(brand_wikidata: str, wave: int) -> list[Change]:
     """Every match of a brand on a wave, whatever its subdivision — the
     expensive part. Keyed on the wave too: the two waves read the same rows but
-    produce different proposals."""
+    produce different proposals.
+    """
     osmdb = get_osmdb()
     with osmdb.cursor(row_factory=dict_row) as cursor:
         get_filtered(cursor, brand=brand_wikidata)
         return get_changes(cursor, wave)
 
 
-def get_batch(brand_wikidata):
+def get_batch(brand_wikidata: str) -> tuple[list[Change], list[SubdivisionScope], Wave]:
     """Matches of the next batch, its scope per subdivision, and its wave.
 
     Recomposed on every call from the current state: two calls with no import in
@@ -175,10 +188,11 @@ def get_batch(brand_wikidata):
     return changes, batch_scope(changes), wave
 
 
-@brands_bp.errorhandler(OsmApiUnavailable)
-def osm_api_unavailable(error):
+@brands_bp.errorhandler(OsmApiUnavailableError)
+def osm_api_unavailable(error: OsmApiUnavailableError) -> ResponseReturnValue:
     """Wave 2 could not date the values it would overwrite: nothing is decided,
-    nothing is recorded. The reviewer comes back when the API does."""
+    nothing is recorded. The reviewer comes back when the API does.
+    """
     logger.warning("OSM API unavailable: %s", error)
     if request.method == "POST":
         return Response(
@@ -193,8 +207,7 @@ def osm_api_unavailable(error):
 
 
 @brands_bp.route("/brands")
-# @cache.cached(key_prefix="brands")
-def brands():
+def brands() -> str:
     osmdb = get_osmdb()
     # Filtered in Python rather than through a WHERE in get_all(): the page shows
     # the filtered rows AND counts over the unfiltered set (the "Available / All"
@@ -224,20 +237,47 @@ def brands():
     )
 
 
+def _review_item(item: Change) -> dict[str, Any]:
+    """The change, plus what the review page derives from it."""
+    tag, old_tag = item["tag"], item["old_tag"]
+    # Added, replaced, and the two together — what the review colours in
+    # green, and what it shows struck through beside its replacement.
+    new_keys = [key for key in tag if key not in old_tag]
+    replaced_keys = [key for key in tag if key in old_tag and tag[key] != old_tag[key]]
+    written_keys = new_keys + replaced_keys
+    # Everything the dedicated rows do not show — the NSI tags today,
+    # whatever gets added to the sources tomorrow, and the contact:
+    # variant of a key when both are written: a row shows one of the two.
+    # A tag the reviewer cannot see is a tag they cannot invalidate.
+    shown = {key if key in tag else f"contact:{key}" for key in _DETAILED_TAGS}
+    return {
+        **item,
+        "title": f"{tag.get('name') or item['atp_brand']} - {item['postcode']}",
+        "new_tags_keys": new_keys,
+        "replaced_tags_keys": replaced_keys,
+        "written_tags_keys": written_keys,
+        "diff": {
+            key: highlight_diff(old_tag[key], tag[key])
+            for key in replaced_keys
+            if key == "opening_hours"
+        },
+        "other_new_tags": {key: tag[key] for key in written_keys if key not in shown},
+    }
+
+
 @brands_bp.route("/brands/<brand_wikidata>/validate")
 @auth_required
-# @cache.cached(query_string=True, key_prefix="brands/")
-def brands_validate(brand_wikidata):
+def brands_validate(brand_wikidata: str) -> str:
     changes, scope, wave = get_batch(brand_wikidata)
 
     if len(changes) == 0:
         osmdb = get_osmdb()
         with osmdb.cursor() as cursor:
-            brand_name = cursor.execute(
+            named = cursor.execute(
                 "SELECT brand FROM atp_places WHERE brand_wikidata = %s LIMIT 1",
                 (brand_wikidata,),
             ).fetchone()
-            brand_name = brand_name[0] if brand_name else None
+            brand_name = str(named[0]) if named else None
             cursor.execute(
                 """INSERT INTO import_history (brand_wikidata, osm_user_id, status, items_count, brand_name, wave)
                    VALUES (%s, %s, 'success', 0, %s, %s)""",
@@ -246,40 +286,9 @@ def brands_validate(brand_wikidata):
             osmdb.commit()
         return render_template("brands/:brand_wikidata/empty.html")
 
-    items = sample_for_review(changes, wave.sample_size)
-    brand = items[0]["atp_brand"]
-    for idx, item in enumerate(items):
-        item["title"] = (
-            f"{item['tag'].get('name') or item['atp_brand']} - {item['postcode']}"
-        )
-        # Added, replaced, and the two together — what the review colours in
-        # green, and what it shows struck through beside its replacement.
-        item["new_tags_keys"] = [
-            key for key in item["tag"] if key not in item["old_tag"]
-        ]
-        item["replaced_tags_keys"] = [
-            key
-            for key in item["tag"]
-            if key in item["old_tag"] and item["tag"][key] != item["old_tag"][key]
-        ]
-        item["written_tags_keys"] = item["new_tags_keys"] + item["replaced_tags_keys"]
-        item["diff"] = {
-            key: highlight_diff(item["old_tag"][key], item["tag"][key])
-            for key in item["replaced_tags_keys"]
-            if key == "opening_hours"
-        }
-        # Everything the dedicated rows do not show — the NSI tags today,
-        # whatever gets added to the sources tomorrow, and the contact:
-        # variant of a key when both are written: a row shows one of the two.
-        # A tag the reviewer cannot see is a tag they cannot invalidate.
-        shown = {
-            key if key in item["tag"] else f"contact:{key}" for key in _DETAILED_TAGS
-        }
-        item["other_new_tags"] = {
-            key: item["tag"][key]
-            for key in item["written_tags_keys"]
-            if key not in shown
-        }
+    sample = sample_for_review(changes, wave.sample_size)
+    brand = sample[0]["atp_brand"]
+    items = [_review_item(item) for item in sample]
 
     return render_template(
         "brands/:brand_wikidata/validate.html",
@@ -296,16 +305,14 @@ def brands_validate(brand_wikidata):
 
 @brands_bp.route("/brands/<brand_wikidata>/confirm")
 @auth_required
-def brands_confirm(brand_wikidata):
+def brands_confirm(brand_wikidata: str) -> ResponseReturnValue:
     changes, _, wave = get_batch(brand_wikidata)
     # A blocked brand is not in the list: only a forged URL lands here.
     if _get_blocking_import(brand_wikidata, wave.number):
         abort(403)
 
     if len(changes) == 0:
-        return redirect(
-            url_for("brands.brands_validate", brand_wikidata=brand_wikidata)
-        )
+        return redirect(url_for("brands.brands_validate", brand_wikidata=brand_wikidata))
 
     stats = get_stats(changes)
 
@@ -319,19 +326,20 @@ def brands_confirm(brand_wikidata):
 
 @brands_bp.route("/brands/<brand_wikidata>/rejected")
 @auth_required
-def brands_rejected(brand_wikidata):
+def brands_rejected(_brand_wikidata: str) -> str:
     return render_template("brands/:brand_wikidata/rejected.html")
 
 
 @brands_bp.route("/brands/<brand_wikidata>/report-error", methods=["POST"])
 @auth_required
-def report_error(brand_wikidata):
+def report_error(brand_wikidata: str) -> ResponseReturnValue:
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
         abort(400)
+    body: dict[str, object] = data  # pyright: ignore[reportUnknownVariableType]
     _, _, wave = get_batch(brand_wikidata)
-    comment = data.get("comment", "")
-    brand_name = data.get("brand_name", "")
+    comment = str(body.get("comment", ""))
+    brand_name = str(body.get("brand_name", ""))
     osmdb = get_osmdb()
     with osmdb.cursor() as cursor:
         cursor.execute(
@@ -339,14 +347,21 @@ def report_error(brand_wikidata):
                VALUES (%s, %s, 'cancelled', %s, %s, %s) RETURNING id""",
             (brand_wikidata, session["user"]["osm_id"], comment, brand_name, wave.number),
         )
-        entry_id = cursor.fetchone()[0]
+        entry_id = _returned_id(cursor.fetchone())
         osmdb.commit()
     return Response(json.dumps({"id": entry_id}), status=201, mimetype="application/json")
 
 
+def _returned_id(row: tuple[Any, ...] | None) -> int:
+    """The id a RETURNING clause handed back — an INSERT always returns one."""
+    if row is None:
+        raise RuntimeError("INSERT ... RETURNING id returned no row")
+    return int(row[0])
+
+
 @brands_bp.route("/brands/<brand_wikidata>/upload", methods=["POST"])
 @auth_required
-def upload_changes(brand_wikidata):
+def upload_changes(brand_wikidata: str) -> ResponseReturnValue:
     changes, _, wave = get_batch(brand_wikidata)
     if _get_blocking_import(brand_wikidata, wave.number):
         return Response(
@@ -375,10 +390,10 @@ def upload_changes(brand_wikidata):
         logger.exception("Could not save the log of the run")
     # The uploaded POIs now carry their tags: the next batch must be composed on
     # freshly read matches, not on what we had before sending.
-    cache.delete_memoized(brand_matches, brand_wikidata, wave.number)
+    delete_memoized(brand_matches, brand_wikidata, wave.number)
 
     error_messages = [msg for _, msg in errors]
-    status = _determine_import_status(bulk_upload.results)
+    status = determine_import_status(bulk_upload.results)
     stats = get_stats(bulk_upload.uploaded_changes)
 
     osmdb = get_osmdb()
@@ -399,7 +414,7 @@ def upload_changes(brand_wikidata):
                 wave.number,
             ),
         )
-        entry_id = cursor.fetchone()[0]
+        entry_id = _returned_id(cursor.fetchone())
         cursor.executemany(
             """INSERT INTO import_subdivisions
                    (import_id, subdivision_code, subdivision_name, items_count,
@@ -422,9 +437,7 @@ def upload_changes(brand_wikidata):
         osmdb.commit()
 
     if not errors:
-        return Response(
-            json.dumps({"id": entry_id}), status=200, mimetype="application/json"
-        )
+        return Response(json.dumps({"id": entry_id}), status=200, mimetype="application/json")
     if bulk_upload.changesets:
         return Response(
             json.dumps({"partial": True, "errors": error_messages, "id": entry_id}),

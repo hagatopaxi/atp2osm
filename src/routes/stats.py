@@ -1,15 +1,19 @@
-import logging
-from datetime import date
-
 import json
+import logging
+from collections.abc import Iterable
+from datetime import UTC, date, datetime
+from typing import Any, LiteralString
 
 from flask import Blueprint, Response, render_template, request
-from psycopg.rows import dict_row
-
-from src.db import get_osmdb
+from flask.typing import ResponseReturnValue
 from flask_babel import format_date
+from psycopg import sql
+from psycopg.rows import DictRow, dict_row
+from werkzeug.datastructures import MultiDict
+
+from src.db import code_sql, get_osmdb
 from src.matching import BLOCKED_BRANDS_SQL, WAVES_BY_NUMBER
-from src.utils import TODO_NOT_IN_ATP_SQL, build_filters, fetch_osm_users
+from src.utils import TODO_NOT_IN_ATP_SQL, build_filters, fetch_osm_users, where_clause
 
 logger = logging.getLogger(__name__)
 
@@ -32,13 +36,13 @@ KPI_SQL = """
 """
 
 # generate_series keeps the periods without any integration in the result.
-# {unit}, {start} and {end} are built by _period(), never taken from the request.
+# {unit}, {start} and {end} are built by period_bounds(), never taken from the request.
 SERIES_SQL = """
     WITH periods AS (
         SELECT generate_series(
             {start},
             {end},
-            '1 {unit}'
+            {step}
         )::date AS period
     )
     SELECT p.period,
@@ -47,15 +51,17 @@ SERIES_SQL = """
            {per_wave}
     FROM periods p
     LEFT JOIN import_history h
-           ON date_trunc('{unit}', h.import_date)::date = p.period
+           ON date_trunc({unit}, h.import_date)::date = p.period
           {extra}
     GROUP BY p.period
     ORDER BY p.period
 """
 
 # One column per wave, so the chart stacks additions and modifications.
-PER_WAVE_SQL = ", ".join(
-    f"COALESCE(SUM(h.items_count) FILTER (WHERE h.wave = {w}), 0)::int AS wave_{w}"
+PER_WAVE_SQL = sql.SQL(", ").join(
+    sql.SQL("COALESCE(SUM(h.items_count) FILTER (WHERE h.wave = {}), 0)::int AS {}").format(
+        sql.Literal(w), sql.Identifier(f"wave_{w}")
+    )
     for w in WAVES_BY_NUMBER
 )
 
@@ -80,7 +86,7 @@ BRANDS_SQL = """
 
 # Two ways of contributing, ranked separately: integrations per wave, and
 # reports of missing brands, which belong to no wave. The brand filter reaches
-# todo_brands too, the period one applies to created_at there.
+# the missing-brands table too, the period one applies to created_at there.
 USERS_SQL = """
     SELECT osm_user_id                        AS label,
            wave,
@@ -107,11 +113,11 @@ SPIDER_SERIES_SQL = """
         SELECT generate_series(
             {start},
             {end},
-            '1 {unit}'
+            {step}
         )::date AS period
     ),
     per_brand AS (
-        SELECT date_trunc('{unit}', h.import_date)::date            AS period,
+        SELECT date_trunc({unit}, h.import_date)::date              AS period,
                h.brand_wikidata,
                COUNT(*) FILTER (WHERE h.status IN ('success', 'partial')) AS ok,
                COUNT(*) FILTER (WHERE h.status = 'cancelled')             AS ko
@@ -145,7 +151,7 @@ CHANGESETS_SQL = """
         SELECT generate_series(
             {start},
             {end},
-            '1 {unit}'
+            {step}
         )::date AS period
     )
     SELECT p.period,
@@ -153,7 +159,7 @@ CHANGESETS_SQL = """
            COUNT(d.id) FILTER (WHERE d.status <> 'success') AS ko
     FROM periods p
     LEFT JOIN import_history h
-           ON date_trunc('{unit}', h.import_date)::date = p.period
+           ON date_trunc({unit}, h.import_date)::date = p.period
           {extra}
     LEFT JOIN import_subdivisions d ON d.import_id = h.id
     GROUP BY p.period
@@ -163,21 +169,21 @@ CHANGESETS_SQL = """
 # Two counts of the present, not of the period: the brands reported missing
 # that ATP still lacks, and the brands turned down that no spider has fixed
 # since — the same readings as the todo list and the brands list.
-MISSING_SQL = f"SELECT COUNT(*) FROM todo_brands WHERE {TODO_NOT_IN_ATP_SQL}"
+MISSING_SQL = sql.SQL("SELECT COUNT(*) FROM todo_brands WHERE ") + TODO_NOT_IN_ATP_SQL
 AWAITING_FIX_SQL = f"""
     SELECT COUNT(DISTINCT brand_wikidata)
     FROM ({BLOCKED_BRANDS_SQL}) b
     WHERE b.status = 'cancelled'
-"""
+"""  # noqa: S608 — composed from a code constant
 
 
 @stats_bp.route("/stats")
-def stats():
+def stats() -> str:
     return render_template("stats.html", **compute(request.args))
 
 
 @stats_bp.route("/api/stats.json")
-def stats_api():
+def stats_api() -> ResponseReturnValue:
     """The figures of the statistics page, as JSON, same filters."""
     return Response(
         json.dumps(compute(request.args), default=str, ensure_ascii=False),
@@ -186,46 +192,53 @@ def stats_api():
     )
 
 
-def compute(args):
+def _count(row: DictRow | None) -> int:
+    return int(row["count"]) if row else 0
+
+
+def compute(args: MultiDict[str, str]) -> dict[str, Any]:
     """Everything the statistics page shows, filtered by the request args."""
     osmdb = get_osmdb()
-    where, params, filters = build_filters(args, FILTERS)
-
-    unit, start, end = _period(filters.get("from"), filters.get("to"))
-
+    conditions, params, filters = build_filters(args, FILTERS)
+    where = where_clause(conditions)
     # Queries that name import_history explicitly need the qualified clause.
-    aliased = _alias(where)
+    aliased_conditions, _, _ = build_filters(args, FILTERS, alias="h")
+    aliased = where_clause(aliased_conditions)
+    extra = where_clause(aliased_conditions, lead="AND")
+
+    unit, start, end = period_bounds(
+        filter_date(filters.get("from")), filter_date(filters.get("to"))
+    )
+    bounds = {
+        "unit": sql.Literal(unit),
+        "start": start,
+        "end": end,
+        "step": sql.Literal(f"1 {unit}"),
+    }
 
     with osmdb.cursor(row_factory=dict_row) as cursor:
-        kpi = cursor.execute(KPI_SQL.format(where=where), params).fetchone()
+        kpi = cursor.execute(sql.SQL(KPI_SQL).format(where=where), params).fetchone()
         series = cursor.execute(
-            SERIES_SQL.format(
-                unit=unit, start=start, end=end, per_wave=PER_WAVE_SQL,
-                extra=aliased.replace("WHERE ", "AND ", 1),
-            ),
+            sql.SQL(SERIES_SQL).format(per_wave=PER_WAVE_SQL, extra=extra, **bounds),
             params,
         ).fetchall()
-        tags = cursor.execute(TAGS_SQL.format(where=aliased), params).fetchall()
-        brands = cursor.execute(BRANDS_SQL.format(where=aliased), params).fetchall()
+        tags = cursor.execute(sql.SQL(TAGS_SQL).format(where=aliased), params).fetchall()
+        brands = cursor.execute(sql.SQL(BRANDS_SQL).format(where=aliased), params).fetchall()
         # The clause appears twice in the query, so its params do too.
-        users = cursor.execute(USERS_SQL.format(where=where), params * 2).fetchall()
-        spiders = cursor.execute(SPIDERS_SQL.format(where=where), params).fetchall()
+        users = cursor.execute(sql.SQL(USERS_SQL).format(where=where), params * 2).fetchall()
+        spiders = cursor.execute(sql.SQL(SPIDERS_SQL).format(where=where), params).fetchall()
         spider_series = cursor.execute(
-            SPIDER_SERIES_SQL.format(unit=unit, start=start, end=end, where=aliased), params
+            sql.SQL(SPIDER_SERIES_SQL).format(where=aliased, **bounds), params
         ).fetchall()
         changesets = cursor.execute(
-            CHANGESETS_SQL.format(
-                unit=unit, start=start, end=end, extra=aliased.replace("WHERE ", "AND ", 1)
-            ),
-            params,
+            sql.SQL(CHANGESETS_SQL).format(extra=extra, **bounds), params
         ).fetchall()
-        missing = cursor.execute(MISSING_SQL).fetchone()["count"]
-        awaiting_fix = cursor.execute(AWAITING_FIX_SQL).fetchone()["count"]
+        missing = _count(cursor.execute(MISSING_SQL).fetchone())
+        awaiting_fix = _count(cursor.execute(code_sql(AWAITING_FIX_SQL)).fetchone())
         all_user_ids = [
-            r["osm_user_id"]
+            int(r["osm_user_id"])
             for r in cursor.execute(
-                "SELECT osm_user_id FROM import_history"
-                " UNION SELECT osm_user_id FROM todo_brands"
+                "SELECT osm_user_id FROM import_history UNION SELECT osm_user_id FROM todo_brands"
             ).fetchall()
         ]
 
@@ -236,12 +249,9 @@ def compute(args):
     # Three rankings out of one query: integrations and POIs, split by wave,
     # and missing brands reported. The integrations ship both ways, the
     # switch is pure CSS.
-    def rank(key):
-        rows = [
-            {"label": u["label"], "wave": u["wave"], "value": u[key]} for u in users if u[key]
-        ]
-        return _stack(rows)[:TOP_N]
-
+    def rank(key: str) -> list[dict[str, Any]]:
+        rows = [{"label": u["label"], "wave": u["wave"], "value": u[key]} for u in users if u[key]]
+        return stack_by_label(rows)[:TOP_N]
 
     # A spider is rejected only when nothing of it ever made it through: one
     # cancelled batch followed by a successful one is not a bad spider.
@@ -269,14 +279,16 @@ def compute(args):
             totals[w] += row[f"wave_{w}"]
             row[f"cumulative_{w}"] = totals[w]
 
-    all_tags = _stack(tags)
+    all_tags = stack_by_label(tags)
     tags = all_tags[:TOP_N]
     by_imports, by_pois, reporters = rank("imports"), rank("pois"), rank("todos")
-    brands = _stack(brands)[:TOP_N]
+    brands = stack_by_label(brands)[:TOP_N]
 
     # What Chart.js draws, shaped as series. The wave labels are added by the
     # template, where a locale exists to resolve them.
-    period = lambda rows: [format_date(r["period"], "short") for r in rows]
+    def period(rows: Iterable[DictRow]) -> list[str]:
+        return [format_date(r["period"], "short") for r in rows]
+
     charts = {
         "pace": {
             "labels": period(series),
@@ -289,7 +301,10 @@ def compute(args):
         "tags": _ranking(tags),
         "brands": _ranking(brands),
         # Reports belong to no wave: one plain series.
-        "reporters": {"labels": [r["label"] for r in reporters], "values": [r["value"] for r in reporters]},
+        "reporters": {
+            "labels": [r["label"] for r in reporters],
+            "values": [r["value"] for r in reporters],
+        },
         "spiders": {
             "labels": period(spider_series),
             "ok": [r["integrated"] for r in spider_series],
@@ -302,51 +317,49 @@ def compute(args):
         },
     }
 
-    return dict(
-        kpi=kpi,
+    return {
+        "kpi": kpi,
         # Same definition as the contributors panels below, filters included.
-        contributors=len({u["label"] for u in users}),
-        missing=missing,
-        awaiting_fix=awaiting_fix,
-        by_imports=by_imports,
-        by_pois=by_pois,
-        reporters=reporters,
-        series=series,
-        series_max=max((r["pois"] for r in series), default=0),
-        unit=unit,
-        charts=charts,
-        tags=tags,
-        tags_by_wave={w: sum(t["by_wave"].get(w, 0) for t in all_tags) for w in WAVES_BY_NUMBER},
-        brands=brands,
-        spider_series=spider_series,
-        spiders_reliability=reliability,
-        changesets=changesets,
-        changesets_max=max((c["ok"] + c["ko"] for c in changesets), default=0),
-        filters=filters,
-        filter_users=sorted(
+        "contributors": len({u["label"] for u in users}),
+        "missing": missing,
+        "awaiting_fix": awaiting_fix,
+        "by_imports": by_imports,
+        "by_pois": by_pois,
+        "reporters": reporters,
+        "series": series,
+        "series_max": max((r["pois"] for r in series), default=0),
+        "unit": unit,
+        "charts": charts,
+        "tags": tags,
+        "tags_by_wave": {w: sum(t["by_wave"].get(w, 0) for t in all_tags) for w in WAVES_BY_NUMBER},
+        "brands": brands,
+        "spider_series": spider_series,
+        "spiders_reliability": reliability,
+        "changesets": changesets,
+        "changesets_max": max((c["ok"] + c["ko"] for c in changesets), default=0),
+        "filters": filters,
+        "filter_users": sorted(
             ((uid, names.get(uid, str(uid))) for uid in all_user_ids),
             key=lambda u: u[1].lower(),
         ),
-    )
+    }
 
 
-def _stack(rows):
+def stack_by_label(rows: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
     """Rank (label, wave, value) rows by total, one row per label.
 
     Each row keeps its split, `by_wave`, for the stacked bar that compares the
     two typologies of change.
     """
-    stacked = {}
+    stacked: dict[str, dict[str, Any]] = {}
     for row in rows:
-        entry = stacked.setdefault(
-            row["label"], {"label": row["label"], "value": 0, "by_wave": {}}
-        )
+        entry = stacked.setdefault(row["label"], {"label": row["label"], "value": 0, "by_wave": {}})
         entry["value"] += row["value"]
         entry["by_wave"][row["wave"]] = row["value"]
     return sorted(stacked.values(), key=lambda r: r["value"], reverse=True)
 
 
-def _ranking(rows):
+def _ranking(rows: Iterable[dict[str, Any]]) -> dict[str, Any]:
     """A stacked ranking, one horizontal bar per label."""
     return {
         "labels": [r["label"] for r in rows],
@@ -354,43 +367,42 @@ def _ranking(rows):
     }
 
 
-def _alias(where, alias="h"):
-    """Qualify the filtered columns with the import_history alias."""
-    for column in ("brand_name", "brand_wikidata", "osm_user_id", "wave", "import_date"):
-        where = where.replace(column, f"{alias}.{column}")
-    return where
+# Up to that many days, a bar is a day; up to that many, a week; past, a month.
+DAILY_SPAN = 15
+WEEKLY_SPAN = 120
 
 
-
-def _period(date_from, date_to):
+def period_bounds(
+    start: date | None, stop: date | None
+) -> tuple[LiteralString, sql.Composable, sql.Composable]:
     """Bar granularity and bounds of the series, from the filtered period.
 
     The granularity follows from how long the period is, so the charts hold a
-    readable number of bars whatever the dates asked for. Both bounds are
-    parsed dates, never request text, so they can be inlined in the SQL.
+    readable number of bars whatever the dates asked for.
     """
-    start = _parse(date_from)
-    stop = _parse(date_to) or date.today()
+    stop = stop or datetime.now(UTC).date()
     span = (stop - start).days if start else None
 
-    if span is not None and span <= 15:
+    unit: LiteralString
+    if span is not None and span <= DAILY_SPAN:
         unit = "day"
-    elif span is not None and span <= 120:
+    elif span is not None and span <= WEEKLY_SPAN:
         unit = "week"
     else:
         unit = "month"
 
     first = (
-        f"date_trunc('{unit}', DATE '{start}')"
+        sql.SQL("date_trunc({}, {}::date)").format(sql.Literal(unit), sql.Literal(start))
         if start
         # No lower bound: the series starts at the first integration ever.
-        else f"date_trunc('{unit}', (SELECT MIN(import_date) FROM import_history))"
+        else sql.SQL("date_trunc({}, (SELECT MIN(import_date) FROM import_history))").format(
+            sql.Literal(unit)
+        )
     )
-    return unit, first, f"date_trunc('{unit}', DATE '{stop}')"
+    last = sql.SQL("date_trunc({}, {}::date)").format(sql.Literal(unit), sql.Literal(stop))
+    return unit, first, last
 
 
-def _parse(value):
-    try:
-        return date.fromisoformat(value) if value else None
-    except ValueError:
-        return None
+def filter_date(value: str | int | None) -> date | None:
+    """A filter value as a date — build_filters only keeps well-formed ones."""
+    return date.fromisoformat(value) if isinstance(value, str) and value else None
