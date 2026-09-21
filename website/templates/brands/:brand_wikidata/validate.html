@@ -3,7 +3,7 @@
 
 {% from '_info_card.html' import info_card %}
 {% import '_wave.html' as wave with context %}
-{% block title %}{% trans brand=brand %}1/2 - Reviewing the data of {{ brand }}{% endtrans %} (<a href="https://www.wikidata.org/wiki/{{ brand_wikidata }}" target="_blank" rel="noopener" class="link font-mono">{{ brand_wikidata }}<i class="iconoir-open-new-window" aria-hidden="true"></i></a>){% endblock %}
+{% block title %}{% trans brand=brand %}1/2 - Reviewing the data of {{ brand }}{% endtrans %} (<a href="https://www.wikidata.org/wiki/{{ brand_wikidata }}" target="_blank" rel="noopener" class="link font-mono">{{ brand_wikidata }}<i class="iconoir-open-new-window" aria-hidden="true"></i></a>) <span class="join align-middle">{{ wave.badge(wave_number) }}</span>{% endblock %}
 {% block subtitle %}{% trans shown=items | length, size=size %}Review {{ shown }} of the {{ size }} points of interest of this batch, drawn at random. A value marked <span class="text-success"><i class="iconoir-plus align-middle"></i> in green</span> will be written, coming from ATP or from the name-suggestion-index{% endtrans %}{% if wave_number == 2 %}{% trans %}; a value marked <span class="text-error"><i class="iconoir-minus align-middle"></i> in red</span> is the one it replaces in OSM{% endtrans %}{% endif %}. {{ _('Every other tag is already in OSM and will not be updated.') }}{% endblock %}
 
 {% block custom_js %}
@@ -62,7 +62,6 @@
     <div class="flex flex-col md:flex-row items-start justify-between gap-4">
         <div class="flex flex-col gap-2">
             <p class="text-xs muted">
-                <span class="join">{{ wave.badge(wave_number) }}</span><br />
                 {% trans count=scope | length %}This batch covers {{ count }} subdivision{% pluralize %}This batch covers {{ count }} subdivisions{% endtrans %}:
                 {% for sub in scope %}{{ sub.name }} ({{ sub.count }}){{ ', ' if not loop.last }}{% endfor %}
                 ({% trans count=size %}that is {{ count }} POI{% pluralize %}that is {{ count }} POIs{% endtrans %}).

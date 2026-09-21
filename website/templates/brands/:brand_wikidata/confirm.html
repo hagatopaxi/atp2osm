@@ -2,7 +2,7 @@
 {% from '_info_card.html' import info_card %}
 {% import '_wave.html' as wave with context %}
 
-{% block title %}{{ _('2/2 - Confirming the integration') }}{% endblock %}
+{% block title %}{{ _('2/2 - Confirming the integration') }} <span class="join align-middle">{{ wave.badge(wave_number) }}</span>{% endblock %}
 {% block subtitle %}{{ _('Last step before the integration.') }}{% endblock %}
 
 {% block custom_js %}
@@ -19,8 +19,6 @@
 {% endmacro %}
 
 {% block content %}
-<div class="join mb-2">{{ wave.badge(wave_number) }}</div>
-
 <h2 class="text-lg">{{ _('Size of the integration') }}</h2>
 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
     {{ render_stat_card(_('POI count'), stats["size"]) }}
