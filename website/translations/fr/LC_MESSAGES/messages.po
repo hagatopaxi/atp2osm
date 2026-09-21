@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-21 13:11+0200\n"
+"POT-Creation-Date: 2026-09-21 13:51+0200\n"
 "PO-Revision-Date: 2026-09-06 17:06+0200\n"
 "Last-Translator: the atp2osm contributors\n"
 "Language: fr\n"
@@ -207,8 +207,8 @@ msgid "Data that cannot be verified"
 msgstr "Donnée invérifiable"
 
 #: website/templates/_error_reasons.html:22
-msgid "No object type kept: none of these objects are this brand"
-msgstr "Aucun type d'objet retenu : ces objets ne sont pas cette marque"
+msgid "No POI type kept: these POIs are not this brand"
+msgstr "Aucun type de POI retenu : ces POI ne sont pas cette marque"
 
 #: website/templates/_error_reasons.html:23
 msgid "Other"
@@ -984,12 +984,12 @@ msgid "The integration did not complete. Nothing was sent to OpenStreetMap. It c
 msgstr "L'intégration n'a pas abouti. Aucune modification n'a été envoyée à OpenStreetMap. Il est possible de relancer l'intégration ultérieurement en retournant sur la page de la marque concernée."
 
 #: website/templates/history_detail.html:136
-msgid "Object types included"
-msgstr "Types d'objets inclus"
+msgid "POI types included"
+msgstr "Types de POI inclus"
 
 #: website/templates/history_detail.html:145
-msgid "Object types left out"
-msgstr "Types d'objets écartés"
+msgid "POI types left out"
+msgstr "Types de POI écartés"
 
 #: website/templates/history_detail.html:161
 msgid "Comment"
@@ -1540,8 +1540,8 @@ msgid "Tag count"
 msgstr "Nombre de tag"
 
 #: website/templates/brands/:brand_wikidata/confirm.html:30
-msgid "Object types"
-msgstr "Types d'objets"
+msgid "POI types"
+msgstr "Types de POI"
 
 #: website/templates/brands/:brand_wikidata/confirm.html:33
 msgid "Included:"
@@ -1615,12 +1615,12 @@ msgid "Brand turned down"
 msgstr "Marque refusée"
 
 #: website/templates/brands/:brand_wikidata/refused.html:4
-msgid "None of the matched object types were kept."
-msgstr "Aucun des types d'objets appariés n'a été retenu."
+msgid "None of the matched POI types were kept."
+msgstr "Aucun des types de POI appariés n'a été retenu."
 
 #: website/templates/brands/:brand_wikidata/refused.html:11
-msgid "Nothing was written to OpenStreetMap: every object type this batch matched was left out."
-msgstr "Rien n'a été écrit dans OpenStreetMap : tous les types d'objets appariés par ce lot ont été écartés."
+msgid "Nothing was written to OpenStreetMap: every POI type this batch matched was left out."
+msgstr "Rien n'a été écrit dans OpenStreetMap : tous les types de POI appariés par ce lot ont été écartés."
 
 #: website/templates/brands/:brand_wikidata/refused.html:18
 msgid "The brand is turned down rather than marked as integrated: it comes back once All The Places republishes its data, not once a cooldown expires."
@@ -1705,12 +1705,12 @@ msgid "by"
 msgstr "par"
 
 #: website/templates/brands/:brand_wikidata/validate.html:98
-msgid "Object types integrated then:"
-msgstr "Types d'objets intégrés alors :"
+msgid "POI types integrated then:"
+msgstr "Types de POI intégrés alors :"
 
 #: website/templates/brands/:brand_wikidata/validate.html:104
-msgid "Object types left out then, unticked again below:"
-msgstr "Types d'objets écartés alors, de nouveau décochés ci-dessous :"
+msgid "POI types left out then, unticked again below:"
+msgstr "Types de POI écartés alors, de nouveau décochés ci-dessous :"
 
 #: website/templates/brands/:brand_wikidata/validate.html:112
 msgid "Reported by a contributor during the last review: check these points more closely."
@@ -1729,12 +1729,12 @@ msgid "No earlier review can guide you: be especially careful on every tag, and 
 msgstr "Aucun contrôle précédent ne peut vous guider : soyez particulièrement vigilant sur l'ensemble des tags, et signalez la moindre donnée douteuse."
 
 #: website/templates/brands/:brand_wikidata/validate.html:152
-msgid "Object types matched"
-msgstr "Types d'objets appariés"
+msgid "POI types matched"
+msgstr "Types de POI appariés"
 
 #: website/templates/brands/:brand_wikidata/validate.html:154
-msgid "Untick a type that does not belong to this brand: its points leave the batch."
-msgstr "Décochez un type qui n'appartient pas à cette marque : ses points sortent du lot."
+msgid "Untick a type that does not belong to this brand: its POIs leave the batch."
+msgstr "Décochez un type qui n'appartient pas à cette marque : ses POI sortent du lot."
 
 #: website/templates/brands/:brand_wikidata/validate.html:157
 msgid "The types left out of the last integration of this brand are unticked again. Check that this is still what you want before going on."
@@ -1749,8 +1749,8 @@ msgid "Apply the filter"
 msgstr "Appliquer le filtre"
 
 #: website/templates/brands/:brand_wikidata/validate.html:196
-msgid "No object type is left ticked"
-msgstr "Aucun type d'objet n'est coché"
+msgid "No POI type is left ticked"
+msgstr "Aucun type de POI n'est coché"
 
 #: website/templates/brands/:brand_wikidata/validate.html:197
 msgid "This batch is empty: confirming closes this brand as integrated for this wave, without touching anything in OpenStreetMap. Tick a type again to review it instead."

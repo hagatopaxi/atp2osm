@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-21 13:11+0200\n"
+"POT-Creation-Date: 2026-09-21 13:51+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -206,7 +206,7 @@ msgid "Data that cannot be verified"
 msgstr ""
 
 #: website/templates/_error_reasons.html:22
-msgid "No object type kept: none of these objects are this brand"
+msgid "No POI type kept: these POIs are not this brand"
 msgstr ""
 
 #: website/templates/_error_reasons.html:23
@@ -983,11 +983,11 @@ msgid "The integration did not complete. Nothing was sent to OpenStreetMap. It c
 msgstr ""
 
 #: website/templates/history_detail.html:136
-msgid "Object types included"
+msgid "POI types included"
 msgstr ""
 
 #: website/templates/history_detail.html:145
-msgid "Object types left out"
+msgid "POI types left out"
 msgstr ""
 
 #: website/templates/history_detail.html:161
@@ -1539,7 +1539,7 @@ msgid "Tag count"
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/confirm.html:30
-msgid "Object types"
+msgid "POI types"
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/confirm.html:33
@@ -1614,11 +1614,11 @@ msgid "Brand turned down"
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/refused.html:4
-msgid "None of the matched object types were kept."
+msgid "None of the matched POI types were kept."
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/refused.html:11
-msgid "Nothing was written to OpenStreetMap: every object type this batch matched was left out."
+msgid "Nothing was written to OpenStreetMap: every POI type this batch matched was left out."
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/refused.html:18
@@ -1704,11 +1704,11 @@ msgid "by"
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:98
-msgid "Object types integrated then:"
+msgid "POI types integrated then:"
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:104
-msgid "Object types left out then, unticked again below:"
+msgid "POI types left out then, unticked again below:"
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:112
@@ -1728,11 +1728,11 @@ msgid "No earlier review can guide you: be especially careful on every tag, and 
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:152
-msgid "Object types matched"
+msgid "POI types matched"
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:154
-msgid "Untick a type that does not belong to this brand: its points leave the batch."
+msgid "Untick a type that does not belong to this brand: its POIs leave the batch."
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:157
@@ -1748,7 +1748,7 @@ msgid "Apply the filter"
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:196
-msgid "No object type is left ticked"
+msgid "No POI type is left ticked"
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:197

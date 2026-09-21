@@ -95,13 +95,13 @@
             {% if last_import.included_categories is not none or last_import.excluded_categories is not none %}
             <div class="text-xs muted flex flex-col gap-1">
                 <p class="flex flex-wrap items-center gap-1">
-                    {{ _('Object types integrated then:') }}
+                    {{ _('POI types integrated then:') }}
                     {% for category in last_import.included_categories or [] %}
                     <span class="badge badge-sm badge-outline badge-success font-mono">{{ category }}</span>
                     {% else %}—{% endfor %}
                 </p>
                 <p class="flex flex-wrap items-center gap-1">
-                    {{ _('Object types left out then, unticked again below:') }}
+                    {{ _('POI types left out then, unticked again below:') }}
                     {% for category in last_import.excluded_categories or [] %}
                     <span class="badge badge-sm badge-outline badge-warning font-mono">{{ category }}</span>
                     {% else %}—{% endfor %}
@@ -149,9 +149,9 @@
             {# Titled like the aside's Preferences: the words, then a rule
                running to the edge. #}
             <legend class="text-xs font-semibold uppercase tracking-wide muted flex items-center gap-2 w-full">
-                <i class="iconoir-filter" aria-hidden="true"></i>{{ _('Object types matched') }}<span class="flex-1 border-t border-base-300"></span>
+                <i class="iconoir-filter" aria-hidden="true"></i>{{ _('POI types matched') }}<span class="flex-1 border-t border-base-300"></span>
             </legend>
-            <p class="text-xs muted">{{ _('Untick a type that does not belong to this brand: its points leave the batch.') }}</p>
+            <p class="text-xs muted">{{ _('Untick a type that does not belong to this brand: its POIs leave the batch.') }}</p>
             {% if replayed_filter %}
             {% call info_card('warning') %}
             <span>{{ _('The types left out of the last integration of this brand are unticked again. Check that this is still what you want before going on.') }}</span>
@@ -193,7 +193,7 @@
        the brand as integrated. That is a decision, so it is confirmed. #}
     {% call info_card('warning', 'my-4') %}
     <div class="flex flex-col gap-2">
-        <p class="font-semibold text-sm">{{ _('No object type is left ticked') }}</p>
+        <p class="font-semibold text-sm">{{ _('No POI type is left ticked') }}</p>
         <p class="text-xs muted">{{ _('This batch is empty: confirming closes this brand as integrated for this wave, without touching anything in OpenStreetMap. Tick a type again to review it instead.') }}</p>
         <a class="btn btn-sm btn-warning self-start"
            href="/brands/{{ brand_wikidata }}/validate?{{ request.query_string.decode() }}&confirm_empty=1">

@@ -1,14 +1,14 @@
 {% extends '_base.html' %}
 
 {% block title %}{{ _('Brand turned down') }}{% endblock %}
-{% block subtitle %}{{ _('None of the matched object types were kept.') }}{% endblock %}
+{% block subtitle %}{{ _('None of the matched POI types were kept.') }}{% endblock %}
 
 {% from '_info_card.html' import info_card %}
 
 {% block content %}
 {% call info_card('warning') %}
 <div class="flex flex-col gap-2">
-    <p>{{ _('Nothing was written to OpenStreetMap: every object type this batch matched was left out.') }}</p>
+    <p>{{ _('Nothing was written to OpenStreetMap: every POI type this batch matched was left out.') }}</p>
     <p class="flex flex-wrap items-center gap-1">
         {{ _('Left out by the filter:') }}
         {% for category in excluded %}

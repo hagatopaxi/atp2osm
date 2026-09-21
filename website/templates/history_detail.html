@@ -133,7 +133,7 @@
                    integration older than the filter records nothing, and says
                    nothing rather than claiming every type was kept. #}
                 {% if entry.included_categories is not none or entry.excluded_categories is not none %}
-                <dt class="muted">{{ _('Object types included') }}</dt>
+                <dt class="muted">{{ _('POI types included') }}</dt>
                 <dd>
                     <div class="flex flex-wrap gap-1">
                         {% for category in entry.included_categories or [] %}
@@ -142,7 +142,7 @@
                     </div>
                 </dd>
 
-                <dt class="muted">{{ _('Object types left out') }}</dt>
+                <dt class="muted">{{ _('POI types left out') }}</dt>
                 <dd>
                     <div class="flex flex-wrap gap-1">
                         {% for category in entry.excluded_categories or [] %}
