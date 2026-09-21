@@ -92,10 +92,11 @@ def test_every_wave_has_its_own_batch_size() -> None:
     assert WAVES_BY_NUMBER[2].batch_size < WAVES_BY_NUMBER[1].batch_size
 
 
-def test_alpha_wave_is_reviewed_in_full() -> None:
-    wave = WAVES_BY_NUMBER[2]
-    assert wave.alpha
-    assert wave.sample_size >= wave.batch_size
+def test_an_alpha_wave_is_reviewed_in_full() -> None:
+    """A wave still in alpha shows a contributor every value it writes."""
+    for wave in WAVES:
+        if wave.alpha:
+            assert wave.sample_size >= wave.batch_size, wave
 
 
 @pytest.fixture

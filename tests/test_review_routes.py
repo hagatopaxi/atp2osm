@@ -510,7 +510,7 @@ def test_the_last_import_is_recalled(
 # --- Wave 2 -------------------------------------------------------------------------
 
 
-def test_wave_2_reviews_the_whole_batch(
+def test_wave_2_samples_its_batch_like_wave_1(
     contributor: FlaskClient,
     brand: Connection,
     monkeypatch: pytest.MonkeyPatch,
@@ -532,7 +532,7 @@ def test_wave_2_reviews_the_whole_batch(
     _, context = next(c for c in rendered if c[0].endswith("validate.html"))
     assert context["wave_number"] == 2
     assert context["size"] == wave.batch_size
-    assert len(context["items"]) == wave.batch_size
+    assert len(context["items"]) == wave.sample_size
 
 
 def test_wave_2_leaves_a_recent_human_value_alone(
