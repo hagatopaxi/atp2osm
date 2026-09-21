@@ -326,7 +326,7 @@ def brands_confirm(brand_wikidata: str) -> ResponseReturnValue:
 
 @brands_bp.route("/brands/<brand_wikidata>/rejected")
 @auth_required
-def brands_rejected(_brand_wikidata: str) -> str:
+def brands_rejected(brand_wikidata: str) -> str:  # noqa: ARG001 — named by the route, unused by the page
     return render_template("brands/:brand_wikidata/rejected.html")
 
 
