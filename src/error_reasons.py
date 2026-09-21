@@ -20,6 +20,8 @@ ERROR_REASONS = (
     "email_generic",
     "poi_mismatch",
     "data_unverifiable",
+    # Not a POI of its own: the whole batch was turned down, type by type.
+    "types_all_excluded",
     # No longer offered: the comment field stands on its own. Kept so that the
     # rejections recorded with it keep their label.
     "other",

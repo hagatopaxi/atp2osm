@@ -66,25 +66,6 @@
                 {% for sub in scope %}{{ sub.name }} ({{ sub.count }}){{ ', ' if not loop.last }}{% endfor %}
                 ({% trans count=size %}that is {{ count }} POI{% pluralize %}that is {{ count }} POIs{% endtrans %}).
             </p>
-            <div class="text-xs">
-                <span class="muted">{{ _('Object types matched:') }}</span>
-                <!-- A two-column grid rather than a row per line: the counts
-                     line up on the widest tag instead of on each tag's own end. -->
-                <ul class="mt-1 inline-grid grid-cols-[auto_auto] gap-x-3 gap-y-0.5">
-                    {% for category in categories %}
-                    <li class="contents">
-                        {% if category.tag %}
-                        <a class="link link-hover font-mono"
-                           href="https://wiki.openstreetmap.org/wiki/Tag:{{ category.tag }}"
-                           target="_blank" rel="noopener">{{ category.tag }}<i class="iconoir-open-new-window" aria-hidden="true"></i></a>
-                        {% else %}
-                        <span class="text-warning">{{ _('no primary tag') }}</span>
-                        {% endif %}
-                        <span class="font-bold tabular-nums text-right">{{ category.count }}</span>
-                    </li>
-                    {% endfor %}
-                </ul>
-            </div>
         </div>
         <a href="/brands/{{brand_wikidata}}/validate" class="btn btn-outline btn-info btn-sm shrink-0 w-full md:w-auto">
             <i class="iconoir-refresh" aria-hidden="true"></i>{{ _('Start the review over') }}
@@ -107,6 +88,26 @@
                     {% else %}{{ last_import.osm_user_id }}{% endif %}
                 </span>
             </div>
+            {# What the last integration decided on, type by type: what it
+               wrote on, and what it left out. A type neither list names was
+               not in its batch — the filter below ticks it, like any type it
+               has never been told about. #}
+            {% if last_import.included_categories is not none or last_import.excluded_categories is not none %}
+            <div class="text-xs muted flex flex-col gap-1">
+                <p class="flex flex-wrap items-center gap-1">
+                    {{ _('Object types integrated then:') }}
+                    {% for category in last_import.included_categories or [] %}
+                    <span class="badge badge-sm badge-outline badge-success font-mono">{{ category }}</span>
+                    {% else %}—{% endfor %}
+                </p>
+                <p class="flex flex-wrap items-center gap-1">
+                    {{ _('Object types left out then, unticked again below:') }}
+                    {% for category in last_import.excluded_categories or [] %}
+                    <span class="badge badge-sm badge-outline badge-warning font-mono">{{ category }}</span>
+                    {% else %}—{% endfor %}
+                </p>
+            </div>
+            {% endif %}
             {% if last_import.comment %}
             <p class="text-xs muted">{{ _('Reported by a contributor during the last review: check these points more closely.') }}</p>
             {% set comments = last_import.comment | parse_comment %}
@@ -116,7 +117,7 @@
                 <li class="border-l-2 border-{{ c_ }}/60 pl-3">
                     <p class="text-sm italic">{{ c.comment or _('No comment') }}</p>
                     <p class="text-xs muted font-mono">
-                        <a class="link" href="{{ api_url }}/{{ c.osm_type }}/{{ c.osm_id }}" target="_blank">{{ c.osm_type }}/{{ c.osm_id }}<i class="iconoir-open-new-window" aria-hidden="true"></i></a>
+                        {% if c.osm_id %}<a class="link" href="{{ api_url }}/{{ c.osm_type }}/{{ c.osm_id }}" target="_blank">{{ c.osm_type }}/{{ c.osm_id }}<i class="iconoir-open-new-window" aria-hidden="true"></i></a>{% endif %}
                         {% if c.atp_id %}· ATP {{ c.spider_id ~ "/" if c.spider_id }}{{ c.atp_id }}{% endif %}
                     </p>
                 </li>
@@ -137,6 +138,72 @@
     {% endcall %}
     {% endif %}
 
+    {# The types the batch matched, each one tickable: unticking one takes its
+       POIs out of the batch and frees their room for others. The counts are
+       those of the unfiltered batch, so a type stays readable once dropped.
+       A titled fieldset rather than a card: the cards below are the POIs under
+       review, and the filter is not one of them. #}
+    <form method="get" action="/brands/{{ brand_wikidata }}/validate" data-category-filter>
+        <input type="hidden" name="filtered" value="1" />
+        <fieldset class="fieldset my-4 gap-3">
+            {# Titled like the aside's Preferences: the words, then a rule
+               running to the edge. #}
+            <legend class="text-xs font-semibold uppercase tracking-wide muted flex items-center gap-2 w-full">
+                <i class="iconoir-filter" aria-hidden="true"></i>{{ _('Object types matched') }}<span class="flex-1 border-t border-base-300"></span>
+            </legend>
+            <p class="text-xs muted">{{ _('Untick a type that does not belong to this brand: its points leave the batch.') }}</p>
+            {% if replayed_filter %}
+            {% call info_card('warning') %}
+            <span>{{ _('The types left out of the last integration of this brand are unticked again. Check that this is still what you want before going on.') }}</span>
+            {% endcall %}
+            {% endif %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {% for category in categories %}
+                {% set value = category.tag or 'none' %}
+                <label class="type-tile label cursor-pointer justify-start gap-3 rounded-lg border border-base-300 bg-base-100 p-3">
+                    <input type="checkbox" class="checkbox checkbox-sm" name="keep" value="{{ value }}"
+                           {{ 'checked' if value not in excluded }} />
+                    <span class="flex-1 truncate">
+                        {% if category.tag %}
+                        <span class="font-mono text-sm">{{ category.tag }}</span>
+                        {% else %}
+                        <span class="text-warning text-sm">{{ _('no primary tag') }}</span>
+                        {% endif %}
+                    </span>
+                    <span class="badge badge-sm badge-ghost tabular-nums">{{ category.count }}</span>
+                </label>
+                {% endfor %}
+            </div>
+            <div class="flex flex-col md:flex-row-reverse md:items-center md:justify-end gap-2">
+                <p class="hidden text-xs text-warning" data-filter-hint>
+                    <i class="iconoir-warning-triangle" aria-hidden="true"></i>
+                    {{ _('The types changed: apply the filter to review the batch it describes.') }}
+                </p>
+                {# Nothing to apply until a box moves: enabled by validate.js, and disabled
+                   again when the ticks come back to what the page was built on. #}
+                <button class="btn btn-sm btn-primary w-full md:w-auto" data-apply-filter disabled>
+                    {{ _('Apply the filter') }}
+                </button>
+            </div>
+        </fieldset>
+    </form>
+
+    {% if filtered_out %}
+    {# Every type unticked: nothing is left to review, and going on would close
+       the brand as integrated. That is a decision, so it is confirmed. #}
+    {% call info_card('warning', 'my-4') %}
+    <div class="flex flex-col gap-2">
+        <p class="font-semibold text-sm">{{ _('No object type is left ticked') }}</p>
+        <p class="text-xs muted">{{ _('This batch is empty: confirming closes this brand as integrated for this wave, without touching anything in OpenStreetMap. Tick a type again to review it instead.') }}</p>
+        <a class="btn btn-sm btn-warning self-start"
+           href="/brands/{{ brand_wikidata }}/validate?{{ request.query_string.decode() }}&confirm_empty=1">
+            <i class="iconoir-check" aria-hidden="true"></i>{{ _('Close this brand as integrated') }}
+        </a>
+    </div>
+    {% endcall %}
+    {% endif %}
+
+    <div class="flex flex-col gap-2" data-review-items>
     {% for item in items %}
     <div class="card bg-base-100 border-base-300 gap-4 border shadow-md p-4"
         data-item-id="{{item['node_type']}}-{{item['id']}}" data-osm-id="{{item['id']}}"
@@ -250,9 +317,12 @@
     </div>
 
     {% endfor %}
+    </div>
 
-
-    <a class="nextStep btn btn-primary mt-4 self-end" disabled href="/brands/{{brand_wikidata}}/confirm">{{ _('Go to the next step') }} <i class="iconoir-arrow-right" aria-hidden="true"></i></a>
+    {# No POI to review, no next step: the filter emptied the batch. #}
+    {% if items %}
+    <a class="nextStep btn btn-primary mt-4 self-end" disabled href="/brands/{{brand_wikidata}}/confirm{{ '?' ~ request.query_string.decode() if request.query_string }}">{{ _('Go to the next step') }} <i class="iconoir-arrow-right" aria-hidden="true"></i></a>
+    {% endif %}
 
 </div>
 

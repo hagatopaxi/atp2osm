@@ -16,7 +16,7 @@ import pytest
 from flask.testing import FlaskClient
 from psycopg.rows import DictRow, dict_row
 
-from src.matching import WAVES_BY_NUMBER, Change, SubdivisionScope, Wave
+from src.matching import WAVES_BY_NUMBER, Change, Wave
 from src.routes import brands
 from src.upload import BulkUpload
 from tests.conftest import Connection, make_change
@@ -46,8 +46,8 @@ def change(osm_id: int, sub: str = "75", name: str = "Paris") -> Change:
 def batch(
     monkeypatch: pytest.MonkeyPatch, changes: list[Change], wave: Wave = WAVES_BY_NUMBER[1]
 ) -> None:
-    def get_batch(_wikidata: str) -> tuple[list[Change], list[SubdivisionScope], Wave]:
-        return changes, [], wave
+    def get_batch(_wikidata: str) -> brands.Batch:
+        return brands.Batch(changes, [], wave, [], frozenset(), replayed=False)
 
     monkeypatch.setattr(brands, "get_batch", get_batch)
 

@@ -25,6 +25,24 @@
     {{ render_stat_card(_('Tag count'), stats["total_tag_updates"]) }}
 </div>
 
+{# The types this integration writes on, and the ones the review left out —
+   both named, as the history will record them. #}
+<h2 class="text-lg">{{ _('Object types') }}</h2>
+<div class="flex flex-col gap-1 text-sm">
+    <p class="flex flex-wrap items-center gap-1">
+        <span class="muted">{{ _('Included:') }}</span>
+        {% for category in categories %}
+        <span class="badge badge-sm badge-outline badge-success font-mono">{{ category.tag or _('no primary tag') }} × {{ category.count }}</span>
+        {% else %}<span class="muted">—</span>{% endfor %}
+    </p>
+    <p class="flex flex-wrap items-center gap-1">
+        <span class="muted">{{ _('Left out by the filter:') }}</span>
+        {% for category in excluded %}
+        <span class="badge badge-sm badge-outline badge-warning font-mono">{{ category }}</span>
+        {% else %}<span class="muted">—</span>{% endfor %}
+    </p>
+</div>
+
 <h2 class="text-lg">{{ _('Updates per tag') }}</h2>
 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
     {% for stat in stats["by_tag"] %}

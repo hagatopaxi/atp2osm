@@ -12,7 +12,7 @@ async function confirm_import() {
   button_validate.setAttribute("disabled", true);
   button_cancel.setAttribute("disabled", true);
   const wikidata = extractWikidata(window.location.href);
-  const response = await fetch(`/brands/${wikidata}/upload`, { method: "POST" });
+  const response = await fetch(`/brands/${wikidata}/upload${window.location.search}`, { method: "POST" });
   const warning = document.getElementById("warning");
   const warningIcon = warning.querySelector("i");
   const warningText = warning.querySelector("span");

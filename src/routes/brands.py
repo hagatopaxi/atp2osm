@@ -3,7 +3,8 @@ import json
 import logging
 import re
 from collections import Counter
-from typing import Any
+from collections.abc import Sequence
+from typing import Any, NamedTuple
 
 from flask import (
     Blueprint,
@@ -24,12 +25,16 @@ from src.db import get_osmdb
 from src.extensions import delete_memoized, memoize
 from src.matching import (
     BLOCKED_BRANDS_SQL,
+    NO_CATEGORY,
+    Category,
     Change,
     SubdivisionScope,
     Wave,
     batch_categories,
     batch_scope,
+    category_key,
     current_wave,
+    exclude_categories,
     get_all,
     get_blocked_subdivisions,
     get_changes,
@@ -129,6 +134,17 @@ def _get_blocking_import(brand_wikidata: str, wave: int) -> DictRow | None:
         ).fetchone()
 
 
+def _atp_brand_name(brand_wikidata: str) -> str | None:
+    """The brand's name as ATP writes it, or None when ATP does not know it."""
+    osmdb = get_osmdb()
+    with osmdb.cursor() as cursor:
+        named = cursor.execute(
+            "SELECT brand FROM atp_places WHERE brand_wikidata = %s LIMIT 1",
+            (brand_wikidata,),
+        ).fetchone()
+    return str(named[0]) if named else None
+
+
 def _get_last_import(brand_wikidata: str) -> DictRow | None:
     """Latest integration of the brand, or None — shown on /validate so the
     reviewer knows what went wrong last time (status and comments).
@@ -136,7 +152,8 @@ def _get_last_import(brand_wikidata: str) -> DictRow | None:
     osmdb = get_osmdb()
     with osmdb.cursor(row_factory=dict_row) as cursor:
         last = cursor.execute(
-            """SELECT id, import_date, status, comment, osm_user_id
+            """SELECT id, import_date, status, comment, osm_user_id,
+                      included_categories, excluded_categories
                FROM import_history
                WHERE brand_wikidata = %s
                ORDER BY import_date DESC
@@ -167,7 +184,46 @@ def brand_matches(brand_wikidata: str, wave: int) -> list[Change]:
         return get_changes(cursor, wave)
 
 
-def get_batch(brand_wikidata: str) -> tuple[list[Change], list[SubdivisionScope], Wave]:
+class Batch(NamedTuple):
+    """What a review works on: the batch itself, and what it was composed from."""
+
+    changes: list[Change]
+    scope: list[SubdivisionScope]
+    wave: Wave
+    categories: list[Category]
+    excluded: frozenset[str]
+    # True when the exclusions come from the last integration rather than from
+    # the form: /validate says so, so nobody drops a type without knowing.
+    replayed: bool
+
+
+def read_excluded(
+    brand_wikidata: str, categories: Sequence[Category]
+) -> tuple[frozenset[str], bool]:
+    """The types to leave out of the batch, and whether they were replayed.
+
+    The form posts the types it keeps — that is what a ticked checkbox sends —
+    and a hidden `filtered`, so "every type kept" is distinguishable from "no
+    choice made". Without it the last integration's choice is replayed.
+    """
+    shown = {category["tag"] or NO_CATEGORY for category in categories}
+    if request.args.get("filtered"):
+        kept = set(request.args.getlist("keep"))
+        return frozenset(shown - kept), False
+    osmdb = get_osmdb()
+    with osmdb.cursor() as cursor:
+        last = cursor.execute(
+            """SELECT excluded_categories
+               FROM import_history
+               WHERE brand_wikidata = %s
+               ORDER BY import_date DESC
+               LIMIT 1""",
+            (brand_wikidata,),
+        ).fetchone()
+    return frozenset(last[0] or ()) if last else frozenset(), True
+
+
+def get_batch(brand_wikidata: str) -> Batch:
     """Matches of the next batch, its scope per subdivision, and its wave.
 
     Recomposed on every call from the current state: two calls with no import in
@@ -178,14 +234,18 @@ def get_batch(brand_wikidata: str) -> tuple[list[Change], list[SubdivisionScope]
         wave = current_wave(cursor, brand_wikidata)
         blocked = get_blocked_subdivisions(cursor, brand_wikidata, wave.number)
 
-    changes = brand_matches(brand_wikidata, wave.number)
-    changes = select_batch(changes, blocked, wave.batch_size)
+    matches = brand_matches(brand_wikidata, wave.number)
+    # The counts the form shows are those of the unfiltered batch: a type the
+    # reviewer took out must stay tickable, with the weight it would have had.
+    categories = batch_categories(select_batch(matches, blocked, wave.batch_size))
+    excluded, replayed = read_excluded(brand_wikidata, categories)
+    changes = select_batch(exclude_categories(matches, excluded), blocked, wave.batch_size)
     # A value a human posted recently is theirs, not ours. Costs no request on
     # a wave that only adds tags, and one batch's worth on wave 2.
     # ponytail: replayed on /validate, /confirm and /upload rather than cached
     # — a batch is one POI in alpha. Memoize it if the batch size is raised.
     changes = protect_recent_edits(changes)
-    return changes, batch_scope(changes), wave
+    return Batch(changes, batch_scope(changes), wave, categories, excluded, replayed)
 
 
 @brands_bp.errorhandler(OsmApiUnavailableError)
@@ -268,35 +328,56 @@ def _review_item(item: Change) -> dict[str, Any]:
 @brands_bp.route("/brands/<brand_wikidata>/validate")
 @auth_required
 def brands_validate(brand_wikidata: str) -> str:
-    changes, scope, wave = get_batch(brand_wikidata)
+    batch = get_batch(brand_wikidata)
+    changes, scope, wave = batch.changes, batch.scope, batch.wave
+    # A batch the filter emptied is not a brand that is done: unticking every
+    # type would close it as integrated, so the reviewer confirms it instead.
+    filtered_out = not changes and bool(batch.categories) and not request.args.get("confirm_empty")
 
-    if len(changes) == 0:
+    if not changes and not filtered_out:
+        # Nothing left because the reviewer turned every type down is not a
+        # wave that is done: `success` would bring the very same matches back
+        # once its cooldown expired. `cancelled` holds them until ATP
+        # republishes — until the data that produced them changes.
+        refused = sorted(batch.excluded) if batch.categories else []
         osmdb = get_osmdb()
         with osmdb.cursor() as cursor:
-            named = cursor.execute(
-                "SELECT brand FROM atp_places WHERE brand_wikidata = %s LIMIT 1",
-                (brand_wikidata,),
-            ).fetchone()
-            brand_name = str(named[0]) if named else None
             cursor.execute(
-                """INSERT INTO import_history (brand_wikidata, osm_user_id, status, items_count, brand_name, wave)
-                   VALUES (%s, %s, 'success', 0, %s, %s)""",
-                (brand_wikidata, session["user"]["osm_id"], brand_name, wave.number),
+                """INSERT INTO import_history
+                       (brand_wikidata, osm_user_id, status, comment, items_count, brand_name,
+                        wave, included_categories, excluded_categories)
+                   VALUES (%s, %s, %s, %s, 0, %s, %s, %s, %s)""",
+                (
+                    brand_wikidata,
+                    session["user"]["osm_id"],
+                    "cancelled" if refused else "success",
+                    json.dumps([{"reasons": ["types_all_excluded"], "comment": ", ".join(refused)}])
+                    if refused
+                    else None,
+                    _atp_brand_name(brand_wikidata),
+                    wave.number,
+                    [],
+                    refused,
+                ),
             )
             osmdb.commit()
+        if refused:
+            return render_template("brands/:brand_wikidata/refused.html", excluded=refused)
         return render_template("brands/:brand_wikidata/empty.html")
 
     sample = sample_for_review(changes, wave.sample_size)
-    brand = sample[0]["atp_brand"]
     items = [_review_item(item) for item in sample]
 
     return render_template(
         "brands/:brand_wikidata/validate.html",
         brand_wikidata=brand_wikidata,
-        brand=brand,
+        brand=sample[0]["atp_brand"] if sample else _atp_brand_name(brand_wikidata),
         size=len(changes),
         scope=scope,
-        categories=batch_categories(changes),
+        categories=batch.categories,
+        excluded=batch.excluded,
+        replayed_filter=batch.replayed and bool(batch.excluded),
+        filtered_out=filtered_out,
         items=items,
         wave_number=wave.number,
         last_import=_get_last_import(brand_wikidata),
@@ -306,7 +387,8 @@ def brands_validate(brand_wikidata: str) -> str:
 @brands_bp.route("/brands/<brand_wikidata>/confirm")
 @auth_required
 def brands_confirm(brand_wikidata: str) -> ResponseReturnValue:
-    changes, _, wave = get_batch(brand_wikidata)
+    batch = get_batch(brand_wikidata)
+    changes, wave = batch.changes, batch.wave
     # A blocked brand is not in the list: only a forged URL lands here.
     if _get_blocking_import(brand_wikidata, wave.number):
         abort(403)
@@ -319,6 +401,8 @@ def brands_confirm(brand_wikidata: str) -> ResponseReturnValue:
     return render_template(
         "brands/:brand_wikidata/confirm.html",
         stats=stats,
+        categories=batch_categories(changes),
+        excluded=sorted(batch.excluded),
         wave_number=wave.number,
         logs=json.dumps(changes, indent=4, ensure_ascii=False),
     )
@@ -337,7 +421,7 @@ def report_error(brand_wikidata: str) -> ResponseReturnValue:
     if not isinstance(data, dict):
         abort(400)
     body: dict[str, object] = data  # pyright: ignore[reportUnknownVariableType]
-    _, _, wave = get_batch(brand_wikidata)
+    wave = get_batch(brand_wikidata).wave
     comment = str(body.get("comment", ""))
     brand_name = str(body.get("brand_name", ""))
     osmdb = get_osmdb()
@@ -362,7 +446,8 @@ def _returned_id(row: tuple[Any, ...] | None) -> int:
 @brands_bp.route("/brands/<brand_wikidata>/upload", methods=["POST"])
 @auth_required
 def upload_changes(brand_wikidata: str) -> ResponseReturnValue:
-    changes, _, wave = get_batch(brand_wikidata)
+    batch = get_batch(brand_wikidata)
+    changes, wave = batch.changes, batch.wave
     if _get_blocking_import(brand_wikidata, wave.number):
         return Response(
             json.dumps({"errors": ["Brand under cooldown"]}),
@@ -401,8 +486,9 @@ def upload_changes(brand_wikidata: str) -> ResponseReturnValue:
         # changeset_ids is no longer filled: the per-subdivision detail now
         # lives in import_subdivisions.
         cursor.execute(
-            """INSERT INTO import_history (brand_wikidata, osm_user_id, status, comment, items_count, brand_name, tags_count, wave)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+            """INSERT INTO import_history (brand_wikidata, osm_user_id, status, comment, items_count, brand_name, tags_count, wave,
+                    included_categories, excluded_categories)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
             (
                 brand_wikidata,
                 session["user"]["osm_id"],
@@ -412,6 +498,8 @@ def upload_changes(brand_wikidata: str) -> ResponseReturnValue:
                 bulk_upload.brand_name,
                 json.dumps(stats["by_tag"]),
                 wave.number,
+                sorted({category_key(change) for change in bulk_upload.uploaded_changes}),
+                sorted(batch.excluded),
             ),
         )
         entry_id = _returned_id(cursor.fetchone())

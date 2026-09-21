@@ -1,0 +1,23 @@
+{% extends '_base.html' %}
+
+{% block title %}{{ _('Brand turned down') }}{% endblock %}
+{% block subtitle %}{{ _('None of the matched object types were kept.') }}{% endblock %}
+
+{% from '_info_card.html' import info_card %}
+
+{% block content %}
+{% call info_card('warning') %}
+<div class="flex flex-col gap-2">
+    <p>{{ _('Nothing was written to OpenStreetMap: every object type this batch matched was left out.') }}</p>
+    <p class="flex flex-wrap items-center gap-1">
+        {{ _('Left out by the filter:') }}
+        {% for category in excluded %}
+        <span class="badge badge-sm badge-outline badge-warning font-mono">{{ category }}</span>
+        {% endfor %}
+    </p>
+    <p class="text-sm muted">{{ _('The brand is turned down rather than marked as integrated: it comes back once All The Places republishes its data, not once a cooldown expires.') }}</p>
+</div>
+{% endcall %}
+
+<a class="btn btn-primary mt-4" href="/brands">{{ _('Back to the brand list') }}</a>
+{% endblock %}
