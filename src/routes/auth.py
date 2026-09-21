@@ -1,9 +1,12 @@
 import functools
 import logging
+from collections.abc import Callable
+from typing import ParamSpec
 from urllib.parse import urlparse
 
 import requests
-from flask import Blueprint, session, request, redirect, url_for, abort, Response
+from flask import Blueprint, Response, abort, redirect, request, session, url_for
+from flask.typing import ResponseReturnValue
 from oauthlib.oauth2 import OAuth2Error
 from requests_oauthlib import OAuth2Session
 
@@ -22,11 +25,14 @@ token_url = f"{api_url}/oauth2/token"
 scope = ["write_api", "read_prefs"]
 
 
-def auth_required(f):
+P = ParamSpec("P")
+
+
+def auth_required(f: Callable[P, ResponseReturnValue]) -> Callable[P, ResponseReturnValue]:
     @functools.wraps(f)
-    def decorator(*args, **kwargs):
+    def decorator(*args: P.args, **kwargs: P.kwargs) -> ResponseReturnValue:
         if "user" not in session:
-            return abort(403)
+            abort(403)
         if "token" not in session:
             session.clear()
             return redirect("/?session_expired=1")
@@ -35,22 +41,24 @@ def auth_required(f):
     return decorator
 
 
-def get_oauth_redirect_uri():
+def get_oauth_redirect_uri() -> str:
     if _settings.app_base_url:
         return f"{_settings.app_base_url}/oauth-callback"
     return url_for("auth.oauth_callback", _external=True)
 
 
 @auth_bp.route("/login", methods=["POST"])
-def login():
+def login() -> ResponseReturnValue:
     redirect_uri = get_oauth_redirect_uri()
 
     osm = OAuth2Session(client_id, redirect_uri=redirect_uri, scope=scope)
-    authorization_url, state = osm.authorization_url(authorization_base_url)
-    session["oauth_state"] = state
+    # The oauthlib stubs leave `state` incomplete: it is the str oauthlib draws.
+    authorization_url, state = osm.authorization_url(authorization_base_url)  # pyright: ignore[reportUnknownMemberType]
+    session["oauth_state"] = str(state)
 
     data = request.get_json(silent=True)
-    next_url = data.get("next", "/") if isinstance(data, dict) else "/"
+    body: dict[str, object] = data if isinstance(data, dict) else {}  # pyright: ignore[reportUnknownVariableType]
+    next_url = str(body.get("next", "/"))
     # Protected against open-redirect attack, see https://owasp.org/www-community/attacks/open_redirect
     parsed = urlparse(next_url)
     if parsed.netloc or parsed.scheme or not next_url.startswith("/"):
@@ -61,7 +69,7 @@ def login():
 
 
 @auth_bp.route("/oauth-callback")
-def oauth_callback():
+def oauth_callback() -> ResponseReturnValue:
     if "error" in request.args:
         return "Authentication failed: " + request.args["error"], 401
 
@@ -73,20 +81,16 @@ def oauth_callback():
 
     redirect_uri = get_oauth_redirect_uri()
 
-    osm = OAuth2Session(
-        client_id, redirect_uri=redirect_uri, state=session["oauth_state"]
-    )
+    osm = OAuth2Session(client_id, redirect_uri=redirect_uri, state=session["oauth_state"])
     # On every call, not just the token one: the OSM API drops connections
     # that come in as python-requests.
     osm.headers["User-Agent"] = f"atp2osm/{_settings.app_version}"
 
     authorization_response = request.url
-    if redirect_uri.startswith("https://") and authorization_response.startswith(
-        "http://"
-    ):
+    if redirect_uri.startswith("https://") and authorization_response.startswith("http://"):
         authorization_response = "https://" + authorization_response[7:]
     try:
-        token = osm.fetch_token(
+        token = osm.fetch_token(  # pyright: ignore[reportUnknownMemberType] — incomplete stubs
             token_url,
             client_secret=client_secret,
             authorization_response=authorization_response,
@@ -118,7 +122,7 @@ def oauth_callback():
 
 @auth_bp.route("/logout", methods=["POST"])
 @auth_required
-def logout():
+def logout() -> ResponseReturnValue:
     # clean the session
     session.clear()
 

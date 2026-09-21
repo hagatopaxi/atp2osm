@@ -1,15 +1,15 @@
 import logging
-
 from io import BytesIO
 
-from flask import Blueprint, abort, render_template, request, Response, url_for, send_from_directory
+from flask import Blueprint, Response, abort, render_template, request, send_from_directory, url_for
+from flask.typing import ResponseReturnValue
 from psycopg.rows import dict_row
-from staticmap import StaticMap, CircleMarker
+from staticmap import CircleMarker, StaticMap
 
 from src.config import STATIC_DIR, get_settings
 from src.db import get_osmdb
+from src.extensions import cached
 from src.routes.spiders import SPIDERS_PAGE_LINKED
-from src.extensions import cache
 
 logger = logging.getLogger(__name__)
 
@@ -31,8 +31,7 @@ PUBLIC_PAGES = (
 
 
 @misc_bp.route("/")
-# @cache.cached(key_prefix="home")
-def home():
+def home() -> str:
     osmdb = get_osmdb()
     with osmdb.cursor(row_factory=dict_row) as cursor:
         stats = cursor.execute("""
@@ -62,42 +61,38 @@ def home():
             FROM data_imports
             ORDER BY type, created_at DESC
         """).fetchall()
-    data_imports = {row["type"]: row for row in data_imports}
-    return render_template("home.html", stats=stats, data_imports=data_imports)
+    by_type = {str(row["type"]): row for row in data_imports}
+    return render_template("home.html", stats=stats, data_imports=by_type)
 
 
 @misc_bp.route("/docs")
-def docs():
+def docs() -> str:
     return render_template("docs.html")
 
 
 @misc_bp.route("/about")
-def about():
+def about() -> str:
     return render_template("about.html")
 
 
 @misc_bp.route("/favicon.ico")
-def favicon():
+def favicon() -> ResponseReturnValue:
     return send_from_directory(STATIC_DIR, "img/logo.svg", mimetype="image/svg+xml")
 
 
 @misc_bp.route("/google1387dd4d6e23b123.html")
-def google_site_verification():
-    return send_from_directory(
-        STATIC_DIR, "google1387dd4d6e23b123.html", mimetype="text/html"
-    )
+def google_site_verification() -> ResponseReturnValue:
+    return send_from_directory(STATIC_DIR, "google1387dd4d6e23b123.html", mimetype="text/html")
 
 
 @misc_bp.route("/robots.txt")
-def robots():
-    body = render_template(
-        "robots.txt", sitemap_url=url_for("misc.sitemap", _external=True)
-    )
+def robots() -> ResponseReturnValue:
+    body = render_template("robots.txt", sitemap_url=url_for("misc.sitemap", _external=True))
     return Response(body, mimetype="text/plain")
 
 
 @misc_bp.route("/health")
-def health():
+def health() -> ResponseReturnValue:
     # A health check that does not reach the database reports a dead site as
     # alive; a failure here is a 500, which is the answer a probe wants.
     get_osmdb().execute("SELECT 1")
@@ -105,33 +100,39 @@ def health():
 
 
 @misc_bp.route("/version")
-def version():
+def version() -> ResponseReturnValue:
     return {"version": get_settings().app_version}
 
 
 @misc_bp.route("/sitemap.xml")
-def sitemap():
-    body = render_template(
-        "sitemap.xml", pages=PUBLIC_PAGES, root=request.host_url.rstrip("/")
-    )
+def sitemap() -> ResponseReturnValue:
+    body = render_template("sitemap.xml", pages=PUBLIC_PAGES, root=request.host_url.rstrip("/"))
     return Response(body, mimetype="application/xml")
 
 
 @misc_bp.route("/llms.txt")
-def llms_txt():
+def llms_txt() -> ResponseReturnValue:
     body = render_template("llms.txt", pages=PUBLIC_PAGES)
     return Response(body, mimetype="text/plain")
 
 
 @misc_bp.route("/staticmap/<long>/<lat>")
-@cache.cached(query_string=True, key_prefix="staticmap/", timeout=300)
-def staticmap(long, lat):
+@cached(timeout=300, key_prefix="staticmap/", query_string=True)
+def staticmap(long: str, lat: str) -> ResponseReturnValue:
     # Anything but a point on Earth is no map: 404, before a tile is asked.
     try:
-        long, lat = float(long), float(lat)
+        point = (float(long), float(lat))
     except ValueError:
         abort(404)
-    if not (-180 <= long <= 180 and -90 <= lat <= 90):
+    return _render_map(*point)
+
+
+MAX_LONGITUDE = 180
+MAX_LATITUDE = 90
+
+
+def _render_map(long: float, lat: float) -> Response:
+    if not (-MAX_LONGITUDE <= long <= MAX_LONGITUDE and -MAX_LATITUDE <= lat <= MAX_LATITUDE):
         abort(404)
     m = StaticMap(400, 300, url_template="http://b.tile.osm.org/{z}/{x}/{y}.png")
     m.add_marker(CircleMarker((long, lat), "white", 18))

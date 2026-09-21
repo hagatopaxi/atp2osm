@@ -4,23 +4,27 @@ import shutil
 import socket
 import subprocess
 import sys
+from pathlib import Path
 
 import psycopg
 
 from src.config import ConfigError, get_database, get_settings
 from src.phone import ensure_normalize_phone
 from src.pipeline.dag import PIPELINE, record_failure
-from src.pipeline.errors import PipelineIncomplete
+from src.pipeline.errors import PipelineIncompleteError
 from src.pipeline.osm import forget_geofabrik_timestamp
 from src.pipeline.runner import StepFormatter, main
 
 handler = logging.StreamHandler()
-handler.setFormatter(StepFormatter(
-    fmt="[%(asctime)s] %(levelname)s - %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-))
+handler.setFormatter(
+    StepFormatter(
+        fmt="[%(asctime)s] %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+)
 logging.root.setLevel(logging.INFO)
 logging.root.addHandler(handler)
+logger = logging.getLogger(__name__)
 
 # The refresh container's entry point: one crontab line from the
 # configuration, then supercronic — which waits for a running job when asked
@@ -31,43 +35,48 @@ logging.root.addHandler(handler)
 if sys.argv[1:] == ["setup"]:
     try:
         settings = get_settings()
-    except ConfigError as exc:
-        logging.error("Configuration refused: %s", exc)
+    except ConfigError:
+        logger.exception("Configuration refused")
         sys.exit(1)
     supercronic = shutil.which("supercronic")
     if supercronic is None:
-        logging.error("supercronic is not installed — this command runs in the container image")
+        logger.error("supercronic is not installed — this command runs in the container image")
         sys.exit(1)
-    crontab = "/tmp/crontab"
-    with open(crontab, "w") as f:
-        f.write(f"{settings.refresh_schedule} uv run --no-sync python -m src.pipeline\n")
+    # The container's own /tmp: nothing else writes there.
+    crontab = Path("/tmp/crontab")  # noqa: S108
+    crontab.write_text(f"{settings.refresh_schedule} uv run --no-sync python -m src.pipeline\n")
     # Validate first: a bad schedule is a configuration error to name, not a
     # crash loop to decipher.
-    if subprocess.run([supercronic, "-test", crontab], capture_output=True).returncode != 0:
-        logging.error("app.refresh_schedule is not a cron expression: '%s'", settings.refresh_schedule)
+    checked = subprocess.run([supercronic, "-test", str(crontab)], capture_output=True, check=False)  # noqa: S603 — the path shutil.which found
+    if checked.returncode != 0:
+        logger.error(
+            "app.refresh_schedule is not a cron expression: '%s'", settings.refresh_schedule
+        )
         sys.exit(1)
     os.environ["TZ"] = settings.country.timezone
-    logging.info("Refresh scheduled at '%s' %s", settings.refresh_schedule, settings.country.timezone)
+    logger.info(
+        "Refresh scheduled at '%s' %s", settings.refresh_schedule, settings.country.timezone
+    )
     # execv replaces this process: nothing below runs on success.
     try:
-        os.execv(supercronic, [supercronic, "-passthrough-logs", crontab])
-    except OSError as exc:
-        logging.error("Cannot start supercronic: %s", exc)
+        os.execv(supercronic, [supercronic, "-passthrough-logs", str(crontab)])  # noqa: S606 — same path
+    except OSError:
+        logger.exception("Cannot start supercronic")
         sys.exit(1)
 
 get_database()  # fail fast if the DB env vars are missing
 
 # The phone key belongs to the country, so it is installed rather than
 # migrated. Before any step rebuilds an index that is built on it.
-with psycopg.connect(**get_database().connect_kwargs) as _conn:
+with psycopg.connect(get_database().conninfo) as _conn:
     ensure_normalize_phone(_conn)
 
 # No internet (the nightly run has hit DNS outages): stop before any step opens
 # a data_imports row, so nothing is left half-done. Tomorrow's run retries.
 try:
     socket.getaddrinfo("download.geofabrik.de", 443)
-except OSError as exc:
-    logging.error("No internet access (%s) — aborting, tomorrow's run will retry", exc)
+except OSError:
+    logger.exception("No internet access — aborting, tomorrow's run will retry")
     sys.exit(1)
 
 # A run that crashed left its timestamp file behind; it says nothing about
@@ -77,7 +86,7 @@ forget_geofabrik_timestamp()
 
 try:
     main(PIPELINE, record_failure)
-except PipelineIncomplete as exc:
+except PipelineIncompleteError:
     # Everything else ran; the next run picks up what this one could not.
-    logging.error("Datasource unavailable (%s) — the next run will retry", exc)
+    logger.exception("Datasource unavailable — the next run will retry")
     sys.exit(1)

@@ -9,7 +9,6 @@ import pytest
 
 from src.phone import format_phone
 
-
 REWRITTEN = [
     # International, as ATP actually writes them (see atp_places).
     "+33 820 33 22 11",
@@ -44,13 +43,14 @@ REWRITTEN = [
 
 
 @pytest.mark.parametrize("value", REWRITTEN, ids=repr)
-def test_every_writing_of_an_08_number_becomes_the_national_one(value):
+def test_every_writing_of_an_08_number_becomes_the_national_one(value: str) -> None:
     assert format_phone(value) == "08 20 33 22 11"
 
 
-@pytest.mark.parametrize("prefix", ["0800", "0805", "0806", "0810", "0820",
-                                    "0825", "0836", "0891", "0892", "0899"])
-def test_the_whole_08_range_is_rewritten(prefix):
+@pytest.mark.parametrize(
+    "prefix", ["0800", "0805", "0806", "0810", "0820", "0825", "0836", "0891", "0892", "0899"]
+)
+def test_the_whole_08_range_is_rewritten(prefix: str) -> None:
     expected = f"{prefix[:2]} {prefix[2:]} 12 34 56"
     assert format_phone(f"+33 {prefix[1:]} 12 34 56") == expected
 
@@ -95,15 +95,15 @@ UNTOUCHED = [
 
 
 @pytest.mark.parametrize("value", UNTOUCHED, ids=repr)
-def test_everything_else_comes_back_unchanged(value):
+def test_everything_else_comes_back_unchanged(value: str) -> None:
     assert format_phone(value) is value
 
 
-def test_none_passes_through():
+def test_none_passes_through() -> None:
     assert format_phone(None) is None
 
 
-def test_rewriting_is_idempotent():
+def test_rewriting_is_idempotent() -> None:
     once = format_phone("+33 820 33 22 11")
     assert format_phone(once) == once
 
@@ -127,8 +127,8 @@ SHORT_PREFIXED = [
 ]
 
 
-@pytest.mark.parametrize("value,expected", SHORT_PREFIXED, ids=repr)
-def test_a_prefixed_short_number_loses_its_calling_code(value, expected):
+@pytest.mark.parametrize(("value", "expected"), SHORT_PREFIXED, ids=repr)
+def test_a_prefixed_short_number_loses_its_calling_code(value: str, expected: str) -> None:
     assert format_phone(value) == expected
 
 
@@ -150,10 +150,10 @@ SHORT_UNTOUCHED = [
 
 
 @pytest.mark.parametrize("value", SHORT_UNTOUCHED, ids=repr)
-def test_short_number_lookalikes_are_left_alone(value):
+def test_short_number_lookalikes_are_left_alone(value: str) -> None:
     assert format_phone(value) is value
 
 
-def test_short_rewriting_is_idempotent():
+def test_short_rewriting_is_idempotent() -> None:
     once = format_phone("+33 3631")
     assert format_phone(once) is once

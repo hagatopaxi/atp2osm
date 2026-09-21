@@ -6,33 +6,42 @@ the first line, one feature per line ending with a comma, `]}` on the last.
 """
 
 import json
+from pathlib import Path
+from typing import Any
 
+import duckdb
 import pytest
 
 from src.pipeline import ndgeojson_to_parquet as ndg
+from tests.conftest import one
+
+Feature = dict[str, Any]
 
 
-def feature(id, lon=2.35, lat=48.85):
+def feature(feature_id: str, lon: float | None = 2.35, lat: float = 48.85) -> Feature:
     return {
-        "type": "Feature", "id": id,
-        "properties": {"@spider": "babylone_fr", "name": f"Babylone {id}"},
+        "type": "Feature",
+        "id": feature_id,
+        "properties": {"@spider": "babylone_fr", "name": f"Babylone {feature_id}"},
         "geometry": None if lon is None else {"type": "Point", "coordinates": [lon, lat]},
     }
 
 
-def collection(features):
+def collection(features: list[Feature]) -> str:
     """A file as ATP writes it."""
-    head = '{"type":"FeatureCollection","dataset_attributes":{"@spider":"babylone_fr"},"features":[\n'
+    head = (
+        '{"type":"FeatureCollection","dataset_attributes":{"@spider":"babylone_fr"},"features":[\n'
+    )
     body = ",\n".join(json.dumps(f) for f in features)
     return head + body + ("\n" if features else "") + "]}\n"
 
 
-def lines(path):
+def lines(path: Path) -> list[Feature]:
     return [json.loads(line) for line in path.read_text().splitlines()]
 
 
 @pytest.fixture
-def dirs(tmp_path):
+def dirs(tmp_path: Path) -> Path:
     for name in ("geojson", "ndgeojson", "split"):
         (tmp_path / name).mkdir()
     return tmp_path
@@ -41,7 +50,7 @@ def dirs(tmp_path):
 # --- GeoJSON -> NDJSON --------------------------------------------------------------
 
 
-def test_every_feature_becomes_one_line_and_the_source_is_consumed(dirs):
+def test_every_feature_becomes_one_line_and_the_source_is_consumed(dirs: Path) -> None:
     src = dirs / "geojson" / "babylone_fr.geojson"
     src.write_text(collection([feature("a"), feature("b"), feature("c")]))
 
@@ -53,7 +62,7 @@ def test_every_feature_becomes_one_line_and_the_source_is_consumed(dirs):
     assert not out.with_suffix(".geojson.tmp").exists()
 
 
-def test_a_single_feature_has_no_trailing_comma_to_drop(dirs):
+def test_a_single_feature_has_no_trailing_comma_to_drop(dirs: Path) -> None:
     (dirs / "geojson" / "one.geojson").write_text(collection([feature("only")]))
     ndg.convert_geojson_to_ndgeojson(dirs / "geojson", dirs / "ndgeojson")
     assert [f["id"] for f in lines(dirs / "ndgeojson" / "one.geojson")] == ["only"]
@@ -64,7 +73,7 @@ def test_a_single_feature_has_no_trailing_comma_to_drop(dirs):
     ["", collection([]), '{"type":"FeatureCollection","features":[]}\n'],
     ids=["empty-file", "empty-collection", "one-line-collection"],
 )
-def test_a_spider_without_features_leaves_nothing_behind(dirs, content):
+def test_a_spider_without_features_leaves_nothing_behind(dirs: Path, content: str) -> None:
     src = dirs / "geojson" / "none.geojson"
     src.write_text(content)
     (dirs / "geojson" / "some.geojson").write_text(collection([feature("a")]))
@@ -75,7 +84,7 @@ def test_a_spider_without_features_leaves_nothing_behind(dirs, content):
     assert sorted(p.name for p in (dirs / "ndgeojson").iterdir()) == ["some.geojson"]
 
 
-def test_a_crashed_run_resumes_on_what_is_left(dirs):
+def test_a_crashed_run_resumes_on_what_is_left(dirs: Path) -> None:
     """The NDJSON already written is kept, its source is only dropped."""
     done = dirs / "ndgeojson" / "done.geojson"
     done.write_text(json.dumps(feature("from-the-first-run")) + "\n")
@@ -89,12 +98,14 @@ def test_a_crashed_run_resumes_on_what_is_left(dirs):
     assert list((dirs / "geojson").iterdir()) == []
 
 
-def test_nothing_to_convert_is_an_error_not_a_silence(dirs):
+def test_nothing_to_convert_is_an_error_not_a_silence(dirs: Path) -> None:
     with pytest.raises(FileNotFoundError):
         ndg.convert_geojson_to_ndgeojson(dirs / "geojson", dirs / "ndgeojson")
 
 
-def test_the_step_skips_when_the_download_was_skipped(dirs, monkeypatch):
+def test_the_step_skips_when_the_download_was_skipped(
+    dirs: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """No zip, no geojson directory: the branch no-ops on its guard."""
     monkeypatch.setattr(ndg, "GEOJSON_DIR", dirs / "absent")
     ndg.convert_atp()
@@ -105,18 +116,20 @@ def test_the_step_skips_when_the_download_was_skipped(dirs, monkeypatch):
 # --- Split ------------------------------------------------------------------------------
 
 
-def ndjson(path, ids):
+def ndjson(path: Path, ids: list[str]) -> None:
     path.write_text("".join(json.dumps(feature(i)) + "\n" for i in ids))
 
 
-def test_a_small_file_is_moved_whole(dirs):
+def test_a_small_file_is_moved_whole(dirs: Path) -> None:
     ndjson(dirs / "ndgeojson" / "small.geojson", ["a", "b"])
     ndg.split_ndgeojson(dirs / "ndgeojson", dirs / "split")
     assert [f["id"] for f in lines(dirs / "split" / "small.geojson")] == ["a", "b"]
     assert list((dirs / "ndgeojson").iterdir()) == []
 
 
-def test_a_big_file_is_cut_on_line_boundaries_without_losing_a_feature(dirs, monkeypatch):
+def test_a_big_file_is_cut_on_line_boundaries_without_losing_a_feature(
+    dirs: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setattr(ndg, "MAX_FILE_SIZE", 300)
     ids = [f"feature-{i:03d}" for i in range(20)]
     src = dirs / "ndgeojson" / "big.geojson"
@@ -124,7 +137,9 @@ def test_a_big_file_is_cut_on_line_boundaries_without_losing_a_feature(dirs, mon
 
     ndg.split_ndgeojson(dirs / "ndgeojson", dirs / "split")
 
-    chunks = sorted((dirs / "split").glob("big_*.geojson"), key=lambda p: int(p.stem.rsplit("_", 1)[1]))
+    chunks = sorted(
+        (dirs / "split").glob("big_*.geojson"), key=lambda p: int(p.stem.rsplit("_", 1)[1])
+    )
     assert len(chunks) > 1
     assert all(c.stat().st_size <= 300 for c in chunks)
     # Every chunk is whole lines, and together they are the file.
@@ -132,21 +147,32 @@ def test_a_big_file_is_cut_on_line_boundaries_without_losing_a_feature(dirs, mon
     assert not src.exists()
 
 
-def test_a_line_bigger_than_a_chunk_is_emitted_whole(dirs, monkeypatch):
+def test_a_line_bigger_than_a_chunk_is_emitted_whole(
+    dirs: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """A hard cut would corrupt the JSON object."""
     monkeypatch.setattr(ndg, "MAX_FILE_SIZE", 120)
     huge = feature("huge")
     huge["properties"]["description"] = "x" * 500
     src = dirs / "ndgeojson" / "big.geojson"
-    src.write_text(json.dumps(feature("small")) + "\n" + json.dumps(huge) + "\n" + json.dumps(feature("after")) + "\n")
+    src.write_text(
+        json.dumps(feature("small"))
+        + "\n"
+        + json.dumps(huge)
+        + "\n"
+        + json.dumps(feature("after"))
+        + "\n"
+    )
 
     ndg.split_ndgeojson(dirs / "ndgeojson", dirs / "split")
 
-    chunks = sorted((dirs / "split").glob("big_*.geojson"), key=lambda p: int(p.stem.rsplit("_", 1)[1]))
+    chunks = sorted(
+        (dirs / "split").glob("big_*.geojson"), key=lambda p: int(p.stem.rsplit("_", 1)[1])
+    )
     assert [f["id"] for c in chunks for f in lines(c)] == ["small", "huge", "after"]
 
 
-def test_a_crashed_split_is_redone_identically(dirs, monkeypatch):
+def test_a_crashed_split_is_redone_identically(dirs: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(ndg, "MAX_FILE_SIZE", 300)
     ids = [f"feature-{i:03d}" for i in range(20)]
     ndjson(dirs / "ndgeojson" / "big.geojson", ids)
@@ -155,16 +181,20 @@ def test_a_crashed_split_is_redone_identically(dirs, monkeypatch):
 
     ndg.split_ndgeojson(dirs / "ndgeojson", dirs / "split")
 
-    chunks = sorted((dirs / "split").glob("big_*.geojson"), key=lambda p: int(p.stem.rsplit("_", 1)[1]))
+    chunks = sorted(
+        (dirs / "split").glob("big_*.geojson"), key=lambda p: int(p.stem.rsplit("_", 1)[1])
+    )
     assert [f["id"] for c in chunks for f in lines(c)] == ids
 
 
-def test_nothing_to_split_is_an_error_not_a_silence(dirs):
+def test_nothing_to_split_is_an_error_not_a_silence(dirs: Path) -> None:
     with pytest.raises(FileNotFoundError):
         ndg.split_ndgeojson(dirs / "ndgeojson", dirs / "split")
 
 
-def test_the_split_step_skips_when_nothing_was_converted(dirs, monkeypatch):
+def test_the_split_step_skips_when_nothing_was_converted(
+    dirs: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setattr(ndg, "NDGEOJSON_DIR", dirs / "ndgeojson")
     ndg.split_atp()
     assert list((dirs / "split").iterdir()) == []
@@ -173,16 +203,15 @@ def test_the_split_step_skips_when_nothing_was_converted(dirs, monkeypatch):
 # --- NDJSON -> parquet -------------------------------------------------------------------
 
 
-def read_parquet(path):
-    import duckdb
+def read_parquet(path: Path) -> list[tuple[Any, ...]]:
     with duckdb.connect() as con:
         con.load_extension("spatial")
         return con.execute(
-            f"SELECT id, properties->>'$.name', ST_X(geom), ST_Y(geom) FROM read_parquet('{path}') ORDER BY id"
+            f"SELECT id, properties->>'$.name', ST_X(geom), ST_Y(geom) FROM read_parquet('{path}') ORDER BY id"  # noqa: S608 — a path of the test
         ).fetchall()
 
 
-def test_the_parquet_holds_every_located_feature(dirs):
+def test_the_parquet_holds_every_located_feature(dirs: Path) -> None:
     ndjson(dirs / "split" / "part_1.geojson", ["a", "b"])
     (dirs / "split" / "part_2.geojson").write_text(
         json.dumps(feature("c", 3.0, 44.0)) + "\n" + json.dumps(feature("nowhere", None)) + "\n"
@@ -199,27 +228,28 @@ def test_the_parquet_holds_every_located_feature(dirs):
     assert not (dirs / ".duckdb_temp").exists()
 
 
-def test_the_parquet_carries_its_geoparquet_metadata(dirs):
+def test_the_parquet_carries_its_geoparquet_metadata(dirs: Path) -> None:
     """Written by the spatial extension: it is what makes `geom` read back
-    as a geometry rather than a blob."""
-    import duckdb
-
+    as a geometry rather than a blob.
+    """
     ndjson(dirs / "split" / "part.geojson", ["a"])
     (dirs / "split" / "far.geojson").write_text(json.dumps(feature("b", -61.0, 14.6)) + "\n")
 
     ndg.convert_to_parquet(dirs / "split", dirs / "latest.parquet")
 
     with duckdb.connect() as con:
-        (geo,) = con.execute(
-            f"SELECT value FROM parquet_kv_metadata('{dirs / 'latest.parquet'}') WHERE key = 'geo'"
-        ).fetchone()
-    geo = json.loads(geo)
+        (raw,) = one(
+            con.execute(
+                f"SELECT value FROM parquet_kv_metadata('{dirs / 'latest.parquet'}') WHERE key = 'geo'"  # noqa: S608
+            ).fetchone()
+        )
+    geo = json.loads(raw)
     assert geo["primary_column"] == "geom"
     assert geo["columns"]["geom"]["encoding"] == "WKB"
     assert geo["columns"]["geom"]["bbox"] == [-61.0, 14.6, 2.35, 48.85]
 
 
-def test_a_previous_parquet_is_replaced_not_appended(dirs):
+def test_a_previous_parquet_is_replaced_not_appended(dirs: Path) -> None:
     ndjson(dirs / "split" / "part.geojson", ["a"])
     ndg.convert_to_parquet(dirs / "split", dirs / "latest.parquet")
     ndjson(dirs / "split" / "part.geojson", ["b"])
@@ -227,17 +257,17 @@ def test_a_previous_parquet_is_replaced_not_appended(dirs):
     assert [r[0] for r in read_parquet(dirs / "latest.parquet")] == ["b"]
 
 
-def test_only_empty_files_is_an_error(dirs):
+def test_only_empty_files_is_an_error(dirs: Path) -> None:
     (dirs / "split" / "empty.geojson").write_text("")
     with pytest.raises(FileNotFoundError):
         ndg.convert_to_parquet(dirs / "split", dirs / "latest.parquet")
 
 
-def test_a_corrupt_line_fails_the_step_rather_than_dropping_the_feature(dirs):
+def test_a_corrupt_line_fails_the_step_rather_than_dropping_the_feature(dirs: Path) -> None:
     ndjson(dirs / "split" / "part.geojson", ["a"])
-    with open(dirs / "split" / "part.geojson", "a") as f:
+    with (dirs / "split" / "part.geojson").open("a") as f:
         f.write('{"type": "Feature", "id": "cut off", "properties": {\n')
-    with pytest.raises(Exception):
+    with pytest.raises(duckdb.Error):
         ndg.convert_to_parquet(dirs / "split", dirs / "latest.parquet")
     assert not (dirs / "latest.parquet").exists()
     assert not (dirs / ".duckdb_temp").exists()

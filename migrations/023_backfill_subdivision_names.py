@@ -142,7 +142,7 @@ _DEPARTEMENT_NAMES = {
 
 
 class BackfillSubdivisionNames(Migration):
-    def migrate(self):
+    def migrate(self) -> None:
         with self.conn.cursor() as cursor:
             cursor.execute(
                 """SELECT DISTINCT subdivision_code FROM import_subdivisions

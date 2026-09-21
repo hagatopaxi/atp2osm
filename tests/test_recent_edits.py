@@ -5,23 +5,25 @@ directly, which is what the two functions under test read.
 """
 
 from dataclasses import replace
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+from typing import Any, Never
 
 import pytest
 
-import src.osm_history as osm_history
+from src import osm_history
 from src.config import get_settings
-from src.osm_history import protect_recent_edits, value_set_at
-
+from src.matching import Change
+from src.osm_history import Version, protect_recent_edits, value_set_at
+from tests.conftest import make_change
 
 pytestmark = pytest.mark.usefixtures("guard_on")
 
-NOW = datetime.now(timezone.utc)
+NOW = datetime.now(UTC)
 OLD = NOW - timedelta(weeks=52)
 RECENT = NOW - timedelta(days=3)
 
 
-def version(number, value, when, changeset):
+def version(number: int, value: str | None, when: datetime, changeset: int) -> Version:
     return {
         "version": number,
         "timestamp": when.isoformat(),
@@ -30,17 +32,17 @@ def version(number, value, when, changeset):
     }
 
 
-def test_the_oldest_consecutive_version_carrying_the_value_is_the_one_that_posted_it():
+def test_the_oldest_consecutive_version_carrying_the_value_is_the_one_that_posted_it() -> None:
     history = [
         version(1, "0100000000", OLD, 10),
         version(2, "0123456789", OLD, 11),
         version(3, "0123456789", RECENT, 12),  # a rewrite, not a posting
     ]
     when, changeset = value_set_at(history, "phone")
-    assert (when, changeset) == (osm_history._parse(OLD.isoformat()), 11)
+    assert (when, changeset) == (osm_history.parse_timestamp(OLD.isoformat()), 11)
 
 
-def test_a_value_recreated_after_a_deletion_was_posted_again():
+def test_a_value_recreated_after_a_deletion_was_posted_again() -> None:
     """Absence is a value like any other: the deletion breaks the run."""
     history = [
         version(1, "0123456789", OLD, 10),
@@ -51,68 +53,61 @@ def test_a_value_recreated_after_a_deletion_was_posted_again():
     assert changeset == 12
 
 
-def test_a_single_version_object_answers_v1():
+def test_a_single_version_object_answers_v1() -> None:
     _, changeset = value_set_at([version(1, "0123456789", OLD, 10)], "phone")
     assert changeset == 10
 
 
 @pytest.fixture
-def api(monkeypatch):
+def api(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     """The two API reads, staged."""
-    state = {"history": [], "bot": False, "calls": 0}
+    state: dict[str, Any] = {"history": [], "bot": False, "calls": 0}
 
-    def versions(node_type, osm_id):
+    def versions(_node_type: str, _osm_id: int) -> list[Version]:
         state["calls"] += 1
         return state["history"]
 
+    def is_bot(_changeset: int) -> bool:
+        return state["bot"]
+
     monkeypatch.setattr(osm_history, "versions", versions)
-    monkeypatch.setattr(osm_history, "is_bot", lambda changeset: state["bot"])
+    monkeypatch.setattr(osm_history, "is_bot", is_bot)
     return state
 
 
-def change(tag, old_tag, osm_timestamp):
-    return {
-        "id": 1,
-        "node_type": "node",
-        "tag": dict(tag),
-        "old_tag": dict(old_tag),
-        "osm_timestamp": osm_timestamp.isoformat(),
-    }
-
-
-def test_a_recent_human_value_is_kept_and_the_poi_drops_out(api):
-    api["history"] = [version(1, "0100000000", RECENT, 12)]
-    kept = protect_recent_edits(
-        [change({"phone": "0123456789"}, {"phone": "0100000000"}, RECENT)]
+def change(tag: dict[str, str], old_tag: dict[str, str], osm_timestamp: datetime) -> Change:
+    return make_change(
+        tag=dict(tag), old_tag=dict(old_tag), osm_timestamp=osm_timestamp.isoformat()
     )
+
+
+def test_a_recent_human_value_is_kept_and_the_poi_drops_out(api: dict[str, Any]) -> None:
+    api["history"] = [version(1, "0100000000", RECENT, 12)]
+    kept = protect_recent_edits([change({"phone": "0123456789"}, {"phone": "0100000000"}, RECENT)])
     assert kept == []
 
 
-def test_a_recent_bot_value_is_replaced(api):
+def test_a_recent_bot_value_is_replaced(api: dict[str, Any]) -> None:
     api["history"] = [version(1, "0100000000", RECENT, 12)]
     api["bot"] = True
-    kept = protect_recent_edits(
-        [change({"phone": "0123456789"}, {"phone": "0100000000"}, RECENT)]
-    )
+    kept = protect_recent_edits([change({"phone": "0123456789"}, {"phone": "0100000000"}, RECENT)])
     assert kept[0]["tag"] == {"phone": "0123456789"}
 
 
-def test_an_old_object_costs_no_request(api):
-    kept = protect_recent_edits(
-        [change({"phone": "0123456789"}, {"phone": "0100000000"}, OLD)]
-    )
+def test_an_old_object_costs_no_request(api: dict[str, Any]) -> None:
+    kept = protect_recent_edits([change({"phone": "0123456789"}, {"phone": "0100000000"}, OLD)])
     assert api["calls"] == 0
     assert kept[0]["tag"] == {"phone": "0123456789"}
 
 
-def test_an_addition_is_never_protected(api):
+def test_an_addition_is_never_protected(api: dict[str, Any]) -> None:
     """Wave 1 overwrites nothing, so it asks nothing."""
     kept = protect_recent_edits([change({"phone": "0123456789"}, {}, RECENT)])
     assert api["calls"] == 0
     assert kept[0]["tag"] == {"phone": "0123456789"}
 
 
-def test_the_protection_is_per_tag_not_per_object(api):
+def test_the_protection_is_per_tag_not_per_object(api: dict[str, Any]) -> None:
     """A POI whose name was fixed yesterday still takes a website."""
     api["history"] = [
         {
@@ -128,28 +123,37 @@ def test_the_protection_is_per_tag_not_per_object(api):
             "tags": {"name": "Babylone", "website": "https://old.example"},
         },
     ]
-    kept = protect_recent_edits([
-        change(
-            {"name": "Babylone Paris", "website": "https://babylone.fr"},
-            {"name": "Babylone", "website": "https://old.example"},
-            RECENT,
-        )
-    ])
+    kept = protect_recent_edits(
+        [
+            change(
+                {"name": "Babylone Paris", "website": "https://babylone.fr"},
+                {"name": "Babylone", "website": "https://old.example"},
+                RECENT,
+            )
+        ]
+    )
     assert kept[0]["tag"] == {
-        "name": "Babylone",                  # posted by a human three days ago
-        "website": "https://babylone.fr",    # untouched for a year
+        "name": "Babylone",  # posted by a human three days ago
+        "website": "https://babylone.fr",  # untouched for a year
     }
 
 
-def test_an_object_without_history_dates_nothing():
+def test_an_object_without_history_dates_nothing() -> None:
     """`elements: []` from the API: no version, no date, no changeset."""
     assert value_set_at([], "phone") == (None, None)
 
 
-def test_in_development_nothing_is_protected(monkeypatch):
+def test_in_development_nothing_is_protected(monkeypatch: pytest.MonkeyPatch) -> None:
     """The development API server holds none of the objects: the guard would
-    refuse every batch, so it stands aside there."""
-    monkeypatch.setattr(osm_history, "get_settings", lambda: replace(get_settings(), env="DEVELOPMENT"))
-    monkeypatch.setattr(osm_history, "versions", lambda *a: pytest.fail("API read"))
+    refuse every batch, so it stands aside there.
+    """
+    monkeypatch.setattr(
+        osm_history, "get_settings", lambda: replace(get_settings(), env="DEVELOPMENT")
+    )
+
+    def never(*_a: object) -> Never:
+        pytest.fail("API read")
+
+    monkeypatch.setattr(osm_history, "versions", never)
     changes = [change({"phone": "0123456789"}, {"phone": "0987654321"}, RECENT)]
     assert protect_recent_edits(changes) == changes

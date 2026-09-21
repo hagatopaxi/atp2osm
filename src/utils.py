@@ -1,22 +1,22 @@
-import os
-import time
 import logging
-import requests
-
-from datetime import date, datetime, timedelta, timezone
+import time
+from collections.abc import Iterable, Mapping, Sequence
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
+from typing import Any, LiteralString
 
+import requests
+from psycopg import sql
+from werkzeug.datastructures import MultiDict
+
+from src.config import get_settings
 
 logger = logging.getLogger(__name__)
 
 
-def delete_file_if_exists(file_path):
-    """
-    Delete a file if it exists.
-    """
-    if os.path.exists(file_path):
-        os.remove(file_path)
-
+def delete_file_if_exists(file_path: str | Path) -> None:
+    """Delete a file if it exists."""
+    Path(file_path).unlink(missing_ok=True)
 
 
 def download_large_file(
@@ -26,8 +26,7 @@ def download_large_file(
     progress_interval: int = 15,
     session: requests.Session | None = None,
 ) -> None:
-    """
-    Stream a file from *url* to *destination* while printing a progress
+    """Stream a file from *url* to *destination* while printing a progress
     percentage roughly every ``progress_interval`` seconds.
 
     Parameters
@@ -49,17 +48,12 @@ def download_large_file(
 
             # Try to obtain the total size from the HTTP header.
             total_bytes = resp.headers.get("Content-Length")
-            total_bytes = (
-                int(total_bytes) if total_bytes and total_bytes.isdigit() else None
-            )
-
-            # If we don’t know the size we’ll fall back to a simple byte counter.
-            show_percent = total_bytes is not None
+            total_bytes = int(total_bytes) if total_bytes and total_bytes.isdigit() else None
 
             written = 0
             start = last_report = time.time()
 
-            with open(dest_path, "wb") as out_file:
+            with dest_path.open("wb") as out_file:
                 for chunk in resp.iter_content(chunk_size=chunk_size):
                     if not chunk:  # skip keep‑alive chunks
                         continue
@@ -71,19 +65,22 @@ def download_large_file(
                         elapsed = now - start
                         speed = written / elapsed if elapsed > 0 else 0
 
-                        if show_percent:
-                            pct = (written / total_bytes) * 100
+                        if total_bytes is not None:
                             logger.info(
-                                f"[{elapsed:6.1f}s] "
-                                f"{pct:5.1f}% ({written:,} / {total_bytes:,} bytes) "
-                                f"@ {speed / 1024:,.1f} KiB/s"
+                                "[%6.1fs] %5.1f%% (%s / %s bytes) @ %s KiB/s",
+                                elapsed,
+                                written / total_bytes * 100,
+                                f"{written:,}",
+                                f"{total_bytes:,}",
+                                f"{speed / 1024:,.1f}",
                             )
                         else:
                             # No length header → just show bytes transferred.
                             logger.info(
-                                f"[{elapsed:6.1f}s] "
-                                f"{written:,} bytes downloaded "
-                                f"@ {speed / 1024:,.1f} KiB/s"
+                                "[%6.1fs] %s bytes downloaded @ %s KiB/s",
+                                elapsed,
+                                f"{written:,}",
+                                f"{speed / 1024:,.1f}",
                             )
                         last_report = now
 
@@ -94,16 +91,12 @@ def download_large_file(
 
             total_elapsed = time.time() - start
             avg_speed = written / total_elapsed if total_elapsed > 0 else 0
-            if show_percent:
-                logger.info(
-                    f"\nDownload complete: 100.0% ({written:,} / {total_bytes:,} bytes) "
-                    f"in {total_elapsed:.1f}s ({avg_speed / 1024:,.1f} KiB/s)."
-                )
-            else:
-                logger.info(
-                    f"\nDownload complete: {written:,} bytes in "
-                    f"{total_elapsed:.1f}s ({avg_speed / 1024:,.1f} KiB/s)."
-                )
+            logger.info(
+                "Download complete: %s bytes in %.1fs (%s KiB/s).",
+                f"{written:,}",
+                total_elapsed,
+                f"{avg_speed / 1024:,.1f}",
+            )
 
     except requests.exceptions.RequestException:
         dest_path.unlink(missing_ok=True)
@@ -142,20 +135,39 @@ TODO_FILTERS = {
 # The missing-brands list hides by default the ones ATP already knows: that is
 # its whole point. ?show_in_atp=1 shows them again. Shared between the page and
 # its export, which must return the same rows.
-TODO_NOT_IN_ATP_SQL = """NOT EXISTS (
+TODO_NOT_IN_ATP_SQL = sql.SQL("""NOT EXISTS (
     SELECT 1 FROM atp_places a
     WHERE a.brand_wikidata = todo_brands.brand_wikidata
        OR LOWER(a.brand) = LOWER(todo_brands.brand_name)
-)"""
+)""")
+
+# What the query string turns into: the conditions of a WHERE clause, their
+# bound parameters, and the filters honoured, for the page to show them.
+FilterSpec = Mapping[str, str | tuple[str, ...]]
+Filters = dict[str, str | int]
+Params = list[str | int]
+Conditions = list[sql.Composable]
 
 
-def hide_brands_in_atp(where, args, active=None):
-    """Append the "not in ATP" clause unless ?show_in_atp=1 asks for them."""
+def where_clause(conditions: Conditions, lead: LiteralString = "WHERE") -> sql.Composable:
+    """The WHERE clause joining `conditions`, empty when there are none.
+
+    `lead` is what opens it — "AND" when the conditions extend a JOIN's ON.
+    """
+    if not conditions:
+        return sql.SQL("")
+    return sql.SQL(lead) + sql.SQL(" ") + sql.SQL(" AND ").join(conditions)
+
+
+def hide_brands_in_atp(
+    conditions: Conditions, args: MultiDict[str, str], active: Filters | None = None
+) -> Conditions:
+    """Add the "not in ATP" condition unless ?show_in_atp=1 asks for them."""
     if args.get("show_in_atp"):
         if active is not None:
             active["show_in_atp"] = "1"
-        return where
-    return (f"{where} AND " if where else "WHERE ") + TODO_NOT_IN_ATP_SQL
+        return conditions
+    return [*conditions, TODO_NOT_IN_ATP_SQL]
 
 
 def _iso_date(value: str) -> str:
@@ -168,8 +180,33 @@ def _iso_date(value: str) -> str:
     return value
 
 
-def build_filters(args, spec):
-    """Build a SQL WHERE clause from the query string.
+def _column(name: str, alias: str | None) -> sql.Identifier:
+    return sql.Identifier(alias, name) if alias else sql.Identifier(name)
+
+
+def _one_column(spec: FilterSpec, key: str, alias: str | None) -> sql.Identifier:
+    name = spec[key]
+    if not isinstance(name, str):
+        raise TypeError(f"filter '{key}' names one column, got {name!r}")
+    return _column(name, alias)
+
+
+def _search_condition(
+    columns: str | tuple[str, ...], needle: str, alias: str | None
+) -> tuple[sql.Composable, Params]:
+    columns = (columns,) if isinstance(columns, str) else columns
+    condition = (
+        sql.SQL("(")
+        + sql.SQL(" OR ").join(sql.SQL("{} ILIKE %s").format(_column(c, alias)) for c in columns)
+        + sql.SQL(")")
+    )
+    return condition, [f"%{needle}%"] * len(columns)
+
+
+def build_filters(
+    args: MultiDict[str, str], spec: FilterSpec, alias: str | None = None
+) -> tuple[Conditions, Params, Filters]:
+    """Build the conditions of a SQL WHERE clause from the query string.
 
     `spec` declares which filters the page exposes, and on which columns:
 
@@ -180,62 +217,62 @@ def build_filters(args, spec):
          "date":   "import_date"}                     # ?from= and ?to= bounds
 
     A filter missing from `spec` is ignored even when present in the URL. Column
-    names always come from the code, never from the request.
+    names always come from the code, never from the request; `alias` qualifies
+    them, for a query that names the table.
 
-    Returns (where_sql, params, active_filters).
+    Returns (conditions, params, active_filters) — see where_clause().
     """
-    where, params, active = [], [], {}
+    conditions: Conditions = []
+    params: Params = []
+    active: Filters = {}
 
     if "q" in spec:
         q = args.get("q", "").strip()
         if q:
-            columns = spec["q"]
-            where.append("(" + " OR ".join(f"{c} ILIKE %s" for c in columns) + ")")
-            params += [f"%{q}%"] * len(columns)
+            condition, bound = _search_condition(spec["q"], q, alias)
+            conditions.append(condition)
+            params += bound
             active["q"] = q
 
     if "status" in spec:
         status = args.get("status", "")
         if status in IMPORT_STATUSES:
-            where.append(f"{spec['status']} = %s")
+            conditions.append(sql.SQL("{} = %s").format(_one_column(spec, "status", alias)))
             params.append(status)
             active["status"] = status
 
-    if "wave" in spec:
-        wave = args.get("wave", type=int)
-        if wave:
-            where.append(f"{spec['wave']} = %s")
-            params.append(wave)
-            active["wave"] = wave
-
-    if "user" in spec:
-        user = args.get("user", type=int)
-        if user:
-            where.append(f"{spec['user']} = %s")
-            params.append(user)
-            active["user"] = user
+    for key in ("wave", "user"):
+        if key in spec:
+            value = args.get(key, type=int)
+            if value:
+                conditions.append(sql.SQL("{} = %s").format(_one_column(spec, key, alias)))
+                params.append(value)
+                active[key] = value
 
     if "date" in spec:
-        column = spec["date"]
         # A value that is not a date is ignored, like an unknown status: the
         # query never sees it, so the database never refuses it.
         date_from = _iso_date(args.get("from", ""))
         if date_from:
-            where.append(f"{column} >= %s")
+            conditions.append(sql.SQL("{} >= %s").format(_one_column(spec, "date", alias)))
             params.append(date_from)
             active["from"] = date_from
 
         date_to = _iso_date(args.get("to", ""))
         if date_to:
             # inclusive bound: everything dated on the given day
-            where.append(f"{column} < %s::date + 1")
+            conditions.append(sql.SQL("{} < %s::date + 1").format(_one_column(spec, "date", alias)))
             params.append(date_to)
             active["to"] = date_to
 
-    return ("WHERE " + " AND ".join(where) if where else ""), params, active
+    return conditions, params, active
 
 
-def filter_brands(rows, args, search=("brand", "brand_wikidata")):
+def filter_brands(
+    rows: Sequence[Mapping[str, Any]],
+    args: MultiDict[str, str],
+    search: tuple[str, ...] = ("brand", "brand_wikidata"),
+) -> tuple[list[Mapping[str, Any]], Filters]:
     """Filter the brand list from the query string.
 
     Counterpart of build_filters() for an already in-memory list — see the comment
@@ -245,7 +282,8 @@ def filter_brands(rows, args, search=("brand", "brand_wikidata")):
 
     Returns (filtered_rows, active_filters).
     """
-    active = {}
+    active: Filters = {}
+    rows = list(rows)
 
     q = args.get("q", "").strip()
     if q:
@@ -265,16 +303,12 @@ def filter_brands(rows, args, search=("brand", "brand_wikidata")):
 
     date_from = args.get("from", "").strip()
     if date_from:
-        rows = [
-            r for r in rows if r["last_import"] and str(r["last_import"].date()) >= date_from
-        ]
+        rows = [r for r in rows if r["last_import"] and str(r["last_import"].date()) >= date_from]
         active["from"] = date_from
 
     date_to = args.get("to", "").strip()
     if date_to:
-        rows = [
-            r for r in rows if r["last_import"] and str(r["last_import"].date()) <= date_to
-        ]
+        rows = [r for r in rows if r["last_import"] and str(r["last_import"].date()) <= date_to]
         active["to"] = date_to
 
     return rows, active
@@ -284,20 +318,19 @@ def filter_brands(rows, args, search=("brand", "brand_wikidata")):
 # almost never changes, a week is enough. With several workers each keeps its
 # own — that is intended, no need to bring in Redis.
 OSM_USER_CACHE_TTL = timedelta(weeks=1)
-_osm_user_cache: dict[int, tuple[str, datetime]] = {}
+osm_user_cache: dict[int, tuple[str, datetime]] = {}
 
 
-def fetch_osm_users(user_ids):
+def fetch_osm_users(user_ids: Iterable[int]) -> dict[int, str]:
     """Batch fetch user display names from the OSM API, cached one week."""
-    from src.config import get_settings
     if not user_ids:
         return {}
 
-    now = datetime.now(timezone.utc)
-    cached = {}
-    missing = []
+    now = datetime.now(UTC)
+    cached: dict[int, str] = {}
+    missing: list[int] = []
     for uid in user_ids:
-        entry = _osm_user_cache.get(uid)
+        entry = osm_user_cache.get(uid)
         if entry and entry[1] > now:
             cached[uid] = entry[0]
         else:
@@ -314,21 +347,19 @@ def fetch_osm_users(user_ids):
             headers={"User-Agent": f"atp2osm/{settings.app_version}"},
         )
         resp.raise_for_status()
-        fetched = {
-            u["user"]["id"]: u["user"]["display_name"]
-            for u in resp.json().get("users", [])
-        }
+        users: list[dict[str, dict[str, Any]]] = resp.json().get("users", [])
+        fetched = {int(u["user"]["id"]): str(u["user"]["display_name"]) for u in users}
     except Exception:
         logger.exception("Failed to fetch OSM user details")
         return cached  # the API said nothing: serve at least what we hold
 
     expires = now + OSM_USER_CACHE_TTL
     for uid, name in fetched.items():
-        _osm_user_cache[uid] = (name, expires)
+        osm_user_cache[uid] = (name, expires)
     return cached | fetched
 
 
-def _determine_import_status(results: list[dict]) -> str:
+def determine_import_status(results: Iterable[Mapping[str, Any]]) -> str:
     """Derive the import_history status from its subdivision rows.
 
     All succeeded → success ; none → error ; a mix → partial. The error kind

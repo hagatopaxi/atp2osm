@@ -13,17 +13,26 @@ pieces by the OSM import; the fixture builds it the same way, so the cutting is
 part of what is under test.
 """
 
+from collections.abc import Iterator
+from typing import LiteralString
+
 import psycopg
 import pytest
-from psycopg.rows import dict_row
+from psycopg.rows import DictRow, dict_row
 
-from src.pipeline.atp import _attach_subdivisions
+from src.config import Database
+from src.pipeline.atp import attach_subdivisions
 
-SCHEMA = "test_subdivisions"
+SCHEMA: LiteralString = "test_subdivisions"
+
+# The fixture reads rows as dicts: the assertions key on column names.
+Connection = psycopg.Connection[DictRow]
+Box = tuple[float, float, float, float]
+Boundary = tuple[int, str, str | None, int, Box]
 
 # osm_id, name, ref, admin_level, (x0, y0, x1, y1). The id is explicit so that
 # shuffling the rows changes only their physical order, never the data.
-BOUNDARIES = [
+BOUNDARIES: list[Boundary] = [
     # The country: nothing outside it is attachable.
     (1, "France", "FR", 2, (0, 0, 10, 10)),
     # A neighbour clipped into the same extract: it must never win.
@@ -47,15 +56,13 @@ BOUNDARIES = [
 ]
 
 
-def _bbox(x0, y0, x1, y1):
-    return (
-        f"SRID=4326;POLYGON(({x0} {y0}, {x1} {y0}, {x1} {y1}, {x0} {y1}, {x0} {y0}))"
-    )
+def _bbox(x0: float, y0: float, x1: float, y1: float) -> str:
+    return f"SRID=4326;POLYGON(({x0} {y0}, {x1} {y0}, {x1} {y1}, {x0} {y1}, {x0} {y0}))"
 
 
 @pytest.fixture
-def conn(db_kwargs):
-    with psycopg.connect(row_factory=dict_row, **db_kwargs) as c:
+def conn(test_db: Database) -> Iterator[Connection]:
+    with Connection.connect(test_db.conninfo, row_factory=dict_row) as c:
         c.execute(f"DROP SCHEMA IF EXISTS {SCHEMA} CASCADE")
         c.execute(f"CREATE SCHEMA {SCHEMA}")
         c.execute(f"SET search_path TO {SCHEMA}, public")
@@ -78,86 +85,89 @@ def conn(db_kwargs):
         c.commit()
 
 
-def load_boundaries(conn, boundaries=BOUNDARIES):
+def load_boundaries(conn: Connection, boundaries: list[Boundary] = BOUNDARIES) -> None:
     cur = conn.cursor()
     cur.execute("TRUNCATE subdivisions")
     cur.executemany(
         "INSERT INTO subdivisions (osm_id, ref, name, admin_level, geom)"
         " VALUES (%s, %s, %s, %s, %s)",
-        [
-            (osm_id, ref, name, level, _bbox(*box))
-            for osm_id, name, ref, level, box in boundaries
-        ],
+        [(osm_id, ref, name, level, _bbox(*box)) for osm_id, name, ref, level, box in boundaries],
     )
     conn.commit()
     build_parts(conn)
 
 
-def build_parts(conn):
+def build_parts(conn: Connection) -> None:
     """Exactly what the OSM import builds, cut small enough that a piece has to
-    be stitched back to its subdivision. Rebuilt whenever subdivisions moves."""
+    be stitched back to its subdivision. Rebuilt whenever subdivisions moves.
+    """
     cur = conn.cursor()
     cur.execute(f"DROP TABLE IF EXISTS {SCHEMA}.subdivision_parts")
     cur.execute(f"""
         CREATE TABLE {SCHEMA}.subdivision_parts AS
         SELECT osm_id, ref, name, admin_level, ST_Subdivide(geom, 8) AS geom
           FROM subdivisions
-    """)
+    """)  # noqa: S608 — the schema is a constant of the test
     cur.execute(f"CREATE INDEX ON {SCHEMA}.subdivision_parts USING GIST (geom)")
     conn.commit()
 
 
-def attach(conn, points):
+def attach(
+    conn: Connection, points: dict[str, tuple[float, float]]
+) -> dict[str, tuple[str | None, str | None]]:
     """Run the real attachment on a hand-made atp_places and return its rows."""
     with conn.cursor() as cur:
         cur.execute(f"DROP TABLE IF EXISTS {SCHEMA}.atp_places")
         cur.execute(f"CREATE TABLE {SCHEMA}.atp_places (id TEXT PRIMARY KEY, geom TEXT)")
         cur.executemany(
-            f"INSERT INTO {SCHEMA}.atp_places (id, geom) VALUES (%s, ST_AsGeoJSON(ST_Point(%s, %s)))",
+            f"INSERT INTO {SCHEMA}.atp_places (id, geom) VALUES (%s, ST_AsGeoJSON(ST_Point(%s, %s)))",  # noqa: S608
             [(name, x, y) for name, (x, y) in points.items()],
         )
     conn.commit()
 
-    _attach_subdivisions(conn)
+    attach_subdivisions(conn)
 
     with conn.cursor() as cur:
         rows = cur.execute(
-            f"SELECT id, subdivision_code, subdivision_name FROM {SCHEMA}.atp_places"
+            f"SELECT id, subdivision_code, subdivision_name FROM {SCHEMA}.atp_places"  # noqa: S608
         ).fetchall()
     return {r["id"]: (r["subdivision_code"], r["subdivision_name"]) for r in rows}
 
 
-def test_one_point_per_level_reached(conn):
+def test_one_point_per_level_reached(conn: Connection) -> None:
     """Every territory keeps POIs, whichever level it bottoms out at."""
     load_boundaries(conn)
-    got = attach(conn, {
-        "metropole":   (0.5, 0.5),   # level 6
-        "guadeloupe":  (3.5, 0.5),   # level 6, under a level 4
-        "martinique":  (5.5, 0.5),   # level 4, no level 6 exists
-        "guyane":      (6.5, 0.5),   # level 4
-        "caledonie":   (0.5, 3.5),   # level 4 province inside a level 3
-        "polynesie":   (3.5, 3.5),   # level 3
-        "wallis":      (5.5, 3.5),   # level 3
-    })
+    got = attach(
+        conn,
+        {
+            "metropole": (0.5, 0.5),  # level 6
+            "guadeloupe": (3.5, 0.5),  # level 6, under a level 4
+            "martinique": (5.5, 0.5),  # level 4, no level 6 exists
+            "guyane": (6.5, 0.5),  # level 4
+            "caledonie": (0.5, 3.5),  # level 4 province inside a level 3
+            "polynesie": (3.5, 3.5),  # level 3
+            "wallis": (5.5, 3.5),  # level 3
+        },
+    )
 
     assert got == {
-        "metropole":  ("13", "Bouches-du-Rhone"),
+        "metropole": ("13", "Bouches-du-Rhone"),
         "guadeloupe": ("971", "Guadeloupe"),
         "martinique": ("972R", "Martinique"),
-        "guyane":     ("973R", "Guyane"),
-        "caledonie":  ("10", "Province Sud"),  # no ref: falls back on osm_id
-        "polynesie":  ("987", "Polynesie francaise"),
-        "wallis":     ("986", "Wallis-et-Futuna"),
+        "guyane": ("973R", "Guyane"),
+        "caledonie": ("10", "Province Sud"),  # no ref: falls back on osm_id
+        "polynesie": ("987", "Polynesie francaise"),
+        "wallis": ("986", "Wallis-et-Futuna"),
     }
 
 
-def test_finest_level_wins_whatever_the_insertion_order(conn):
+def test_finest_level_wins_whatever_the_insertion_order(conn: Connection) -> None:
     """A point covered by a 6 and a 4 gets the 6, both ways round."""
     load_boundaries(conn, list(reversed(BOUNDARIES)))
     assert attach(conn, {"p": (3.5, 0.5)})["p"] == ("971", "Guadeloupe")
 
 
-def test_a_point_outside_the_country_is_rejected(conn):
+def test_a_point_outside_the_country_is_rejected(conn: Connection) -> None:
     """Level 2 covers the whole country: no attachment means no country."""
     load_boundaries(conn)
     got = attach(conn, {"inside": (0.5, 0.5), "abroad": (42.0, 42.0)})
@@ -165,7 +175,7 @@ def test_a_point_outside_the_country_is_rejected(conn):
     assert "inside" in got
 
 
-def test_a_neighbour_in_the_same_extract_keeps_its_own_pois(conn):
+def test_a_neighbour_in_the_same_extract_keeps_its_own_pois(conn: Connection) -> None:
     """Geofabrik carries the neighbours: a POI inside Monaco lands in Monaco.
 
     Accepted as a side effect rather than filtered out — it is a handful of
@@ -175,13 +185,13 @@ def test_a_neighbour_in_the_same_extract_keeps_its_own_pois(conn):
     assert attach(conn, {"p": (11.5, 11.5)}) == {"p": ("MC", "Monaco")}
 
 
-def test_a_point_in_the_country_but_in_no_subdivision_falls_back_on_it(conn):
+def test_a_point_in_the_country_but_in_no_subdivision_falls_back_on_it(conn: Connection) -> None:
     """The sea inside the territorial waters, a gap between two polygons."""
     load_boundaries(conn)
     assert attach(conn, {"p": (7.5, 7.5)})["p"] == ("FR", "France")
 
 
-def test_an_enclave_wins_over_the_polygon_around_it(conn):
+def test_an_enclave_wins_over_the_polygon_around_it(conn: Connection) -> None:
     """A hole in a boundary is a real one: the enclave is not overlapped."""
     load_boundaries(conn)
     conn.cursor().execute(
@@ -202,15 +212,19 @@ def test_an_enclave_wins_over_the_polygon_around_it(conn):
     assert attach(conn, {"p": (0.6, 0.6)})["p"] == ("13", "Bouches-du-Rhone")
 
 
-def test_two_subdivisions_of_the_same_level_overlapping_is_settled_by_osm_id(conn):
+def test_two_subdivisions_of_the_same_level_overlapping_is_settled_by_osm_id(
+    conn: Connection,
+) -> None:
     """It should not happen; if it does, the answer must not be row order."""
-    load_boundaries(conn, BOUNDARIES + [(99, "Doublon", "99", 6, (0.2, 0.2, 0.4, 0.4))])
+    load_boundaries(conn, [*BOUNDARIES, (99, "Doublon", "99", 6, (0.2, 0.2, 0.4, 0.4))])
     first = attach(conn, {"p": (0.3, 0.3)})["p"]
-    load_boundaries(conn, list(reversed(BOUNDARIES + [(99, "Doublon", "99", 6, (0.2, 0.2, 0.4, 0.4))])))
+    load_boundaries(
+        conn, list(reversed([*BOUNDARIES, (99, "Doublon", "99", 6, (0.2, 0.2, 0.4, 0.4))]))
+    )
     assert attach(conn, {"p": (0.3, 0.3)})["p"] == first
 
 
-def test_a_point_on_a_shared_border_is_attached_deterministically(conn):
+def test_a_point_on_a_shared_border_is_attached_deterministically(conn: Connection) -> None:
     """ST_Intersects includes the boundary, so a border POI keeps a fine level.
 
     Two subdivisions claim it; what matters is that the answer never depends on

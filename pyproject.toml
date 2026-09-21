@@ -24,7 +24,17 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest>=9.0.2"]
+dev = [
+    "playwright>=1.63.0",
+    "pyright>=1.1.414",
+    "pytest>=9.0.2",
+    "resvg-py>=0.5.0",
+    "ruff>=0.16.8",
+    "types-jsonschema>=4.26.0.20260518",
+    "types-oauthlib>=3.3.0.20260724",
+    "types-requests>=2.33.0.20260906",
+    "types-requests-oauthlib>=2.0.0.20260518",
+]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
@@ -32,3 +42,54 @@ pythonpath = ["."]
 # test, the pre-push hook runs it on its own (pytest -m a11y).
 addopts = ["--import-mode=importlib", "-m", "not a11y"]
 markers = ["a11y: browser accessibility checks, run by the pre-push hook"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    # The formatter owns these.
+    "E501", "COM812", "ISC001", "W191", "E111", "E114", "E117", "D206", "D300", "Q",
+    # No copyright banner, no docstring on every def: a docstring is written
+    # when it says something the signature does not.
+    "CPY001", "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107",
+    # French typography in user-facing strings (« », ’, …) is deliberate.
+    "RUF001", "RUF002", "RUF003",
+    # Exception messages stay inline: a class per message is not a quality gain.
+    "TRY003", "EM101", "EM102",
+    # A docstring here opens with a sentence, not a one-line summary: it says
+    # what a thing is, wraps where it needs to, and is not told its mood.
+    "D205", "D400", "D401",
+]
+pydocstyle.convention = "pep257"
+pylint.max-args = 8
+mccabe.max-complexity = 12
+isort.known-first-party = ["src", "scripts", "tests"]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests: assert is the tool, fixtures are requested for their side effects,
+# fakes take the arguments of what they replace, imports are placed where the
+# test controls their order, and a literal is what a test compares against.
+"tests/*" = ["S101", "ARG", "PLC0415", "PLR2004", "SLF001", "S105", "S106", "S108", "FBT"]
+# Maintenance scripts talk through print.
+"scripts/*" = ["T201", "INP001"]
+# Migrations are files the runner loads by path, not a package.
+"migrations/*" = ["INP001"]
+# Stubs mirror the library's own names and its loosely typed variables.
+"typings/*" = ["A002", "ANN401"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.pyright]
+pythonVersion = "3.11"
+venvPath = "."
+venv = ".venv"
+include = ["src", "scripts", "tests", "migrations"]
+typeCheckingMode = "strict"
+reportUnnecessaryTypeIgnoreComment = "error"
+# osmapi is typed inline but ships no py.typed: pyright reads its source.
+reportMissingTypeStubs = false
+stubPath = "typings"

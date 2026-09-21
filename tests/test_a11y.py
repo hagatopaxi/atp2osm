@@ -17,6 +17,9 @@ import socket
 import subprocess
 import sys
 import time
+from collections.abc import Iterator
+from pathlib import Path
+from typing import Any
 from urllib.request import Request, urlopen
 
 import psycopg
@@ -24,10 +27,12 @@ import pytest
 from flask import Flask
 from flask.sessions import SecureCookieSessionInterface
 
+from src.config import Database
+from src.db import code_sql
 from src.phone import ensure_normalize_phone
-from src.pipeline.atp2osm import _mv_places_brand_sql, _mv_places_spider_sql
-from src.pipeline.osm import _mv_places_sql
-from tests.conftest import CONFIG, TEST_DB
+from src.pipeline.atp2osm import mv_places_brand_sql, mv_places_spider_sql
+from src.pipeline.osm import mv_places_sql
+from tests.conftest import CONFIG, TEST_DB, Connection
 
 QID = "Q999001"
 SECRET = "test"
@@ -41,10 +46,10 @@ LOGGED_IN = [
     f"/brands/{QID}/rejected",
 ]
 # Filled by the seed with the ids it created: the history detail pages.
-HISTORY = []
+HISTORY: list[str] = []
 
 
-def seed(conn):
+def seed(conn: Connection) -> None:
     """The osm2pgsql and ATP tables, shaped like the pipeline leaves them."""
     ensure_normalize_phone(conn)
     # `_migrated` leaves empty stubs of the pipeline's tables; the real shape
@@ -140,7 +145,8 @@ def seed(conn):
         RETURNING id
     """).fetchall()
     HISTORY.extend(f"/history/{r[0]}" for r in rows)
-    conn.execute("""
+    conn.execute(
+        """
         INSERT INTO import_subdivisions
             (import_id, subdivision_code, subdivision_name, items_count,
              osm_changeset_id, status, comment)
@@ -148,22 +154,26 @@ def seed(conn):
             (%s, '75', 'Paris', 12, 1000001, 'success', NULL),
             (%s, '75', 'Paris', 7, 1000002, 'success', NULL),
             (%s, '33', 'Gironde', 5, NULL, 'error_osm_api', 'timeout')
-    """, (rows[0][0], rows[2][0], rows[2][0]))
-    conn.execute(_mv_places_sql())
-    conn.execute(_mv_places_brand_sql())
-    conn.execute(_mv_places_spider_sql())
+    """,
+        (rows[0][0], rows[2][0], rows[2][0]),
+    )
+    conn.execute(code_sql(mv_places_sql()))
+    conn.execute(code_sql(mv_places_brand_sql()))
+    conn.execute(code_sql(mv_places_spider_sql()))
     conn.commit()
 
 
-def free_port():
+def free_port() -> int:
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))
         return s.getsockname()[1]
 
 
 @pytest.fixture(scope="module")
-def server(_migrated, tmp_path_factory):
-    with psycopg.connect(**_migrated) as conn:
+def server(
+    _migrated: Database, tmp_path_factory: pytest.TempPathFactory
+) -> Iterator[tuple[str, dict[str, str]]]:
+    with psycopg.connect(_migrated.conninfo) as conn:
         seed(conn)
     port = free_port()
     config = json.loads(json.dumps(CONFIG))
@@ -177,31 +187,33 @@ def server(_migrated, tmp_path_factory):
     env = {**os.environ, "ATP2OSM_CONFIG": str(config_path), "SECRET_KEY": SECRET}
     # A file, not a pipe: the request log would fill a pipe nobody reads and
     # freeze the server mid-run.
-    log = open(config_path.with_name("server.log"), "w+b")
-    proc = subprocess.Popen(
-        [sys.executable, "-m", "flask", "--app", "src/app.py", "run", "--port", str(port)],
-        env=env, stdout=log, stderr=subprocess.STDOUT,
-    )
-    url = f"http://127.0.0.1:{port}"
-    for _ in range(60):
-        if proc.poll() is not None:
-            log.seek(0)
-            pytest.fail("the server died:\n" + log.read().decode())
-        try:
-            urlopen(url + "/robots.txt", timeout=1)
-            break
-        except OSError:
-            time.sleep(0.5)
-    else:
+    with config_path.with_name("server.log").open("w+b") as log:
+        proc = subprocess.Popen(  # noqa: S603 — this interpreter, a fixed command line
+            [sys.executable, "-m", "flask", "--app", "src/app.py", "run", "--port", str(port)],
+            env=env,
+            stdout=log,
+            stderr=subprocess.STDOUT,
+        )
+        url = f"http://127.0.0.1:{port}"
+        for _ in range(60):
+            if proc.poll() is not None:
+                log.seek(0)
+                pytest.fail("the server died:\n" + log.read().decode())
+            try:
+                urlopen(url + "/robots.txt", timeout=1)  # noqa: S310 — the http URL above
+                break
+            except OSError:
+                time.sleep(0.5)
+        else:
+            proc.kill()
+            pytest.fail("the server never answered")
+        yield url, env
         proc.kill()
-        pytest.fail("the server never answered")
-    yield url, env
-    proc.kill()
-    proc.wait()
+        proc.wait()
     # The pipeline's objects are not part of the migrated schema: a test after
     # this one may build a table of the same name, so they leave with the
     # server. `migrated_conn` truncates tables and knows nothing of views.
-    with psycopg.connect(**_migrated) as conn:
+    with psycopg.connect(_migrated.conninfo) as conn:
         conn.execute("""
             DROP MATERIALIZED VIEW IF EXISTS mv_places_brand;
             DROP MATERIALIZED VIEW IF EXISTS mv_places_spider;
@@ -212,13 +224,17 @@ def server(_migrated, tmp_path_factory):
         conn.commit()
 
 
-def test_every_get_route_is_visited(server):
+def test_every_get_route_is_visited(server: tuple[str, dict[str, str]]) -> None:
     """A page nobody listed is a page nobody checks: a new route lands here
-    until it is added to the pages above or to the exclusions below."""
+    until it is added to the pages above or to the exclusions below.
+    """
     _, env = server
     out = subprocess.run(
         [sys.executable, "-m", "flask", "--app", "src/app.py", "routes"],
-        env=env, capture_output=True, text=True, check=True,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
     ).stdout
     rules = [
         line.split()[-1]
@@ -228,13 +244,23 @@ def test_every_get_route_is_visited(server):
     visited = set(PUBLIC + LOGGED_IN) | {"/history/<int:entry_id>"}
     # Not pages: files, JSON, the OAuth callback, the language-prefixed twins.
     excluded = {
-        "/favicon.ico", "/robots.txt", "/sitemap.xml", "/llms.txt",
-        "/google1387dd4d6e23b123.html", "/staticmap/<long>/<lat>",
-        "/api/export/departements.<fmt>", "/api/export/<dataset>.<fmt>", "/api/stats.json",
-        "/todo/check", "/oauth-callback", "/health", "/version",
+        "/favicon.ico",
+        "/robots.txt",
+        "/sitemap.xml",
+        "/llms.txt",
+        "/google1387dd4d6e23b123.html",
+        "/staticmap/<long>/<lat>",
+        "/api/export/departements.<fmt>",
+        "/api/export/<dataset>.<fmt>",
+        "/api/stats.json",
+        "/todo/check",
+        "/oauth-callback",
+        "/health",
+        "/version",
     }
     forgotten = [
-        r for r in rules
+        r
+        for r in rules
         if not r.startswith("/<lang>")
         and r.replace("<brand_wikidata>", QID) not in visited
         and r not in excluded
@@ -243,52 +269,65 @@ def test_every_get_route_is_visited(server):
     assert "/brands/<brand_wikidata>/validate" in rules  # the parsing above reads something
 
 
-def login_cookie():
+def login_cookie() -> str:
     app = Flask(__name__)
     app.secret_key = SECRET
-    session = {"user": {"osm_id": 42, "name": "Tester"},
-               "token": {"access_token": "x"}}
-    value = SecureCookieSessionInterface().get_signing_serializer(app).dumps(session)
-    return f"session={value}"
+    session = {"user": {"osm_id": 42, "name": "Tester"}, "token": {"access_token": "x"}}
+    serializer = SecureCookieSessionInterface().get_signing_serializer(app)
+    assert serializer is not None
+    return f"session={serializer.dumps(session)}"
 
 
 @pytest.mark.skipif(shutil.which("npx") is None, reason="pa11y-ci needs node")
-def test_every_page_passes_wcag_2_aa(server, tmp_path):
-    server, _ = server
+def test_every_page_passes_wcag_2_aa(server: tuple[str, dict[str, str]], tmp_path: Path) -> None:
+    base, _ = server
     cookie = login_cookie()
-    urls = [{"url": server + p} for p in PUBLIC + HISTORY]
-    urls += [{"url": server + p, "headers": {"Cookie": cookie}} for p in LOGGED_IN]
+    urls: list[dict[str, Any]] = [{"url": base + p} for p in PUBLIC + HISTORY]
+    urls += [{"url": base + p, "headers": {"Cookie": cookie}} for p in LOGGED_IN]
     # Every page twice: the browser starts light, the switch turns it dark.
     # The query string keeps pa11y-ci from folding the two runs into one.
     urls += [
-        {**u, "url": u["url"] + "?theme=dark",
-         "actions": ["click element #theme-toggle",
-                     "wait for element html[data-theme=dark] to be added"]}
+        {
+            **u,
+            "url": u["url"] + "?theme=dark",
+            "actions": [
+                "click element #theme-toggle",
+                "wait for element html[data-theme=dark] to be added",
+            ],
+        }
         for u in urls
     ]
     # A 500 renders an error page that passes or fails on its own merits: make
     # sure every page is the one we meant to check.
     for u in urls:
-        assert urlopen(Request(u["url"], headers=u.get("headers", {}))).status == 200, u
+        page = urlopen(Request(u["url"], headers=u.get("headers", {})))  # noqa: S310 — http, above
+        assert page.status == 200, u
     config = tmp_path / "pa11yci.json"
-    config.write_text(json.dumps({
-        "defaults": {
-            "standard": "WCAG2AA",
-            "runners": ["axe", "htmlcs"],
-            # What axe cannot decide (a text over a gradient, a button with a
-            # noise texture) is a warning to read, not a failure.
-            "levelCapWhenNeedsReview": "warning",
-            # Tailwind runs from its CDN script and writes the utility classes
-            # after the page is painted: audited too early, a page has no
-            # colours yet and every contrast fails at random.
-            "wait": 500,
-            # AppArmor forbids Chromium's own sandbox on stock Ubuntu.
-            "chromeLaunchConfig": {"args": ["--no-sandbox"]},
-        },
-        "urls": urls,
-    }))
-    result = subprocess.run(
-        ["npx", "-y", "pa11y-ci", "-c", str(config)],
-        capture_output=True, text=True, timeout=600,
+    config.write_text(
+        json.dumps(
+            {
+                "defaults": {
+                    "standard": "WCAG2AA",
+                    "runners": ["axe", "htmlcs"],
+                    # What axe cannot decide (a text over a gradient, a button with a
+                    # noise texture) is a warning to read, not a failure.
+                    "levelCapWhenNeedsReview": "warning",
+                    # Tailwind runs from its CDN script and writes the utility classes
+                    # after the page is painted: audited too early, a page has no
+                    # colours yet and every contrast fails at random.
+                    "wait": 500,
+                    # AppArmor forbids Chromium's own sandbox on stock Ubuntu.
+                    "chromeLaunchConfig": {"args": ["--no-sandbox"]},
+                },
+                "urls": urls,
+            }
+        )
+    )
+    result = subprocess.run(  # noqa: S603 — a fixed command line, no shell
+        ["npx", "-y", "pa11y-ci", "-c", str(config)],  # noqa: S607 — npx from the PATH
+        capture_output=True,
+        text=True,
+        timeout=600,
+        check=False,
     )
     assert result.returncode == 0, result.stdout + result.stderr

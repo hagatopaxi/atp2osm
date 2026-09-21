@@ -1,22 +1,53 @@
 import datetime
 import json
 import logging
-import os
 import xml.etree.ElementTree as ET
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any, Protocol, TypedDict
 
 import osmapi
 from flask_babel import gettext
-
-from src.config import get_settings
-from src.matching import BATCH_MAX_SIZE, changed_tags, subdivision_names
 from osmapi.errors import ApiError
 from requests_oauthlib import OAuth2Session
 
+from src.config import get_settings
+from src.matching import BATCH_MAX_SIZE, Change, changed_tags, subdivision_names
+
 logger = logging.getLogger(__name__)
 
+# An element as osmapi takes it: id, version, changeset, tag, and nd or member.
+Element = dict[str, Any]
+OscWriter = Callable[[int, str, int, str, Element], None]
 
-class _FakeOsmApi:
+
+class OsmApi(Protocol):
+    """What the upload asks of the OSM API — osmapi's surface, and the fake's."""
+
+    # osmapi keeps the open changeset there, and only there: the upload reads
+    # it to close what an exception left open.
+    _current_changeset_id: int
+
+    def changeset_create(self, changeset_tags: dict[str, str] | None = None) -> int: ...
+    def changeset_upload(self, changes_data: list[Element]) -> list[Element]: ...
+    def way_update(self, way_data: Element) -> Element | None: ...
+    def relation_update(self, relation_data: Element) -> Element | None: ...
+    def changeset_close(self) -> int: ...
+
+
+class SubdivisionResult(TypedDict):
+    """The fate of one subdivision's changeset — a row of import_subdivisions."""
+
+    subdivision_code: str
+    subdivision_name: str | None
+    items_count: int
+    tag_counts: dict[str, int]
+    osm_changeset_id: int | None
+    status: str
+    comment: str | None
+
+
+class FakeOsmApi:
     """Stands in for the OSM API in development.
 
     The dev instance does not mirror production data, so node, way and
@@ -26,64 +57,70 @@ class _FakeOsmApi:
     the single code path of `upload` is then the one production runs.
     """
 
-    def __init__(self, osc_writer=None):
-        self.calls = []
+    def __init__(self, osc_writer: OscWriter | None = None) -> None:
+        self.calls: list[tuple[str, Any]] = []
         self.osc_writer = osc_writer
         self._current_changeset_id = 0
         self._next_id = 0
 
-    def changeset_create(self, tags):
+    def changeset_create(self, changeset_tags: dict[str, str] | None = None) -> int:
         self._next_id += 1
         self._current_changeset_id = self._next_id
-        self.calls.append(("changeset_create", tags))
+        self.calls.append(("changeset_create", changeset_tags))
         return self._current_changeset_id
 
-    def changeset_upload(self, changes):
-        self.calls.append(("changeset_upload", changes))
-        for block in changes:
+    def changeset_upload(self, changes_data: list[Element]) -> list[Element]:
+        self.calls.append(("changeset_upload", changes_data))
+        for block in changes_data:
             for data in block["data"]:
                 self._osc(block["type"], data["id"], block["action"], data)
+        return []
 
-    def way_update(self, data):
-        self.calls.append(("way_update", data))
-        self._osc("way", data["id"], "modify", data)
+    def way_update(self, way_data: Element) -> Element | None:
+        self.calls.append(("way_update", way_data))
+        self._osc("way", way_data["id"], "modify", way_data)
+        return None
 
-    def relation_update(self, data):
-        self.calls.append(("relation_update", data))
-        self._osc("relation", data["id"], "modify", data)
+    def relation_update(self, relation_data: Element) -> Element | None:
+        self.calls.append(("relation_update", relation_data))
+        self._osc("relation", relation_data["id"], "modify", relation_data)
+        return None
 
-    def changeset_close(self):
-        self.calls.append(("changeset_close", self._current_changeset_id))
+    def changeset_close(self) -> int:
+        closed = self._current_changeset_id
+        self.calls.append(("changeset_close", closed))
         self._current_changeset_id = 0
+        return closed
 
-    def _osc(self, element_type, element_id, action, data):
+    @property
+    def open_changeset(self) -> int:
+        """The changeset osmapi believes open, 0 when none — what the tests read."""
+        return self._current_changeset_id
+
+    def _osc(self, element_type: str, element_id: int, action: str, data: Element) -> None:
         if self.osc_writer:
-            self.osc_writer(
-                self._current_changeset_id, element_type, element_id, action, data
-            )
+            self.osc_writer(self._current_changeset_id, element_type, element_id, action, data)
 
 
 class BulkUpload:
-    """
-    Bulk uploads a changeset to the OSM server.
-    Batch by subdivision and brand wikidata
+    """Bulk uploads a changeset to the OSM server.
+
+    Batch by subdivision and brand wikidata.
     """
 
     def __init__(
         self,
-        changes: list,
+        changes: list[Change],
         session: OAuth2Session,
         max_size: int = BATCH_MAX_SIZE,
-    ):
+    ) -> None:
         # Last gate before an irreversible send, and the only one at the point
         # where changesets are actually created. select_batch already truncates
         # to that size and the route checks it again; if both were ever wrong,
         # nothing must leave for OSM. The size is the wave's: wave 2 sends one
         # POI at a time, and must not be allowed a hundred.
         if len(changes) > max_size:
-            raise ValueError(
-                f"refusing to upload {len(changes)} POIs, over the {max_size} limit"
-            )
+            raise ValueError(f"refusing to upload {len(changes)} POIs, over the {max_size} limit")
 
         self.changes = changes
         # An empty batch is a no-op rather than a crash: `upload` and
@@ -92,13 +129,13 @@ class BulkUpload:
         self.brand_wikidata = (
             changes[0]["tag"].get("brand:wikidata") if changes else None
         ) or "unknown"
-        self.changesets = []
-        self.uploaded_changes = []  # POIs whose subdivision changeset succeeded
-        self.results = []  # one entry per subdivision, mirrors import_subdivisions
+        self.changesets: list[int] = []
+        self.uploaded_changes: list[Change] = []  # POIs whose subdivision changeset succeeded
+        self.results: list[SubdivisionResult] = []  # one per subdivision, see import_subdivisions
 
         settings = get_settings()
-        self.api = (
-            _FakeOsmApi(osc_writer=self._write_osc)
+        self.api: OsmApi = (
+            FakeOsmApi(osc_writer=self._write_osc)
             if settings.is_dev
             else osmapi.OsmApi(api=settings.api_url, session=session)
         )
@@ -108,14 +145,11 @@ class BulkUpload:
             logger.info("No change in this run, no log saved.")
             return None
 
-        save_path = Path(
-            f"./logs/{self.brand_wikidata}/{datetime.datetime.now().strftime('%Y-%m-%d')}.json"
-        )
+        today = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d")
+        save_path = Path(f"./logs/{self.brand_wikidata}/{today}.json")
+        save_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # If the save directory doesn't exist, create it
-        os.makedirs(save_path.parent, exist_ok=True)
-
-        with open(save_path, "w") as file:
+        with save_path.open("w") as file:
             json.dump(
                 {"changes": self.changes, "changesets": self.changesets},
                 file,
@@ -123,7 +157,7 @@ class BulkUpload:
                 ensure_ascii=False,
             )
 
-        logger.debug(f"Logs for the run saved into {save_path}")
+        logger.debug("Logs for the run saved into %s", save_path)
         return save_path
 
     def upload(self) -> list[tuple[str, str]]:
@@ -133,16 +167,17 @@ class BulkUpload:
         The changeset comment follows the language the contributor is browsing
         in. That is a language of the country — LOCALES holds the country's
         languages — so the community that reviews the changeset can read it,
-        whoever uploaded it."""
+        whoever uploaded it.
+        """
         if len(self.changes) == 0:
             return []
 
         changes_by_subdivision = self._sorted_by_subdivision()
         names = subdivision_names(self.changes)
-        errors = []
+        errors: list[tuple[str, str]] = []
 
         for sub, sub_changes in changes_by_subdivision.items():
-            changeset = None
+            changeset: int | None = None
             try:
                 sub_label = names[sub]
                 changeset = self.api.changeset_create(
@@ -158,24 +193,24 @@ class BulkUpload:
                         "bot": "yes",
                     }
                 )
-                logger.debug(
-                    f"{get_settings().api_url}/changeset/{changeset}"
-                )
+                logger.debug("%s/changeset/%s", get_settings().api_url, changeset)
 
-                changingNodes = []
+                changing_nodes: list[Change] = []
                 for poi in sub_changes:
                     poi["changeset"] = changeset
 
                     if poi["node_type"] == "node":
-                        changingNodes.append(poi)
+                        changing_nodes.append(poi)
                     elif poi["node_type"] == "way":
-                        self.api.way_update({
-                            "id": poi["id"],
-                            "version": poi["version"],
-                            "changeset": changeset,
-                            "tag": poi["tag"],
-                            "nd": poi["members"],
-                        })
+                        self.api.way_update(
+                            {
+                                "id": poi["id"],
+                                "version": poi["version"],
+                                "changeset": changeset,
+                                "tag": poi["tag"],
+                                "nd": poi["members"],
+                            }
+                        )
                     elif poi["node_type"] == "relation":
                         type_map = {"n": "node", "w": "way", "r": "relation"}
                         relation_data = {
@@ -194,9 +229,9 @@ class BulkUpload:
                         }
                         self.api.relation_update(relation_data)
 
-                if changingNodes:
+                if changing_nodes:
                     self.api.changeset_upload(
-                        [{"type": "node", "action": "modify", "data": changingNodes}]
+                        [{"type": "node", "action": "modify", "data": changing_nodes}]
                     )
 
                 self.api.changeset_close()
@@ -204,16 +239,15 @@ class BulkUpload:
                 self.uploaded_changes.extend(sub_changes)
                 self._record(sub, sub_changes, "success", changeset, None)
             except ApiError as error:
-                payload = error.payload.decode("utf-8", errors="replace") if isinstance(error.payload, bytes) else str(error.payload)
-                msg = f"OSM API error for subdivision {sub}: HTTP {error.status} — {payload}"
-                logger.error(msg)
+                msg = f"OSM API error for subdivision {sub}: HTTP {error.status} — {error.payload_str}"
+                logger.exception(msg)
                 errors.append(("osm_api", msg))
                 # changeset is None only when its creation failed: it does
                 # exist when it is the upload that gave up.
                 self._record(sub, sub_changes, "error_osm_api", changeset, msg)
             except Exception as unknown:
                 msg = f"Unknown error for subdivision {sub}: {unknown}"
-                logger.error(msg)
+                logger.exception(msg)
                 errors.append(("unknown", msg))
                 self._record(sub, sub_changes, "error_unknown", changeset, msg)
             finally:
@@ -221,33 +255,42 @@ class BulkUpload:
                 # exception occurred mid-upload (osmapi's Changeset context manager
                 # does not do this, causing all subsequent departments to fail with
                 # "Changeset already opened").
-                if self.api._current_changeset_id:
+                if self.api._current_changeset_id:  # noqa: SLF001 — see OsmApi  # pyright: ignore[reportPrivateUsage]
                     try:
                         self.api.changeset_close()
-                    except Exception:
-                        self.api._current_changeset_id = 0
+                    except Exception:  # noqa: BLE001 — the close failing is the very case
+                        self.api._current_changeset_id = 0  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
 
         return errors
 
-    def _record(self, sub, sub_changes, status, changeset, comment):
+    def _record(
+        self,
+        sub: str,
+        sub_changes: list[Change],
+        status: str,
+        changeset: int | None,
+        comment: str | None,
+    ) -> None:
         """One entry per subdivision — becomes a row of import_subdivisions.
-
         `tag_counts` is frozen here rather than recomputed later: after the next
         refresh the matches are gone, and with them the only way to tell which
-        tag was written, and how many times."""
-        tag_counts = {}
+        tag was written, and how many times.
+        """
+        tag_counts: dict[str, int] = {}
         for change in sub_changes:
             for tag in changed_tags(change):
                 tag_counts[tag] = tag_counts.get(tag, 0) + 1
-        self.results.append({
-            "subdivision_code": sub,
-            "subdivision_name": sub_changes[0]["subdivision_name"],
-            "items_count": len(sub_changes),
-            "tag_counts": tag_counts,
-            "osm_changeset_id": changeset,
-            "status": status,
-            "comment": comment,
-        })
+        self.results.append(
+            {
+                "subdivision_code": sub,
+                "subdivision_name": sub_changes[0]["subdivision_name"],
+                "items_count": len(sub_changes),
+                "tag_counts": tag_counts,
+                "osm_changeset_id": changeset,
+                "status": status,
+                "comment": comment,
+            }
+        )
 
     def _write_osc(
         self,
@@ -255,7 +298,7 @@ class BulkUpload:
         element_type: str,
         element_id: int,
         action: str,
-        data: dict,
+        data: Element,
     ) -> None:
         osc_dir = Path("./data/atp2osm/changesets")
         osc_dir.mkdir(parents=True, exist_ok=True)
@@ -279,10 +322,12 @@ class BulkUpload:
             if "lon" in data:
                 el.set("lon", str(data["lon"]))
         elif element_type == "way":
-            for ref in data.get("nd") or []:
+            refs: list[int] = data.get("nd") or []
+            for ref in refs:
                 ET.SubElement(el, "nd", ref=str(ref))
         elif element_type == "relation":
-            for member in data.get("member") or []:
+            members: list[dict[str, str]] = data.get("member") or []
+            for member in members:
                 ET.SubElement(
                     el,
                     "member",
@@ -293,18 +338,19 @@ class BulkUpload:
                     },
                 )
 
-        for k, v in (data.get("tag") or {}).items():
+        tags: dict[str, str] = data.get("tag") or {}
+        for k, v in tags.items():
             ET.SubElement(el, "tag", k=k, v=str(v))
 
         tree = ET.ElementTree(root)
         ET.indent(tree, space="  ")
-        with open(osc_path, "wb") as f:
+        with osc_path.open("wb") as f:
             tree.write(f, encoding="utf-8", xml_declaration=True)
 
-        logger.debug(f"DEV: OSC written to {osc_path}")
+        logger.debug("DEV: OSC written to %s", osc_path)
 
-    def _sorted_by_subdivision(self):
-        sorted_changes = {}
+    def _sorted_by_subdivision(self) -> dict[str, list[Change]]:
+        sorted_changes: dict[str, list[Change]] = {}
         for change in self.changes:
             sub = change["subdivision_code"]
             if sub in sorted_changes:

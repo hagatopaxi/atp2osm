@@ -8,57 +8,63 @@ development database, which a test must never touch.
 
 import json
 import logging
+from typing import Any
 
-from flask import render_template
+from flask import Flask, render_template
 from flask_babel import gettext as _
 from psycopg.errors import UndefinedTable
+from werkzeug.exceptions import HTTPException
 
+from src.config import Settings
 from src.error_reasons import ERROR_REASONS
 from src.matching import WAVES_BY_NUMBER
 from src.routes.spiders import SPIDERS_PAGE_LINKED
 
 
-def parse_comment(value):
+def parse_comment(value: str | None) -> Any:  # noqa: ANN401 — whatever JSON the comment holds
     try:
-        return json.loads(value)
-    except (json.JSONDecodeError, TypeError):
+        return json.loads(value or "")
+    except json.JSONDecodeError:
         return value
 
 
 logger = logging.getLogger(__name__)
 
 
-def init_app(app, settings):
+def init_app(app: Flask, settings: Settings) -> None:
     app.add_template_filter(parse_comment, "parse_comment")
 
     @app.errorhandler(403)
-    def not_authorized(error):
+    def not_authorized(_error: HTTPException) -> tuple[str, int]:
         return render_template("errors/403.html"), 403
 
     @app.errorhandler(404)
-    def not_found(error):
+    def not_found(_error: HTTPException) -> tuple[str, int]:
         return render_template("errors/404.html"), 404
 
     @app.errorhandler(500)
-    def internal_error(error):
+    def internal_error(_error: HTTPException) -> tuple[str, int]:
         return render_template("errors/500.html"), 500
 
     @app.errorhandler(502)
-    def bad_gateway(error):
+    def bad_gateway(_error: HTTPException) -> tuple[str, int]:
         return render_template("errors/500.html"), 502
 
     @app.errorhandler(UndefinedTable)
-    def data_not_ready(error):
+    def data_not_ready(error: UndefinedTable) -> tuple[str, int]:
         """A table the pipeline builds is not there yet: the instance is new
-        and its first refresh has not run. Not an error of ours to crash on."""
+        and its first refresh has not run. Not an error of ours to crash on.
+        """
         logger.warning("Data not ready: %s", error)
         return render_template(
             "errors/503.html",
-            message=_("The data is being prepared, this instance has not run its first refresh yet."),
+            message=_(
+                "The data is being prepared, this instance has not run its first refresh yet."
+            ),
         ), 503
 
     @app.context_processor
-    def inject_globals():
+    def inject_globals() -> dict[str, Any]:
         return {
             "api_url": settings.api_url,
             "app_version": settings.app_version,

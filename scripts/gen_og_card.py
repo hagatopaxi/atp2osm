@@ -36,21 +36,21 @@ DEPENDENCIES / RUNNING
 """
 
 import io
-import os.path
+from pathlib import Path
 
 import resvg_py
 from PIL import Image, ImageDraw, ImageFont
 
 # Paths: ROOT = repository root (this script lives in scripts/).
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LOGO_SVG = os.path.join(ROOT, "static", "img", "logo.svg")
-OUT_PNG = os.path.join(ROOT, "static", "img", "og-card.png")
+ROOT = Path(__file__).resolve().parent.parent
+LOGO_SVG = ROOT / "static" / "img" / "logo.svg"
+OUT_PNG = ROOT / "static" / "img" / "og-card.png"
 
 # Dimensions imposed by the Open Graph standard (1.91:1 ratio).
 W, H = 1200, 630
-WHITE = (255, 255, 255)   # card background
-DARK = (24, 24, 33)       # main text
-GRAY = (110, 110, 125)    # secondary text (unused for now)
+WHITE = (255, 255, 255)  # card background
+DARK = (24, 24, 33)  # main text
+GRAY = (110, 110, 125)  # secondary text (unused for now)
 
 # Monospace fonts (consistent with the site's font-mono type).
 MONO_B = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf"
@@ -62,7 +62,7 @@ def main() -> None:
     #    we read it back in memory with Pillow. The SVG viewBox is a 16x16
     #    square, so width = height to keep the pins' ratio.
     logo_h = logo_w = 300
-    png_bytes = resvg_py.svg_to_bytes(svg_path=LOGO_SVG, width=logo_w, height=logo_h)
+    png_bytes = resvg_py.svg_to_bytes(svg_path=str(LOGO_SVG), width=logo_w, height=logo_h)
     logo = Image.open(io.BytesIO(bytes(png_bytes))).convert("RGBA")
 
     # 2. Composition. White canvas, then paste the logo on the left, centered

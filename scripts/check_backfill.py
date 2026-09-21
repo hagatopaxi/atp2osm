@@ -11,63 +11,94 @@ existing history and what the backfill derives from it.
 """
 
 import collections
+import dataclasses
 import importlib.util
 import os
 import pathlib
 import subprocess
 import sys
+from typing import Any, LiteralString
 
 import psycopg
+from psycopg import sql
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
-from src.config import get_database  # noqa: E402
-from src.utils import _determine_import_status  # noqa: E402
+from src.config import Database, get_database
+from src.migrate import Migration
+from src.utils import determine_import_status
 
 MIGRATIONS = pathlib.Path(__file__).parent.parent / "migrations"
 CHECK_DB = "atp2osm_backfill_check"
 
 
-def psql(kwargs, sql: str):
+def psql(db: Database, statements: str) -> None:
     """Run SQL without ever putting the password on a command line."""
-    env = {**os.environ, "PGPASSWORD": kwargs["password"]}
-    cmd = ["psql", "-v", "ON_ERROR_STOP=1", "-q",
-           "-h", kwargs["host"], "-p", str(kwargs["port"]),
-           "-U", kwargs["user"], "-d", kwargs["dbname"], "-f", "-"]
-    done = subprocess.run(cmd, input=sql, text=True, env=env)
+    env = {**os.environ, "PGPASSWORD": db.password}
+    cmd = [
+        "psql",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-q",
+        "-h",
+        db.host,
+        "-p",
+        db.port,
+        "-U",
+        db.user,
+        "-d",
+        db.name,
+        "-f",
+        "-",
+    ]
+    # A fixed command line, no shell; psql is on the PATH of whoever runs this.
+    done = subprocess.run(cmd, input=statements, text=True, env=env, check=False)  # noqa: S603
     if done.returncode:
         raise SystemExit(f"psql failed (exit code {done.returncode})")
 
 
-def main(dump, logs_dir, keep=False):
-    db = get_database()
-    admin = {**db.connect_kwargs, "dbname": "postgres", "autocommit": True}
-    with psycopg.connect(**admin) as conn:
-        conn.execute(f'DROP DATABASE IF EXISTS "{CHECK_DB}"')
-        conn.execute(f'CREATE DATABASE "{CHECK_DB}"')
+def _admin() -> psycopg.Connection[Any]:
+    admin = dataclasses.replace(get_database(), name="postgres")
+    return psycopg.connect(admin.conninfo, autocommit=True)
 
-    kwargs = {**db.connect_kwargs, "dbname": CHECK_DB}
+
+def _load_backfill() -> type[Migration]:
+    """The Migration subclass of migration 016, loaded from its file."""
+    spec = importlib.util.spec_from_file_location(
+        "backfill", MIGRATIONS / "016_backfill_import_departements.py"
+    )
+    if spec is None or spec.loader is None:
+        raise SystemExit("migration 016 cannot be loaded")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    migration: type[Migration] = module.BackfillImportDepartements
+    return migration
+
+
+def main(dump: str, logs_dir: pathlib.Path, *, keep: bool = False) -> None:
+    with _admin() as conn:
+        conn.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(CHECK_DB)))
+        conn.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(CHECK_DB)))
+
+    db = dataclasses.replace(get_database(), name=CHECK_DB)
     try:
         # the dump comes from another server: its OWNER/GRANT do not apply
-        sql = pathlib.Path(dump).read_text()
-        sql = "\n".join(
-            line for line in sql.splitlines()
-            if not line.startswith(("ALTER TABLE public.import_history OWNER",
-                                    "ALTER SEQUENCE", "GRANT ", "REVOKE "))
+        statements = "\n".join(
+            line
+            for line in pathlib.Path(dump).read_text().splitlines()
+            if not line.startswith(
+                ("ALTER TABLE public.import_history OWNER", "ALTER SEQUENCE", "GRANT ", "REVOKE ")
+            )
             and "OWNER TO" not in line
         )
-        psql(kwargs, sql)
-        psql(kwargs, (MIGRATIONS / "015_create_import_departements.sql").read_text())
+        psql(db, statements)
+        psql(db, (MIGRATIONS / "015_create_import_departements.sql").read_text())
 
         os.environ["ATP2OSM_LOGS_DIR"] = str(logs_dir)
-        spec = importlib.util.spec_from_file_location(
-            "backfill", MIGRATIONS / "016_backfill_import_departements.py"
-        )
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        backfill = _load_backfill()
 
-        with psycopg.connect(**kwargs) as conn:
-            module.BackfillImportDepartements(conn).migrate()
+        with psycopg.connect(db.conninfo) as conn:
+            backfill(conn).migrate()
             report(conn)
             if keep:
                 conn.commit()
@@ -77,25 +108,21 @@ def main(dump, logs_dir, keep=False):
         if keep:
             print(
                 f"\nDatabase kept. To inspect it:\n"
-                f"  psql -h {kwargs['host']} -p {kwargs['port']} "
-                f"-U {kwargs['user']} -d {CHECK_DB}\n"
+                f"  psql -h {db.host} -p {db.port} -U {db.user} -d {CHECK_DB}\n"
                 f"To drop it:\n"
-                f"  dropdb -h {kwargs['host']} -p {kwargs['port']} "
-                f"-U {kwargs['user']} {CHECK_DB}"
+                f"  dropdb -h {db.host} -p {db.port} -U {db.user} {CHECK_DB}"
             )
         else:
-            with psycopg.connect(**admin) as conn:
-                conn.execute(f'DROP DATABASE IF EXISTS "{CHECK_DB}"')
+            with _admin() as conn:
+                conn.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(CHECK_DB)))
 
 
-def report(conn):
-    def q(sql, *params):
-        return conn.execute(sql, params).fetchall()
+def report(conn: psycopg.Connection[Any]) -> None:
+    def q(query: LiteralString, *params: object) -> list[tuple[Any, ...]]:
+        return conn.execute(query, params).fetchall()
 
     total = q("SELECT COUNT(*) FROM import_history")[0][0]
-    detailed = q(
-        "SELECT COUNT(DISTINCT import_id) FROM import_departements"
-    )[0][0]
+    detailed = q("SELECT COUNT(DISTINCT import_id) FROM import_departements")[0][0]
     lines = q("SELECT COUNT(*) FROM import_departements")[0][0]
 
     print(f"\n{'=' * 70}\nBACKFILL REPORT\n{'=' * 70}")
@@ -120,18 +147,14 @@ def report(conn):
     # Discrepancy 1: the status derived from the children must match the stored
     # status (up to the suffixes, which migration 018 drops).
     print("\nDiscrepancies between the stored status and the derived one:")
-    children = collections.defaultdict(list)
-    for import_id, status in q(
-        "SELECT import_id, status FROM import_departements"
-    ):
+    children: collections.defaultdict[int, list[dict[str, str]]] = collections.defaultdict(list)
+    for import_id, status in q("SELECT import_id, status FROM import_departements"):
         children[import_id].append({"status": status})
     mismatches = 0
-    for import_id, status in q(
-        "SELECT id, status FROM import_history ORDER BY id"
-    ):
+    for import_id, status in q("SELECT id, status FROM import_history ORDER BY id"):
         if import_id not in children:
             continue
-        derived = _determine_import_status(children[import_id])
+        derived = determine_import_status(children[import_id])
         if derived != status.split("_")[0]:
             mismatches += 1
             print(f"  #{import_id}: stored {status}, derived {derived}")
@@ -176,7 +199,7 @@ def report(conn):
              AND status <> 'cancelled' AND items_count IS DISTINCT FROM 0
            ORDER BY id"""
     ):
-        print(f"    #{import_id:<4} {status:<16} {str(items):>5} POIs  {brand} {date}")
+        print(f"    #{import_id:<4} {status:<16} {items!s:>5} POIs  {brand} {date}")
     kept = q(
         """SELECT COUNT(*) FROM import_history
            WHERE comment LIKE '%%Changesets : %%'"""
@@ -194,4 +217,4 @@ def report(conn):
 if __name__ == "__main__":
     if len(sys.argv) not in (3, 4):
         sys.exit(__doc__)
-    main(sys.argv[1], pathlib.Path(sys.argv[2]).resolve(), "--keep" in sys.argv)
+    main(sys.argv[1], pathlib.Path(sys.argv[2]).resolve(), keep="--keep" in sys.argv)

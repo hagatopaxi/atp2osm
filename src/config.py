@@ -16,10 +16,11 @@ import pathlib
 import zoneinfo
 from dataclasses import dataclass, field
 from functools import lru_cache
+from typing import Any
 
 import jsonschema
 from babel import Locale, UnknownLocaleError
-
+from psycopg.conninfo import make_conninfo
 
 PROJECT_ROOT = pathlib.Path(__file__).parent.parent.resolve()
 TEMPLATE_DIR = PROJECT_ROOT / "website" / "templates"
@@ -43,11 +44,11 @@ def get_env(name: str) -> str:
 
 
 @lru_cache(maxsize=1)
-def _schema() -> dict:
+def _schema() -> dict[str, Any]:
     return json.loads(SCHEMA_PATH.read_text())
 
 
-def _validate(document) -> None:
+def _validate(document: object) -> None:
     """Raise ConfigError naming the setting at fault, not a jsonschema dump."""
     try:
         jsonschema.validate(document, _schema())
@@ -56,7 +57,7 @@ def _validate(document) -> None:
         raise ConfigError(f"{where}: {error.message}") from None
 
 
-def _default(*path):
+def _default(*path: str) -> Any:  # noqa: ANN401 — whatever the schema declares
     """The default the schema documents, so it is written down once."""
     node = _schema()
     for key in path:
@@ -79,7 +80,7 @@ class Country:
     trunk_prefix: str
     nsi_locations: frozenset[str]
     nsi_writable_tags: frozenset[str]
-    nsi_calibration: dict = field(default_factory=dict, compare=False)
+    nsi_calibration: dict[str, Any] = field(default_factory=dict[str, Any], compare=False)
 
     @property
     def code(self) -> str:
@@ -89,7 +90,8 @@ class Country:
     @property
     def geofabrik_regions(self) -> dict[str, str]:
         """Region name → Geofabrik path. The name is the last path segment,
-        which is also what names the PBF file."""
+        which is also what names the PBF file.
+        """
         return {path.rsplit("/", 1)[-1]: path for path in self.geofabrik}
 
 
@@ -104,7 +106,7 @@ class Database:
     port: str
 
     @property
-    def connect_kwargs(self) -> dict:
+    def connect_kwargs(self) -> dict[str, str]:
         return {
             "dbname": self.name,
             "user": self.user,
@@ -112,6 +114,10 @@ class Database:
             "host": self.host,
             "port": self.port,
         }
+
+    @property
+    def conninfo(self) -> str:
+        return make_conninfo(**self.connect_kwargs)
 
 
 @dataclass(frozen=True)
@@ -157,20 +163,20 @@ def get_version() -> str:
     return f"Gamma-{rev}"
 
 
-def _parse_country(raw: dict) -> Country:
+def _parse_country(raw: dict[str, Any]) -> Country:
     """Build the country. The schema has vouched for shapes and types already."""
     locales = tuple(raw["locales"])
     for locale in locales:
         try:
             Locale.parse(locale)
         except (UnknownLocaleError, ValueError):
-            raise ConfigError(f"country.locales holds an unknown language: '{locale}'")
+            raise ConfigError(f"country.locales holds an unknown language: '{locale}'") from None
 
     timezone = raw.get("timezone", _default("country", "timezone"))
     try:
         zoneinfo.ZoneInfo(timezone)
     except (zoneinfo.ZoneInfoNotFoundError, ValueError):
-        raise ConfigError(f"country.timezone is not an IANA timezone: '{timezone}'")
+        raise ConfigError(f"country.timezone is not an IANA timezone: '{timezone}'") from None
 
     admin_level = raw["admin_level"]
     admin_level_max = raw.get("admin_level_max", _default("country", "admin_level_max"))
@@ -198,7 +204,7 @@ def _parse_country(raw: dict) -> Country:
     )
 
 
-def _parse_app(raw: dict, country: Country) -> Settings:
+def _parse_app(raw: dict[str, Any], country: Country) -> Settings:
     """Build the deployment settings, taking the secrets from the environment."""
     db = raw["db"]
     pipeline = raw.get("pipeline", {})
@@ -208,8 +214,7 @@ def _parse_app(raw: dict, country: Country) -> Settings:
         app_base_url=raw["base_url"].rstrip("/"),
         # An empty value falls back too: a deployment that has no repository of
         # its own leaves the field rather than deleting the key.
-        source_repo_url=raw.get("source_repo_url")
-        or _default("app", "source_repo_url"),
+        source_repo_url=raw.get("source_repo_url") or _default("app", "source_repo_url"),
         translations_dir=raw.get("translations_dir", _default("app", "translations_dir")),
         refresh_schedule=raw.get("refresh_schedule", _default("app", "refresh_schedule")),
         recent_edit_weeks=raw.get("recent_edit_weeks", _default("app", "recent_edit_weeks")),
@@ -235,7 +240,7 @@ def _parse_app(raw: dict, country: Country) -> Settings:
     )
 
 
-def load(raw) -> Settings:
+def load(raw: dict[str, Any]) -> Settings:
     """Validate a configuration document and build the settings from it."""
     _validate(raw)
     return _parse_app(raw["app"], _parse_country(raw["country"]))
@@ -248,9 +253,9 @@ def get_settings() -> Settings:
     try:
         raw = json.loads(path.read_text())
     except FileNotFoundError:
-        raise ConfigError(f"ATP2OSM_CONFIG points at no file: {path}")
+        raise ConfigError(f"ATP2OSM_CONFIG points at no file: {path}") from None
     except json.JSONDecodeError as error:
-        raise ConfigError(f"{path} is not valid JSON: {error}")
+        raise ConfigError(f"{path} is not valid JSON: {error}") from error
     return load(raw)
 
 

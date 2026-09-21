@@ -2,6 +2,8 @@
 
 import copy
 import json
+from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -9,7 +11,7 @@ from src import config
 from tests.conftest import CONFIG
 
 
-def load(**changes):
+def load(**changes: dict[str, Any]) -> config.Settings:
     """Load the reference document, with the given sections merged over it."""
     document = copy.deepcopy(CONFIG)
     for section, values in changes.items():
@@ -17,13 +19,13 @@ def load(**changes):
     return config.load(document)
 
 
-def drop(section, key):
+def drop(section: str, key: str) -> dict[str, Any]:
     document = copy.deepcopy(CONFIG)
     del document[section][key]
     return document
 
 
-def test_a_complete_document_arrives_intact():
+def test_a_complete_document_arrives_intact() -> None:
     settings = load()
 
     assert settings.country.code == "fr"
@@ -39,7 +41,7 @@ def test_a_complete_document_arrives_intact():
     assert settings.is_dev
 
 
-def test_the_optional_settings_have_defaults():
+def test_the_optional_settings_have_defaults() -> None:
     document = copy.deepcopy(CONFIG)
     for key in ("admin_level_max", "match_radius_m", "nsi_writable_tags", "timezone"):
         document["country"].pop(key, None)
@@ -56,7 +58,7 @@ def test_the_optional_settings_have_defaults():
 
 
 @pytest.mark.parametrize(
-    "section, key",
+    ("section", "key"),
     [
         ("country", "territory_codes"),
         ("country", "locales"),
@@ -68,13 +70,13 @@ def test_the_optional_settings_have_defaults():
         ("app", "db"),
     ],
 )
-def test_a_required_setting_is_named_when_it_is_missing(section, key):
+def test_a_required_setting_is_named_when_it_is_missing(section: str, key: str) -> None:
     with pytest.raises(config.ConfigError, match=key):
         config.load(drop(section, key))
 
 
 @pytest.mark.parametrize(
-    "section, key, value",
+    ("section", "key", "value"),
     [
         ("country", "territory_codes", "fr"),
         ("country", "admin_level", "6"),
@@ -86,20 +88,20 @@ def test_a_required_setting_is_named_when_it_is_missing(section, key):
         ("app", "db", "o2p"),
     ],
 )
-def test_a_setting_of_the_wrong_type_is_refused(section, key, value):
+def test_a_setting_of_the_wrong_type_is_refused(section: str, key: str, value: object) -> None:
     with pytest.raises(config.ConfigError, match=key):
         load(**{section: {key: value}})
 
 
 @pytest.mark.parametrize("section", ["country", "app"])
-def test_an_unknown_setting_is_refused_rather_than_ignored(section):
+def test_an_unknown_setting_is_refused_rather_than_ignored(section: str) -> None:
     """A typo that is ignored is a setting that silently keeps its default."""
     with pytest.raises(config.ConfigError, match="admin_levl"):
         load(**{section: {"admin_levl": 6}})
 
 
 @pytest.mark.parametrize(
-    "changes, message",
+    ("changes", "message"),
     [
         ({"country": {"territory_codes": ["FR"]}}, "territory_codes"),
         ({"country": {"territory_codes": ["fra"]}}, "territory_codes"),
@@ -110,12 +112,16 @@ def test_an_unknown_setting_is_refused_rather_than_ignored(section):
         ({"app": {"env": "STAGING"}}, "app.env"),
     ],
 )
-def test_a_value_that_cannot_work_is_refused_at_startup(changes, message):
+def test_a_value_that_cannot_work_is_refused_at_startup(
+    changes: dict[str, dict[str, Any]], message: str
+) -> None:
     with pytest.raises(config.ConfigError, match=message):
         load(**changes)
 
 
-def test_the_file_itself_is_refused_when_it_cannot_be_read(tmp_path, monkeypatch):
+def test_the_file_itself_is_refused_when_it_cannot_be_read(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     config.get_settings.cache_clear()
     monkeypatch.setenv("ATP2OSM_CONFIG", str(tmp_path / "nowhere.json"))
     with pytest.raises(config.ConfigError, match="points at no file"):
@@ -134,14 +140,16 @@ def test_the_file_itself_is_refused_when_it_cannot_be_read(tmp_path, monkeypatch
     config.get_settings.cache_clear()
 
 
-def test_a_secret_stays_in_the_environment(monkeypatch):
+def test_a_secret_stays_in_the_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     """The file is meant to be read, mounted and diffed; a password is not."""
     monkeypatch.delenv("OSM_DB_PASSWORD")
     with pytest.raises(config.ConfigError, match="OSM_DB_PASSWORD"):
         load()
 
 
-def test_the_reference_document_is_what_the_file_would_hold(tmp_path, monkeypatch):
+def test_the_reference_document_is_what_the_file_would_hold(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """The dict the tests share and a real file on disk go through one path."""
     path = tmp_path / "config.json"
     path.write_text(json.dumps(CONFIG))
@@ -152,7 +160,7 @@ def test_the_reference_document_is_what_the_file_would_hold(tmp_path, monkeypatc
     config.get_settings.cache_clear()
 
 
-def test_the_example_the_schema_carries_is_a_document_the_loader_accepts():
+def test_the_example_the_schema_carries_is_a_document_the_loader_accepts() -> None:
     """The schema documents and exemplifies; nothing else has to stay in step.
 
     Filling the blanks the example deliberately leaves must be enough to make it
@@ -172,7 +180,7 @@ def test_the_example_the_schema_carries_is_a_document_the_loader_accepts():
     assert settings.env == "PRODUCTION"
 
 
-def test_the_first_code_is_the_country_and_the_rest_its_territories():
+def test_the_first_code_is_the_country_and_the_rest_its_territories() -> None:
     """ISO codes Martinique separately, and ATP tags its POIs MQ, not FR."""
     settings = load(country={"territory_codes": ["fr", "mq", "gp"]})
 
@@ -180,5 +188,5 @@ def test_the_first_code_is_the_country_and_the_rest_its_territories():
     assert settings.country.territory_codes == ("fr", "mq", "gp")
 
 
-def test_a_country_without_territories_reads_one_code():
+def test_a_country_without_territories_reads_one_code() -> None:
     assert load(country={"territory_codes": ["de"]}).country.code == "de"

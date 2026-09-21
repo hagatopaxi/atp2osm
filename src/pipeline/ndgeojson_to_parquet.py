@@ -1,5 +1,5 @@
 """
-ATP GeoJSON to Parquet Conversion Pipeline
+ATP GeoJSON to Parquet Conversion Pipeline.
 
 This module handles the conversion of ATP (All The Places) GeoJSON data to Parquet format.
 
@@ -32,13 +32,14 @@ This approach, while more complex than direct conversion, ensures reliability
 regardless of the input GeoJSON file sizes.
 """
 
-import json
 import logging
 import os
 import shutil
-import duckdb
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+
+import duckdb
+
 from src.pipeline.constants import (
     GEOJSON_DIR,
     MAX_FILE_SIZE,
@@ -73,7 +74,7 @@ def convert_to_parquet(input_dir: Path, output_path: Path) -> None:
         # Step 1: each NDJSON file → mini parquet (parallelized, max 16 MB input each)
         logger.info("Step 1/2 — converting %d NDJSON files to parquet...", len(files))
 
-        def convert_one(args: tuple) -> Path:
+        def convert_one(args: tuple[int, Path]) -> Path:
             i, file_path = args
             out = duck_temp / f"part_{i:06d}.parquet"
             logger.info("[%d/%d] %s", i + 1, len(files), file_path.name)
@@ -98,12 +99,12 @@ def convert_to_parquet(input_dir: Path, output_path: Path) -> None:
             con.load_extension("spatial")
             con.execute(f"SET threads={WORKERS}")
             con.execute("SET memory_limit='2GB'")
+            # DuckDB, fed the paths this function chose.
             con.execute(f"""
                 COPY (SELECT * FROM read_parquet('{glob_parts}'))
-                TO '{str(output_path)}'
+                TO '{output_path!s}'
                 (FORMAT PARQUET, COMPRESSION 'ZSTD')
-            """)
-
+            """)  # noqa: S608
     finally:
         shutil.rmtree(duck_temp, ignore_errors=True)
 
@@ -136,7 +137,7 @@ def _ndjson_to_parquet(file_path: Path, out_path: Path) -> None:
                     WHERE geometry IS NOT NULL
                 )
             ) TO '{out_path.as_posix()}' (FORMAT PARQUET, COMPRESSION 'ZSTD')
-        """)
+        """)  # noqa: S608 — DuckDB, fed the paths the caller chose
 
 
 def convert_geojson_to_ndgeojson(geojson_dir: Path, ndgeojson_dir: Path) -> None:
@@ -153,18 +154,15 @@ def convert_geojson_to_ndgeojson(geojson_dir: Path, ndgeojson_dir: Path) -> None
         raise FileNotFoundError(f"No .geojson files in {geojson_dir}")
 
     with ThreadPoolExecutor(max_workers=WORKERS) as executor:
-        futures = [
-            executor.submit(_geojson_to_ndgeojson_single, f, ndgeojson_dir)
-            for f in files
-        ]
+        futures = [executor.submit(_geojson_to_ndgeojson_single, f, ndgeojson_dir) for f in files]
         for fut in futures:
             fut.result()
 
     logger.info("Converted FC geojson to NDJSON")
 
 
-def _geojson_to_ndgeojson_single(in_path: Path, NDGEOJSON_DIR: Path) -> None:
-    out_path = NDGEOJSON_DIR / in_path.name
+def _geojson_to_ndgeojson_single(in_path: Path, ndgeojson_dir: Path) -> None:
+    out_path = ndgeojson_dir / in_path.name
 
     # Already converted in a prior (partial) run — drop the redundant source.
     if out_path.exists():
@@ -180,7 +178,7 @@ def _geojson_to_ndgeojson_single(in_path: Path, NDGEOJSON_DIR: Path) -> None:
     tmp_path = out_path.with_suffix(out_path.suffix + ".tmp")
     written = 0
 
-    with open(in_path, "rb") as f_in, open(tmp_path, "wb") as f_out:
+    with in_path.open("rb") as f_in, tmp_path.open("wb") as f_out:
         first = True
         prev = None
         for line in f_in:
@@ -205,11 +203,11 @@ def _geojson_to_ndgeojson_single(in_path: Path, NDGEOJSON_DIR: Path) -> None:
         logger.debug("Skipping %s: no features", in_path.name)
         return
 
-    os.replace(tmp_path, out_path)  # durable, atomic on same filesystem
+    tmp_path.replace(out_path)  # durable, atomic on same filesystem
     in_path.unlink()  # source consumed — free it immediately
 
 
-def split_ndgeojson(NDGEOJSON_DIR: Path, split_dir: Path) -> None:
+def split_ndgeojson(ndgeojson_dir: Path, split_dir: Path) -> None:
     """Split NDJSON files larger than MAX_FILE_SIZE; move smaller files as-is.
 
     Re-entrant: keeps any chunks already produced and consumes each source
@@ -218,14 +216,12 @@ def split_ndgeojson(NDGEOJSON_DIR: Path, split_dir: Path) -> None:
     """
     split_dir.mkdir(parents=True, exist_ok=True)
 
-    files = sorted(NDGEOJSON_DIR.glob("*.geojson"))
+    files = sorted(ndgeojson_dir.glob("*.geojson"))
     if not files:
-        raise FileNotFoundError(f"No .geojson files in {NDGEOJSON_DIR}")
+        raise FileNotFoundError(f"No .geojson files in {ndgeojson_dir}")
 
     with ThreadPoolExecutor(max_workers=WORKERS) as executor:
-        futures = [
-            executor.submit(_split_or_move_ndgeojson, f, split_dir) for f in files
-        ]
+        futures = [executor.submit(_split_or_move_ndgeojson, f, split_dir) for f in files]
         for fut in futures:
             fut.result()
 
@@ -257,7 +253,7 @@ def _split_ndgeojson_file(in_path: Path, split_dir: Path) -> None:
 
     chunk_num = 0
     start = 0
-    with open(in_path, "rb") as f:
+    with in_path.open("rb") as f:
         while start < size:
             end = min(start + MAX_FILE_SIZE, size)
             if end < size:

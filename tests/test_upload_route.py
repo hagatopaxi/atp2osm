@@ -4,62 +4,67 @@ The route is exercised on the real schema — the history rows are the point —
 through the `contributor` client of conftest: the site's blueprints on the
 throwaway database, never `src.app`.
 
-`BulkUpload` is the real one: in development it drives `_FakeOsmApi`, so a
+`BulkUpload` is the real one: in development it drives `FakeOsmApi`, so a
 success here goes through the code production runs. Only the failures are
 staged, through a stand-in that reports what an unreachable OSM would.
 """
 
 import json
+from typing import Never
 
 import pytest
-from psycopg.rows import dict_row
+from flask.testing import FlaskClient
+from psycopg.rows import DictRow, dict_row
 
-import src.routes.brands as brands
-from src.matching import WAVES_BY_NUMBER
+from src.matching import WAVES_BY_NUMBER, Change, SubdivisionScope, Wave
+from src.routes import brands
 from src.upload import BulkUpload
+from tests.conftest import Connection, make_change
 
 
 @pytest.fixture
-def client(contributor, monkeypatch):
+def client(contributor: FlaskClient, monkeypatch: pytest.MonkeyPatch) -> FlaskClient:
     # The logs of a run are a production artefact, not a test one.
-    monkeypatch.setattr(BulkUpload, "save_log_file", lambda self: None)
-    monkeypatch.setattr(BulkUpload, "_write_osc", lambda *a, **k: None)
+    def nothing(*_args: object, **_kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(BulkUpload, "save_log_file", nothing)
+    monkeypatch.setattr(BulkUpload, "_write_osc", nothing)
     return contributor
 
 
-def change(id, sub="75", name="Paris"):
-    return {
-        "id": id,
-        "version": 1,
-        "node_type": "node",
-        "tag": {"brand": "Babylone", "brand:wikidata": "Q123", "email": "a@b.fr"},
-        "members": [],
-        "subdivision_code": sub,
-        "subdivision_name": name,
-        "atp_brand": "Babylone",
-        "tags_added": ["email"],
-    }
+def change(osm_id: int, sub: str = "75", name: str = "Paris") -> Change:
+    return make_change(
+        id=osm_id,
+        tag={"brand": "Babylone", "brand:wikidata": "Q123", "email": "a@b.fr"},
+        members=[],
+        subdivision_code=sub,
+        subdivision_name=name,
+    )
 
 
-def batch(monkeypatch, changes, wave=WAVES_BY_NUMBER[1]):
-    monkeypatch.setattr(brands, "get_batch", lambda wikidata: (changes, {}, wave))
+def batch(
+    monkeypatch: pytest.MonkeyPatch, changes: list[Change], wave: Wave = WAVES_BY_NUMBER[1]
+) -> None:
+    def get_batch(_wikidata: str) -> tuple[list[Change], list[SubdivisionScope], Wave]:
+        return changes, [], wave
+
+    monkeypatch.setattr(brands, "get_batch", get_batch)
 
 
-def history(conn):
+def history(conn: Connection) -> list[DictRow]:
     with conn.cursor(row_factory=dict_row) as cur:
         return cur.execute("SELECT * FROM import_history ORDER BY id").fetchall()
 
 
-def subdivisions(conn):
+def subdivisions(conn: Connection) -> list[DictRow]:
     with conn.cursor(row_factory=dict_row) as cur:
-        return cur.execute(
-            "SELECT * FROM import_subdivisions ORDER BY subdivision_code"
-        ).fetchall()
+        return cur.execute("SELECT * FROM import_subdivisions ORDER BY subdivision_code").fetchall()
 
 
 def test_a_full_success_answers_200_and_records_the_import(
-    client, migrated_conn, monkeypatch
-):
+    client: FlaskClient, migrated_conn: Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
     batch(monkeypatch, [change(1), change(2, sub="33", name="Gironde")])
 
     res = client.post("/brands/Q123/upload")
@@ -85,8 +90,8 @@ def test_a_full_success_answers_200_and_records_the_import(
 
 
 def test_a_partial_failure_answers_200_with_the_errors(
-    client, migrated_conn, monkeypatch
-):
+    client: FlaskClient, migrated_conn: Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
     batch(monkeypatch, [change(1), change(2, sub="33", name="Gironde")])
     monkeypatch.setattr(brands, "BulkUpload", _staged(partial=True))
 
@@ -110,8 +115,8 @@ def test_a_partial_failure_answers_200_with_the_errors(
 
 
 def test_a_total_failure_answers_422_and_still_records_it(
-    client, migrated_conn, monkeypatch
-):
+    client: FlaskClient, migrated_conn: Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
     batch(monkeypatch, [change(1)])
     monkeypatch.setattr(brands, "BulkUpload", _staged(partial=False))
 
@@ -129,8 +134,8 @@ def test_a_total_failure_answers_422_and_still_records_it(
 
 
 def test_a_brand_under_cooldown_is_refused_and_nothing_is_sent(
-    client, migrated_conn, monkeypatch
-):
+    client: FlaskClient, migrated_conn: Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
     # A childless import row hides the whole brand for the cooldown.
     with migrated_conn.cursor() as cur:
         cur.execute(
@@ -149,8 +154,8 @@ def test_a_brand_under_cooldown_is_refused_and_nothing_is_sent(
 
 
 def test_a_batch_over_the_limit_is_refused_and_nothing_is_sent(
-    client, migrated_conn, monkeypatch
-):
+    client: FlaskClient, migrated_conn: Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
     batch(monkeypatch, [change(i) for i in range(WAVES_BY_NUMBER[1].batch_size + 1)])
     monkeypatch.setattr(brands, "BulkUpload", _never_called)
 
@@ -161,7 +166,9 @@ def test_a_batch_over_the_limit_is_refused_and_nothing_is_sent(
     assert history(migrated_conn) == []
 
 
-def test_an_anonymous_visitor_cannot_upload(client, monkeypatch):
+def test_an_anonymous_visitor_cannot_upload(
+    client: FlaskClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setattr(brands, "BulkUpload", _never_called)
     with client.session_transaction() as sess:
         sess.clear()
@@ -169,15 +176,15 @@ def test_an_anonymous_visitor_cannot_upload(client, monkeypatch):
     assert client.post("/brands/Q123/upload").status_code == 403
 
 
-def _never_called(*args, **kwargs):
+def _never_called(*_args: object, **_kwargs: object) -> Never:
     raise AssertionError("the route must not reach OSM here")
 
 
-def _staged(partial: bool):
+def _staged(*, partial: bool) -> type[BulkUpload]:
     """A BulkUpload whose last subdivision fails — the whole batch if alone."""
 
     class Staged(BulkUpload):
-        def upload(self):
+        def upload(self) -> list[tuple[str, str]]:
             subs = self._sorted_by_subdivision()
             for i, (sub, sub_changes) in enumerate(subs.items()):
                 if partial and i == 0:

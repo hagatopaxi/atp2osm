@@ -14,12 +14,15 @@ move, and the indexes built on it are rebuilt with it.
 """
 
 import logging
-from functools import lru_cache
 import re
+from functools import lru_cache
+from typing import Any
 
+import psycopg
 from psycopg import sql
 
 from src.config import get_country
+from src.db import code_sql
 from src.pipeline._matview import signature
 
 logger = logging.getLogger(__name__)
@@ -45,8 +48,9 @@ PHONE_INDEXES = ("atp_places_phone_norm_idx", "mv_places_phone_norm_idx")
 _LOCK_KEY = 8_314_020_251
 
 
-def normalize_phone_sql(calling_codes: tuple[str, ...] | None = None,
-                        trunk_prefix: str | None = None) -> str:
+def normalize_phone_sql(
+    calling_codes: tuple[str, ...] | None = None, trunk_prefix: str | None = None
+) -> str:
     """The CREATE OR REPLACE for this country's phone key.
 
     The two values are spliced into the SQL, and they come from a
@@ -130,11 +134,14 @@ LANGUAGE SQL IMMUTABLE STRICT PARALLEL SAFE AS $fn$
   END
   FROM without_country;
 $fn$;
-"""
+"""  # noqa: S608 — the codes and the prefix were checked against a regex above
 
 
-def ensure_normalize_phone(conn, calling_codes: tuple[str, ...] | None = None,
-                           trunk_prefix: str | None = None) -> bool:
+def ensure_normalize_phone(
+    conn: psycopg.Connection[Any],
+    calling_codes: tuple[str, ...] | None = None,
+    trunk_prefix: str | None = None,
+) -> bool:
     """Install the function for this country; rebuild its indexes if it moved.
 
     Returns whether anything changed. Cheap enough to call on every startup:
@@ -155,18 +162,14 @@ def ensure_normalize_phone(conn, calling_codes: tuple[str, ...] | None = None,
         # work the previous one just did. The loser wakes up on a stamped
         # function and returns False.
         cur.execute("SELECT pg_advisory_xact_lock(%s)", (_LOCK_KEY,))
-        cur.execute(
-            "SELECT obj_description(to_regprocedure('normalize_phone(text)'), 'pg_proc')"
-        )
+        cur.execute("SELECT obj_description(to_regprocedure('normalize_phone(text)'), 'pg_proc')")
         row = cur.fetchone()
         if row and row[0] == sig:
             return False
 
-        cur.execute(body)
+        cur.execute(code_sql(body))
         cur.execute(
-            sql.SQL("COMMENT ON FUNCTION normalize_phone(text) IS {}").format(
-                sql.Literal(sig)
-            )
+            sql.SQL("COMMENT ON FUNCTION normalize_phone(text) IS {}").format(sql.Literal(sig))
         )
 
         cur.execute(
@@ -197,7 +200,7 @@ def ensure_normalize_phone(conn, calling_codes: tuple[str, ...] | None = None,
 # own turns the shapes into configuration too; until then, generalising them
 # would mean inventing a syntax for a case nobody has.
 @lru_cache(maxsize=4)
-def _national_patterns(mainland_code: str):
+def _national_patterns(mainland_code: str) -> tuple[re.Pattern[str], re.Pattern[str]]:
     codes = rf"\+{mainland_code}|00{mainland_code}|{mainland_code}"
     return (
         # The calling code and the trunk prefix are both optional and can be
@@ -212,11 +215,11 @@ def format_phone(value: str | None) -> str | None:
     if not value:
         return value
     special, short = _national_patterns(get_country().calling_codes[0])
-    digits = re.sub(r"[\s.()\u00a0\u202f-]|^tel:", "", value, flags=re.I)
+    digits = re.sub(r"[\s.()\u00a0\u202f-]|^tel:", "", value, flags=re.IGNORECASE)
     match = special.match(digits)
     if match:
         n = "0" + match.group(1)
-        return " ".join(n[i:i + 2] for i in range(0, 10, 2))
+        return " ".join(n[i : i + 2] for i in range(0, 10, 2))
     match = short.match(digits)
     if match:
         return match.group(1)

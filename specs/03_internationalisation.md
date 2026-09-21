@@ -851,12 +851,12 @@ jamais un dict :
 class Country:
     """Everything that differs from one country to the next."""
 
-    code: str                            # ISO 3166-1 alpha-2, matched against addr:country
-    geofabrik: tuple[str, ...]           # extract paths, without -latest.osm.pbf
-    admin_level: int                     # finest subdivision level; falls back down to 2
-    admin_level_max: int                 # deepest level imported; >= admin_level
-    locales: tuple[str, ...]             # first one is the default and the fallback
-    changeset_comments: dict[str, str]   # per locale; {subdivision} and {brand}
+    code: str  # ISO 3166-1 alpha-2, matched against addr:country
+    geofabrik: tuple[str, ...]  # extract paths, without -latest.osm.pbf
+    admin_level: int  # finest subdivision level; falls back down to 2
+    admin_level_max: int  # deepest level imported; >= admin_level
+    locales: tuple[str, ...]  # first one is the default and the fallback
+    changeset_comments: dict[str, str]  # per locale; {subdivision} and {brand}
     nsi_locations: frozenset[str]
     nsi_writable_tags: frozenset[str]
     match_radius_m: int = 500

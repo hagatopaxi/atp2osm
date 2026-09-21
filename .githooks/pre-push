@@ -28,6 +28,17 @@ done
 
 uv sync --quiet
 
+# Static checks first: they are seconds, the tests are a minute. Lint,
+# formatting and types are all blocking — a finding is a finding.
+if ! uv run ruff check . || ! uv run ruff format --check .; then
+	echo "pre-push: ruff refused the push (uv run ruff check --fix . && uv run ruff format .)" >&2
+	exit 1
+fi
+if ! uv run pyright; then
+	echo "pre-push: pyright refused the push" >&2
+	exit 1
+fi
+
 # The DB-backed tests need OSM_DB_*: load .env so they run.
 if [ ! -f .env ]; then
 	echo "pre-push: no .env, the database-backed tests cannot run" >&2
@@ -38,8 +49,6 @@ if ! uv run --env-file .env pytest -q; then
 	echo "pre-push: tests failed — is the database up? (podman-compose up -d)" >&2
 	exit 1
 fi
-
-uv run python -m compileall -q src scripts
 
 # Accessibility: pa11y-ci (axe + htmlcs, WCAG 2 AA) over every page, light
 # and dark, on a server the test starts on the throwaway database. Excluded

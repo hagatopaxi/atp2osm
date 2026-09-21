@@ -1,11 +1,13 @@
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 
-from flask import Blueprint, render_template, request, abort
+from flask import Blueprint, abort, render_template, request
+from psycopg import sql
 from psycopg.rows import dict_row
 
 from src.db import get_osmdb
-from src.utils import HISTORY_FILTERS as FILTERS, build_filters, fetch_osm_users
+from src.utils import HISTORY_FILTERS as FILTERS
+from src.utils import build_filters, fetch_osm_users, where_clause
 
 logger = logging.getLogger(__name__)
 
@@ -24,34 +26,39 @@ SORT_COLUMNS = {
 
 
 @history_bp.route("/history")
-def history():
+def history() -> str:
     osmdb = get_osmdb()
     page = max(1, request.args.get("page", 1, type=int))
     offset = (page - 1) * HISTORY_PER_PAGE
-    where, params, filters = build_filters(request.args, FILTERS)
-    sort = request.args.get("sort") if request.args.get("sort") in SORT_COLUMNS else "date"
+    conditions, params, filters = build_filters(request.args, FILTERS)
+    where = where_clause(conditions)
+    sort = request.args.get("sort", "date")
+    sort = sort if sort in SORT_COLUMNS else "date"
     direction = "ASC" if request.args.get("dir") == "asc" else "DESC"
 
     with osmdb.cursor(row_factory=dict_row) as cursor:
-        total = cursor.execute(
-            f"SELECT COUNT(*) AS total FROM import_history {where}", params
-        ).fetchone()["total"]
+        counted = cursor.execute(
+            sql.SQL("SELECT COUNT(*) AS total FROM import_history {}").format(where), params
+        ).fetchone()
+        total = int(counted["total"]) if counted else 0
 
         entries = cursor.execute(
-            f"""SELECT *,
+            sql.SQL("""SELECT *,
                        (SELECT COUNT(*) FROM import_subdivisions sub
                         WHERE sub.import_id = import_history.id) AS subdivisions_count
                 FROM import_history {where}
-                ORDER BY {SORT_COLUMNS[sort]} {direction} NULLS LAST
-                LIMIT %s OFFSET %s""",
-            params + [HISTORY_PER_PAGE, offset],
+                ORDER BY {column} {direction} NULLS LAST
+                LIMIT %s OFFSET %s""").format(
+                where=where,
+                column=sql.Identifier(SORT_COLUMNS[sort]),
+                direction=sql.SQL(direction),
+            ),
+            [*params, HISTORY_PER_PAGE, offset],
         ).fetchall()
 
         all_user_ids = [
-            r["osm_user_id"]
-            for r in cursor.execute(
-                "SELECT DISTINCT osm_user_id FROM import_history"
-            ).fetchall()
+            int(r["osm_user_id"])
+            for r in cursor.execute("SELECT DISTINCT osm_user_id FROM import_history").fetchall()
         ]
 
     total_pages = max(1, -(-total // HISTORY_PER_PAGE))
@@ -75,12 +82,10 @@ def history():
 
 
 @history_bp.route("/history/<int:entry_id>")
-def history_detail(entry_id):
+def history_detail(entry_id: int) -> str:
     osmdb = get_osmdb()
     with osmdb.cursor(row_factory=dict_row) as cursor:
-        entry = cursor.execute(
-            "SELECT * FROM import_history WHERE id = %s", (entry_id,)
-        ).fetchone()
+        entry = cursor.execute("SELECT * FROM import_history WHERE id = %s", (entry_id,)).fetchone()
 
         subdivisions = cursor.execute(
             """SELECT * FROM import_subdivisions
@@ -92,7 +97,7 @@ def history_detail(entry_id):
         abort(404)
 
     users = fetch_osm_users([entry["osm_user_id"]])
-    is_recent = (datetime.now(timezone.utc) - entry["import_date"]) < timedelta(minutes=5)
+    is_recent = (datetime.now(UTC) - entry["import_date"]) < timedelta(minutes=5)
     # Success rate in subdivisions, only when the detail is known: integrations
     # older than the migration have no child rows.
     success_rate = (

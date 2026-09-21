@@ -1,14 +1,79 @@
 import random
 import re
-
 from collections import Counter
+from collections.abc import Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, LiteralString, NamedTuple, NotRequired, TypedDict
 
-from psycopg import Cursor
-from psycopg.rows import dict_row
-from typing import Any, NamedTuple
+from psycopg import Connection, Cursor
+from psycopg.rows import DictRow, dict_row
 
 from src.config import get_country
+from src.db import code_sql
 from src.phone import format_phone
+
+if TYPE_CHECKING:
+    from datetime import datetime
+
+# Every query here reads rows as dicts, keyed by column name.
+DictCursor = Cursor[DictRow]
+
+# The tags of an OSM object, as osm2pgsql hands them over.
+Tags = dict[str, str]
+
+
+class Change(TypedDict):
+    """The proposal a wave produced for one OSM object.
+
+    `apply_on_node` builds it from a matched row, the review page renders it,
+    the upload sends its first half, and a history row keeps what it was
+    written with.
+    """
+
+    # Values for the upload
+    id: int
+    node_type: str
+    version: int
+    tag: Tags
+    members: list[Any] | None
+    lon: float
+    lat: float
+    changeset: NotRequired[int]
+    # Values for the review
+    atp_brand: str
+    atp_id: str
+    spider_id: str | None
+    source_uri: str | None
+    source_type: str | None
+    postcode: str | None
+    old_tag: Tags
+    osm_timestamp: str | None
+    brand_wikidata_source: str | None
+    subdivision_code: str
+    subdivision_name: str | None
+
+
+class SubdivisionScope(TypedDict):
+    """One subdivision of a batch, as /validate announces it."""
+
+    number: str
+    name: str
+    count: int
+
+
+class Category(TypedDict):
+    """One primary tag a batch touches, and how many of its POIs carry it."""
+
+    tag: str | None
+    count: int
+
+
+class Stats(TypedDict):
+    """What a batch changes, counted for the confirmation page."""
+
+    by_tag: dict[str, int]
+    size: int
+    total_tag_updates: int
+    by_subdivision: dict[str, dict[str, str | int]]
 
 
 # The one ATP <-> OSM matching query, shared by /validate (get_filtered) and by
@@ -138,7 +203,7 @@ MATCHED_POI_SQL = """
 """
 
 
-def matched_poi_sql(where_options: str = "TRUE") -> str:
+def matched_poi_sql(where_options: LiteralString = "TRUE") -> str:
     """The matching query, ready to run: its filters and the country's radius.
 
     One `format` call, never two: the SQL escapes its own braces (`'{{}}'::jsonb`)
@@ -184,18 +249,19 @@ WAVES_BY_NUMBER = {wave.number: wave for wave in WAVES}
 def waves_lateral_sql() -> str:
     """`VALUES (number, flag)` for every wave — how mv_places_brand fans a
     match out over the waves it belongs to. A POI can be on two: adding a
-    missing phone and replacing a stale website are two integrations."""
+    missing phone and replacing a stale website are two integrations.
+    """
     return ", ".join(f"({wave.number}, {wave.flag})" for wave in WAVES)
 
 
 def get_filtered(
-    cursor: Cursor,
-    brand: str = None,
-    postcode: str = None,
-    subdivision_code: str = None,
-) -> Cursor:
-    options = []
-    params = []
+    cursor: DictCursor,
+    brand: str | None = None,
+    postcode: str | None = None,
+    subdivision_code: str | None = None,
+) -> DictCursor:
+    options: list[LiteralString] = []
+    params: list[str] = []
     if brand:
         options.append("atp.brand_wikidata = %s")
         params.append(brand)
@@ -208,7 +274,7 @@ def get_filtered(
 
     query = matched_poi_sql(" AND ".join(options) or "TRUE")
 
-    return cursor.execute(query, params)
+    return cursor.execute(code_sql(query), params)
 
 
 # Cooldowns: how long an import keeps hiding what it just touched, until the
@@ -219,13 +285,14 @@ ERROR_COOLDOWN = "4 weeks"
 # Cooldowns are code constants, never values coming from a request: splicing
 # them into the SQL below cannot inject anything. The format is checked at import
 # time so that it stays that way.
-assert all(
+if not all(
     re.fullmatch(r"\d+ (days|weeks|months)", cooldown)
     for cooldown in (SUCCESS_COOLDOWN, ERROR_COOLDOWN)
-)
+):
+    raise ValueError("a cooldown is written '<n> days|weeks|months'")
 
 
-def _within(cooldown: str) -> str:
+def _within(cooldown: LiteralString) -> LiteralString:
     """SQL condition: the import is still within its cooldown."""
     return f"ih.import_date > NOW() - INTERVAL '{cooldown}'"
 
@@ -243,7 +310,7 @@ BLOCKED_DEPARTEMENTS_SQL = f"""
     JOIN import_history ih ON ih.id = sub.import_id
     WHERE (sub.status IN ('error_osm_api','error_unknown') AND {_within(ERROR_COOLDOWN)})
        OR (sub.status = 'success'                          AND {_within(SUCCESS_COOLDOWN)})
-"""
+"""  # noqa: S608 — composed from the constants above
 
 # Imports with no changeset at all: a cancellation, a brand with nothing left to
 # integrate, or a pre-migration row the backfill could not detail. They point at
@@ -271,7 +338,7 @@ BLOCKED_BRANDS_SQL = f"""
               AND s.updated_at > ih.import_date
         ))
       )
-"""
+"""  # noqa: S608 — composed from the constants above
 
 
 # Per (brand, wave), what is left to integrate once the cooldowns have had
@@ -301,10 +368,10 @@ UNBLOCKED_WAVES_SQL = f"""
             AND (blocked_brands.wave = mvb.wave OR blocked_brands.status = 'cancelled')
       )
     GROUP BY mvb.brand_wikidata, mvb.wave
-"""
+"""  # noqa: S608 — composed from the constants above
 
 
-def get_all(osmdb):
+def get_all(osmdb: Connection[Any]) -> list[DictRow]:
     # `total` is the number of POIs *left to integrate*, on the brand's current
     # wave — the first one that still has anything.
     query = f"""
@@ -340,15 +407,13 @@ def get_all(osmdb):
         ORDER BY
             current.total DESC,
             ih.last_import ASC NULLS FIRST;
-    """
+    """  # noqa: S608 — composed from the constants above
 
     with osmdb.cursor(row_factory=dict_row) as cursor:
-        brands = cursor.execute(query).fetchall()
-
-    return brands
+        return cursor.execute(query).fetchall()
 
 
-def current_wave(cursor: Cursor, brand_wikidata: str) -> Wave:
+def current_wave(cursor: DictCursor, brand_wikidata: str) -> Wave:
     """The wave the brand is on: the first that still has something to give.
 
     Falls back to the last wave when nothing is left at all — /validate then
@@ -357,14 +422,14 @@ def current_wave(cursor: Cursor, brand_wikidata: str) -> Wave:
     row = cursor.execute(
         f"""SELECT MIN(wave) AS wave
             FROM ({UNBLOCKED_WAVES_SQL}) per_wave
-            WHERE brand_wikidata = %s""",
+            WHERE brand_wikidata = %s""",  # noqa: S608
         (brand_wikidata,),
     ).fetchone()
-    number = (row or {}).get("wave")
-    return WAVES_BY_NUMBER.get(number, WAVES[-1])
+    number = row["wave"] if row else None
+    return WAVES_BY_NUMBER.get(number, WAVES[-1]) if isinstance(number, int) else WAVES[-1]
 
 
-def apply_tag(tags: dict, key: str, value: Any) -> None:
+def apply_tag(tags: Tags, key: str, value: str | None) -> None:
     if value is None:
         return
     if key not in tags:
@@ -406,9 +471,9 @@ def merge_opening_hours(old: str, weekdays: str) -> str:
     very rules out of the comparison.
     """
     head, *fallback = old.split("||")
-    rules = []
-    for rule in _COMMA_BETWEEN_RULES.sub(r"\1;", head).split(";"):
-        rule = rule.strip()
+    rules: list[str] = []
+    for raw_rule in _COMMA_BETWEEN_RULES.sub(r"\1;", head).split(";"):
+        rule = raw_rule.strip()
         if not rule:
             continue
         tidy = re.sub(r"\s*([,-])\s*", r"\1", re.sub(r"\s+", " ", rule))
@@ -428,10 +493,10 @@ def merge_opening_hours(old: str, weekdays: str) -> str:
     return " || ".join(["; ".join(rules), *(f.strip() for f in fallback)])
 
 
-def apply_on_node(atp_osm_match: dict, wave: int = 1) -> dict:
-    new_tags = dict(atp_osm_match["tags"])
+def apply_on_node(atp_osm_match: Mapping[str, Any], wave: int = 1) -> Change | None:
+    new_tags: Tags = dict(atp_osm_match["tags"])
 
-    if wave == 2:
+    if wave == WAVES_BY_NUMBER[2].number:
         # The tags to replace were decided in SQL, next to the count that
         # announced them (see modifiable_tags in MATCHED_POI_SQL). Nothing is
         # added here: filling a hole is wave 1's business, and a brand is only
@@ -441,12 +506,13 @@ def apply_on_node(atp_osm_match: dict, wave: int = 1) -> dict:
         # alike, never created: an object tagged only `contact:phone` keeps
         # its spelling, one tagged both must not come out holding two
         # contradictory numbers.
-        for key, value in (atp_osm_match.get("modifiable_tags") or {}).items():
+        modifiable: Tags = atp_osm_match.get("modifiable_tags") or {}
+        for key, value in modifiable.items():
             for written in (key, f"contact:{key}"):
                 if written not in new_tags:
                     continue
                 if key == "phone":
-                    new_tags[written] = format_phone(value)
+                    new_tags[written] = format_phone(value) or value
                 elif key == "opening_hours":
                     new_tags[written] = merge_opening_hours(new_tags[written], value)
                 else:
@@ -467,13 +533,14 @@ def apply_on_node(atp_osm_match: dict, wave: int = 1) -> dict:
     # by mv_places (the object's own primary tag is the discriminator). Never
     # overwrites: apply_tag only fills what is missing, which is what keeps
     # NSI from reclassifying or renaming anything.
-    for key, value in (atp_osm_match.get("nsi_tags") or {}).items():
+    nsi_tags: Tags = atp_osm_match.get("nsi_tags") or {}
+    for key, value in nsi_tags.items():
         apply_tag(new_tags, key, value)
 
     return _change(atp_osm_match, new_tags)
 
 
-def _change(atp_osm_match: dict, new_tags: dict) -> dict | None:
+def _change(atp_osm_match: Mapping[str, Any], new_tags: Tags) -> Change | None:
     """The proposal a wave produced, ready for the upload and the review."""
     # If new_tags and original ones are the same returns None to skip the update
     if new_tags == atp_osm_match["tags"]:
@@ -482,9 +549,8 @@ def _change(atp_osm_match: dict, new_tags: dict) -> dict | None:
     # osm2pgsql's define_area_table stores relation IDs as negative values to
     # distinguish them from way IDs in the shared area_id column. Negate to
     # recover the real OSM ID before passing it to the API or the UI.
-    osm_id = atp_osm_match["osm_id"]
-    if osm_id < 0:
-        osm_id = -osm_id
+    osm_id = abs(int(atp_osm_match["osm_id"]))
+    osm_timestamp: datetime | None = atp_osm_match.get("osm_timestamp")
 
     return {
         # Values for bulk upload
@@ -505,9 +571,7 @@ def _change(atp_osm_match: dict, new_tags: dict) -> dict | None:
         "old_tag": atp_osm_match["tags"],
         # When OSM last saw a change on this object — the first filter of the
         # wave-2 protection, and the only date that costs no API request.
-        "osm_timestamp": atp_osm_match["osm_timestamp"].isoformat()
-        if atp_osm_match.get("osm_timestamp")
-        else None,
+        "osm_timestamp": osm_timestamp.isoformat() if osm_timestamp else None,
         # 'nsi' when the QID was recovered from a label rather than read on the
         # object: the reviewer is then validating an inference, and must see it.
         "brand_wikidata_source": atp_osm_match.get("brand_wikidata_source"),
@@ -518,21 +582,12 @@ def _change(atp_osm_match: dict, new_tags: dict) -> dict | None:
     }
 
 
-def get_changes(cursor: Cursor, wave: int = 1):
-    changes = []
-    # seen = set()
-
+def get_changes(cursor: DictCursor, wave: int = 1) -> list[Change]:
+    changes: list[Change] = []
     for atp_osm_match in cursor:
-        # key = (atp_osm_match["osm_id"], atp_osm_match["node_type"])
-        # if key in seen:
-        #     continue
-        # seen.add(key)
-
         res = apply_on_node(atp_osm_match, wave)
-        if res is None:
-            continue
-        changes.append(res)
-
+        if res is not None:
+            changes.append(res)
     return changes
 
 
@@ -552,15 +607,13 @@ def pack_subdivisions(counts: dict[str, int], max_size: int) -> list[list[str]]:
         ((sub, min(n, max_size)) for sub, n in counts.items()),
         key=lambda kv: (-kv[1], kv[0]),
     )
-    batches = []
+    batches: list[list[str]] = []
 
     while remaining:
         batch = [remaining.pop(0)]
         room = max_size - batch[0][1]
         # remaining stays sorted by size desc, so the first that fits is the biggest
-        while (
-            i := next((i for i, (_, n) in enumerate(remaining) if n <= room), None)
-        ) is not None:
+        while (i := next((i for i, (_, n) in enumerate(remaining) if n <= room), None)) is not None:
             sub, n = remaining.pop(i)
             batch.append((sub, n))
             room -= n
@@ -584,14 +637,20 @@ MAX_UPLOAD_SIZE = 200
 BATCH_SAMPLE_SIZE = WAVES_BY_NUMBER[1].sample_size
 
 
-def changed_tags(change: dict) -> set[str]:
+# A change as a log of 2025 holds it: `old_tag` and the subdivision fields
+# came later. Migration 016 reads those logs back through the readers below,
+# which is why they take a mapping rather than a Change.
+LoggedChange = Mapping[str, Any]
+
+
+def changed_tags(change: LoggedChange) -> set[str]:
     """Keys whose value differs between the existing POI and the proposal."""
-    tag = change.get("tag", {})
-    old_tag = change.get("old_tag", {})
+    tag: Tags = change.get("tag", {})
+    old_tag: Tags = change.get("old_tag", {})
     return {k for k in tag.keys() | old_tag.keys() if tag.get(k) != old_tag.get(k)}
 
 
-def sample_for_review(changes: list[dict], min_size: int = BATCH_SAMPLE_SIZE) -> list[dict]:
+def sample_for_review(changes: list[Change], min_size: int = BATCH_SAMPLE_SIZE) -> list[Change]:
     """Sample reviewed before integration: at least one POI per changed tag.
 
     Its size therefore follows the number of tags involved, topped up at
@@ -607,14 +666,14 @@ def sample_for_review(changes: list[dict], min_size: int = BATCH_SAMPLE_SIZE) ->
     # worst, and the tag count stays single-digit.
     for candidates in by_tag.values():
         if not picked.intersection(candidates):
-            picked.add(random.choice(candidates))
+            picked.add(random.choice(candidates))  # noqa: S311 — a sample, not a secret
 
     rest = [i for i in range(len(changes)) if i not in picked]
     picked.update(random.sample(rest, max(0, min(min_size - len(picked), len(rest)))))
     return [changes[i] for i in sorted(picked)]
 
 
-def subdivision_names(changes: list[dict]) -> dict[str, str]:
+def subdivision_names(changes: Iterable[LoggedChange]) -> dict[str, str]:
     """Code -> name, read off the changes themselves.
 
     The name travels with the POI instead of being looked up in a table: it is
@@ -629,18 +688,17 @@ def subdivision_names(changes: list[dict]) -> dict[str, str]:
     }
 
 
-def count_by_subdivision(changes: list[dict]) -> dict[str, int]:
+def count_by_subdivision(changes: Iterable[LoggedChange]) -> dict[str, int]:
     """Match count per subdivision."""
-    counts = {}
+    counts: dict[str, int] = {}
     for change in changes:
-        sub = change["subdivision_code"]
-        counts[sub] = counts.get(sub, 0) + 1
+        sub = change.get("subdivision_code")
+        if sub is not None:
+            counts[sub] = counts.get(sub, 0) + 1
     return counts
 
 
-def get_blocked_subdivisions(
-    cursor: Cursor, brand_wikidata: str, wave: int = 1
-) -> set[str]:
+def get_blocked_subdivisions(cursor: DictCursor, brand_wikidata: str, wave: int = 1) -> set[str]:
     """Subdivisions of the brand still under cooldown, on that wave.
 
     The status that counts is the changeset's, not the import's: a changeset
@@ -649,10 +707,10 @@ def get_blocked_subdivisions(
     rows = cursor.execute(
         f"""SELECT DISTINCT subdivision_code AS sub
             FROM ({BLOCKED_DEPARTEMENTS_SQL}) b
-            WHERE brand_wikidata = %s AND wave = %s""",
+            WHERE brand_wikidata = %s AND wave = %s""",  # noqa: S608
         (brand_wikidata, wave),
     ).fetchall()
-    return {row["sub"] for row in rows}  # dict_row cursor, as everywhere here
+    return {str(row["sub"]) for row in rows}
 
 
 def compose_batch(
@@ -669,8 +727,8 @@ def compose_batch(
 
 
 def select_batch(
-    changes: list[dict], blocked: set[str], max_size: int = BATCH_MAX_SIZE
-) -> list[dict]:
+    changes: list[Change], blocked: set[str], max_size: int = BATCH_MAX_SIZE
+) -> list[Change]:
     """Narrow matches down to the next batch.
 
     A batch is made of whole subdivisions: one that does not fit in the room left
@@ -695,17 +753,23 @@ def select_batch(
 # MATCHED_POI_SQL, which compares the tag the SQL function returns to the one
 # the ATP import stored — the review names the same thing the join compared.
 PRIMARY_KEYS = (
-    "shop", "amenity", "tourism", "office",
-    "leisure", "healthcare", "craft", "landuse",
+    "shop",
+    "amenity",
+    "tourism",
+    "office",
+    "leisure",
+    "healthcare",
+    "craft",
+    "landuse",
 )
 
 
-def primary_tag(tags: dict) -> str | None:
+def primary_tag(tags: Mapping[str, str]) -> str | None:
     """`amenity=kindergarten` for an OSM object, or None when it carries none."""
     return next((f"{key}={tags[key]}" for key in PRIMARY_KEYS if key in tags), None)
 
 
-def batch_categories(changes: list[dict]) -> list[dict]:
+def batch_categories(changes: Sequence[LoggedChange]) -> list[Category]:
     """The primary tags the batch touches, commonest first.
 
     What tells a reviewer, before reading a single POI, that a batch of
@@ -716,7 +780,7 @@ def batch_categories(changes: list[dict]) -> list[dict]:
     return [{"tag": tag, "count": n} for tag, n in counts.most_common()]
 
 
-def batch_scope(changes: list[dict]) -> list[dict]:
+def batch_scope(changes: Sequence[LoggedChange]) -> list[SubdivisionScope]:
     """The subdivisions a batch covers, biggest first — what /validate announces."""
     names = subdivision_names(changes)
     return [
@@ -727,26 +791,19 @@ def batch_scope(changes: list[dict]) -> list[dict]:
     ]
 
 
-def get_stats(changes: list) -> dict:
-    tag_updates = {}
+def get_stats(changes: Sequence[LoggedChange]) -> Stats:
+    tag_updates: dict[str, int] = {}
     total_tag_updates = 0
-    sub_changes = {}
 
     for change in changes:
-        # Count tag updates
         for t in changed_tags(change):
             tag_updates[t] = tag_updates.get(t, 0) + 1
             total_tag_updates += 1
 
-        # Count changes by department
-        sub = change.get("subdivision_code")
-        if sub is not None:
-            sub_changes[sub] = sub_changes.get(sub, 0) + 1
-
     names = subdivision_names(changes)
-    by_subdivision = {
+    by_subdivision: dict[str, dict[str, str | int]] = {
         sub: {"name": names[sub], "count": count}
-        for sub, count in sorted(sub_changes.items())
+        for sub, count in sorted(count_by_subdivision(changes).items())
     }
 
     return {

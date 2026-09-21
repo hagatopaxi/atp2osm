@@ -17,16 +17,15 @@ that never lands. Whatever an object reads, pass it here.
 """
 
 import hashlib
+from typing import Any, LiteralString
 
-
-from psycopg import sql
+from psycopg import Connection, Cursor, sql
 
 from src.pipeline._db import forced
 
 
-def signature(*inputs) -> str:
+def signature(*inputs: object) -> str:
     """Signature of everything an object depends on.
-
     `inputs` is anything that identifies the version of what it reads — the
     deployed revision, an import date, a source version string. None is fine:
     it just means "no data yet", and differs from any later value.
@@ -35,21 +34,18 @@ def signature(*inputs) -> str:
     return hashlib.sha256("\0".join(parts).encode()).hexdigest()[:16]
 
 
-def is_current(conn, name: str, sig: str) -> bool:
+def is_current(conn: Connection[Any], name: str, sig: str) -> bool:
     """True when `name` exists and was built from this exact signature."""
     if forced():
         return False
     with conn.cursor() as cur:
-        cur.execute(
-            "SELECT obj_description(to_regclass(%s), 'pg_class')", (name,)
-        )
+        cur.execute("SELECT obj_description(to_regclass(%s), 'pg_class')", (name,))
         row = cur.fetchone()
     return bool(row) and row[0] == sig
 
 
-def stamp(cur, name: str, sig: str, kind: str = "MATERIALIZED VIEW") -> None:
+def stamp(cur: Cursor[Any], name: str, sig: str, kind: LiteralString = "MATERIALIZED VIEW") -> None:
     """Record the signature on the object, once it is built.
-
     `kind` is what COMMENT ON needs to name it — a derived plain TABLE is
     guarded exactly like a view.
     """
@@ -77,7 +73,7 @@ def stamp(cur, name: str, sig: str, kind: str = "MATERIALIZED VIEW") -> None:
 # objects go once nothing depends on them any more, see drop_retired().
 
 
-def _indexes(cur, oid):
+def _indexes(cur: Cursor[Any], oid: int) -> list[tuple[str, str | None]]:
     """(index name, constraint name or None) for every index on `oid`."""
     cur.execute(
         """SELECT c.relname, con.conname
@@ -87,12 +83,23 @@ def _indexes(cur, oid):
             WHERE i.indrelid = %s""",
         (oid,),
     )
-    return cur.fetchall()
+    return [(str(index), constraint) for index, constraint in cur.fetchall()]
 
 
-def swap(cur, kind: str, name: str, new: str, indexes=()) -> None:
+def _oid(cur: Cursor[Any], name: str) -> int | None:
+    cur.execute("SELECT to_regclass(%s)::oid", (name,))
+    row = cur.fetchone()
+    return row[0] if row else None
+
+
+def swap(
+    cur: Cursor[Any],
+    kind: LiteralString,
+    name: str,
+    new: str,
+    indexes: tuple[str, ...] = (),
+) -> None:
     """Put `new` in the place of `name`, in the caller's transaction.
-
     `new` is either `<name>_new`, renamed in, or `<schema>.<name>`, moved into
     the public schema — how osm2pgsql delivers its tables. `indexes` names the
     indexes of the renamed variant: they were created as `<index>_new` and take
@@ -107,8 +114,7 @@ def swap(cur, kind: str, name: str, new: str, indexes=()) -> None:
     kept alive for the same reason.
     """
     old = f"{name}_old"
-    cur.execute("SELECT to_regclass(%s)::oid", (old,))
-    leftover = cur.fetchone()[0]
+    leftover = _oid(cur, old)
     if leftover is not None:
         cur.execute(
             sql.SQL("ALTER {} {} RENAME TO {}").format(
@@ -116,8 +122,7 @@ def swap(cur, kind: str, name: str, new: str, indexes=()) -> None:
             )
         )
 
-    cur.execute("SELECT to_regclass(%s)::oid", (name,))
-    live = cur.fetchone()[0]
+    live = _oid(cur, name)
     if live is not None:
         for index, constraint in _indexes(cur, live):
             if constraint:
@@ -155,9 +160,10 @@ def swap(cur, kind: str, name: str, new: str, indexes=()) -> None:
             )
 
 
-def create_indexes(cur, table: str, indexes: dict[str, str]) -> None:
+def create_indexes(cur: Cursor[Any], table: str, indexes: dict[str, LiteralString]) -> None:
     """Build `indexes` — canonical name to definition — on `table`, a `_new`
-    object: each index is named `<name>_new`, and swap() renames it."""
+    object: each index is named `<name>_new`, and swap() renames it.
+    """
     for index, definition in indexes.items():
         cur.execute(
             sql.SQL("CREATE INDEX {} ON {} {}").format(
@@ -166,7 +172,7 @@ def create_indexes(cur, table: str, indexes: dict[str, str]) -> None:
         )
 
 
-def drop_retired(cur, kind: str, name: str) -> list[str]:
+def drop_retired(cur: Cursor[Any], kind: LiteralString, name: str) -> list[str]:
     """Drop every `<name>_old*` nothing depends on any more; return the names.
 
     No CASCADE: a retired object something still reads is kept, never taken
@@ -188,9 +194,7 @@ def drop_retired(cur, kind: str, name: str) -> list[str]:
             ORDER BY c.relname""",
         (f"{name}_old",),
     )
-    dropped = [row[0] for row in cur.fetchall()]
+    dropped = [str(row[0]) for row in cur.fetchall()]
     for retired in dropped:
-        cur.execute(
-            sql.SQL("DROP {} {}").format(sql.SQL(kind), sql.Identifier(retired))
-        )
+        cur.execute(sql.SQL("DROP {} {}").format(sql.SQL(kind), sql.Identifier(retired)))
     return dropped

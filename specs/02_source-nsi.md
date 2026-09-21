@@ -495,15 +495,20 @@ l'import (§2.3.f). C'est le seul endroit qui matérialise ce choix, et donc le
 seul à modifier pour l'élargir.
 
 ```python
-NSI_WRITABLE_TAGS = frozenset({
-    "brand:wikidata",
-    "amenity", "tourism", "office", "leisure",
-    "operator:wikidata",
-    "official_name",
-    "government",
-    "drive_through",
-    "healthcare:speciality",
-})
+NSI_WRITABLE_TAGS = frozenset(
+    {
+        "brand:wikidata",
+        "amenity",
+        "tourism",
+        "office",
+        "leisure",
+        "operator:wikidata",
+        "official_name",
+        "government",
+        "drive_through",
+        "healthcare:speciality",
+    }
+)
 ```
 
 La liste est issue d'une mesure d'accord entre NSI et le terrain, sur les
