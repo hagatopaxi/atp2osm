@@ -240,7 +240,7 @@ WAVES = (
     # Replacing values an existing POI already carries. Small batches while in
     # alpha, the time it takes to see what the community makes of it — and
     # reviewed in full, so a contributor sees every value that is overwritten.
-    Wave(number=2, flag="is_modifiable", batch_size=10, sample_size=10, alpha=True),
+    Wave(number=2, flag="is_modifiable", batch_size=25, sample_size=5, alpha=True),
 )
 
 WAVES_BY_NUMBER = {wave.number: wave for wave in WAVES}
