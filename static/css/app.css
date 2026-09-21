@@ -326,6 +326,30 @@ main .card.rejected {
 [data-theme] {
     --radius-selector: 9999px;
 }
+/* A checkbox is not a badge: the pill radius above turns it into a circle,
+   which reads as a radio button. Rounded off, barely. */
+.checkbox {
+    --radius-selector: 0.25rem;
+}
+/* A ticked type is one the batch keeps: its tile takes the accent border and
+   the bolder label, so what the batch holds is readable without reading each
+   box. A rule of its own rather than a has-[] utility: the plain border
+   utility on the same element wins over the variant. */
+.type-tile:has(:checked) {
+    border-color: var(--color-primary);
+    font-weight: 600;
+    color: var(--color-base-content);
+}
+/* The POIs below the filter describe the batch as it was applied. Change a
+   box and they are the old batch: blurred and out of reach until the filter
+   is applied again — reading them would be reading the wrong review.
+   Faded rather than blurred: a blur repaints the map cards on every hover. */
+.filter-stale {
+    pointer-events: none;
+    user-select: none;
+    opacity: 0.35;
+    transition: opacity 0.2s;
+}
 /* A pill never breaks across lines: a two-word badge in a tight column
    would wrap into two half-pills. */
 .badge {

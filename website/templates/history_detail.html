@@ -127,6 +127,30 @@
 
                 <dt class="muted">{{ _('Wave') }}</dt>
                 <dd><div class="join">{{ wave.badge(entry.wave) }}</div></dd>
+
+                {# Both lists, or neither: a type is included or excluded, and one
+                   that is in neither was not in the batch to be decided on. An
+                   integration older than the filter records nothing, and says
+                   nothing rather than claiming every type was kept. #}
+                {% if entry.included_categories is not none or entry.excluded_categories is not none %}
+                <dt class="muted">{{ _('Object types included') }}</dt>
+                <dd>
+                    <div class="flex flex-wrap gap-1">
+                        {% for category in entry.included_categories or [] %}
+                        <span class="badge badge-sm badge-outline badge-success font-mono">{{ category }}</span>
+                        {% else %}<span class="muted">—</span>{% endfor %}
+                    </div>
+                </dd>
+
+                <dt class="muted">{{ _('Object types left out') }}</dt>
+                <dd>
+                    <div class="flex flex-wrap gap-1">
+                        {% for category in entry.excluded_categories or [] %}
+                        <span class="badge badge-sm badge-outline badge-warning font-mono">{{ category }}</span>
+                        {% else %}<span class="muted">—</span>{% endfor %}
+                    </div>
+                </dd>
+                {% endif %}
             </dl>
         </div>
     </div>
@@ -140,7 +164,7 @@
             <ul class="flex flex-col gap-1">
                 {% for c in comments %}
                 <li class="text-sm">
-                    <a class="link font-mono text-xs" href="{{ api_url }}/{{ c.osm_type }}/{{ c.osm_id }}" target="_blank">{{ c.osm_type }}/{{ c.osm_id }}<i class="iconoir-open-new-window" aria-hidden="true"></i></a>
+                    {% if c.osm_id %}<a class="link font-mono text-xs" href="{{ api_url }}/{{ c.osm_type }}/{{ c.osm_id }}" target="_blank">{{ c.osm_type }}/{{ c.osm_id }}<i class="iconoir-open-new-window" aria-hidden="true"></i></a>{% endif %}
                     {% if c.atp_id %}<span class="font-mono text-xs muted">(ATP {{ c.spider_id ~ "/" if c.spider_id }}{{ c.atp_id }})</span>{% endif %}
                     {% for r in c.reasons or [] %}<span class="badge badge-error badge-outline badge-sm">{{ reasons.LABELS.get(r, r) }}</span>{% endfor %}
                     {% if c.comment %} — {{ c.comment }}{% endif %}

@@ -1,6 +1,10 @@
 let currentInvalidItemId = null;
 let invalidations = [];
 let apiAnswered = false;
+// A ticked box the reviewer has not applied describes a batch that does not
+// exist: the page below it is the old one. Nothing goes to the next step
+// until the filter is applied again.
+let filterDirty = false;
 
 function markSourceChecked(itemId) {
   document
@@ -87,6 +91,25 @@ document.addEventListener("DOMContentLoaded", () => {
   document
     .querySelectorAll(".reason-btn")
     .forEach((b) => b.addEventListener("click", () => toggleReason(b)));
+
+  const filter = document.querySelector("[data-category-filter]");
+  if (filter) {
+    const boxes = Array.from(filter.querySelectorAll("input[name=keep]"));
+    const applied = boxes.map((b) => b.checked).join();
+    const apply = filter.querySelector("[data-apply-filter]");
+    filter.addEventListener("change", () => {
+      // Back on the applied ticks, the page below is the right one again.
+      filterDirty = boxes.map((b) => b.checked).join() !== applied;
+      apply?.toggleAttribute("disabled", !filterDirty);
+      filter
+        .querySelector("[data-filter-hint]")
+        ?.classList.toggle("hidden", !filterDirty);
+      document
+        .querySelector("[data-review-items]")
+        ?.classList.toggle("filter-stale", filterDirty);
+      checkAllValidated();
+    });
+  }
 });
 
 function checkAllValidated() {
@@ -96,9 +119,8 @@ function checkAllValidated() {
   const allValidated = Array.from(cards).every((card) =>
     card.classList.contains("validated"),
   );
-  console.log(cards, allValidated, nextStepButton);
   if (nextStepButton) {
-    if (allValidated) {
+    if (allValidated && !filterDirty) {
       nextStepButton.removeAttribute("disabled");
       if (invalidations.length > 0) {
         const wikidata = extractWikidata(window.location.href);

@@ -18,7 +18,7 @@ from oauthlib.oauth2 import InvalidGrantError
 from PIL import Image
 from psycopg.rows import dict_row
 
-from src.matching import WAVES_BY_NUMBER, Change, SubdivisionScope, Wave
+from src.matching import WAVES_BY_NUMBER, Change
 from src.routes import auth, brands, history, misc, stats, todo
 from src.upload import BulkUpload
 from tests.conftest import Connection, make_change, one
@@ -32,11 +32,9 @@ def _nothing(*_args: object, **_kwargs: object) -> None:
     return None
 
 
-def _batch_of(
-    changes: list[Change],
-) -> Callable[[str], tuple[list[Change], list[SubdivisionScope], Wave]]:
-    def get_batch(_wikidata: str) -> tuple[list[Change], list[SubdivisionScope], Wave]:
-        return changes, [], WAVES_BY_NUMBER[1]
+def _batch_of(changes: list[Change]) -> Callable[[str], brands.Batch]:
+    def get_batch(_wikidata: str) -> brands.Batch:
+        return brands.Batch(changes, [], WAVES_BY_NUMBER[1], [], frozenset(), replayed=False)
 
     return get_batch
 

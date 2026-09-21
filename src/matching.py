@@ -1,7 +1,7 @@
 import random
 import re
 from collections import Counter
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Collection, Iterable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, LiteralString, NamedTuple, NotRequired, TypedDict
 
 from psycopg import Connection, Cursor
@@ -778,6 +778,25 @@ def batch_categories(changes: Sequence[LoggedChange]) -> list[Category]:
     """
     counts = Counter(primary_tag(change["old_tag"]) for change in changes)
     return [{"tag": tag, "count": n} for tag, n in counts.most_common()]
+
+
+# The primary tag of an object that carries none, as the review form names it:
+# a checkbox needs a value, and the empty string is not one that round-trips.
+NO_CATEGORY = "none"
+
+
+def category_key(change: LoggedChange) -> str:
+    """The primary tag of a change, as the review form and the history name it."""
+    return primary_tag(change["old_tag"]) or NO_CATEGORY
+
+
+def exclude_categories(changes: Sequence[Change], excluded: Collection[str]) -> list[Change]:
+    """The changes whose primary tag the reviewer did not take out.
+
+    Applied on the matches, before the batch is composed: a type left out
+    frees its room for another POI rather than shrinking the batch.
+    """
+    return [c for c in changes if category_key(c) not in excluded]
 
 
 def batch_scope(changes: Sequence[LoggedChange]) -> list[SubdivisionScope]:
