@@ -1,5 +1,6 @@
 {% extends '_base.html' %}
 {% from '_info_card.html' import info_card %}
+{% from '_poi_type.html' import poi_type %}
 {% import '_wave.html' as wave with context %}
 
 {% block title %}{{ _('2/2 - Confirming the integration') }} <span class="join align-middle">{{ wave.badge(wave_number) }}</span>{% endblock %}
@@ -32,13 +33,13 @@
     <p class="flex flex-wrap items-center gap-1">
         <span class="muted">{{ _('Included:') }}</span>
         {% for category in categories %}
-        <span class="badge badge-sm badge-outline badge-success font-mono">{{ category.tag or _('no primary tag') }} × {{ category.count }}</span>
+        {{ poi_type(category.tag, 'success', ' × ' ~ category.count) }}
         {% else %}<span class="muted">—</span>{% endfor %}
     </p>
     <p class="flex flex-wrap items-center gap-1">
         <span class="muted">{{ _('Left out by the filter:') }}</span>
         {% for category in excluded %}
-        <span class="badge badge-sm badge-outline badge-warning font-mono">{{ category }}</span>
+        {{ poi_type(category, 'warning') }}
         {% else %}<span class="muted">—</span>{% endfor %}
     </p>
 </div>

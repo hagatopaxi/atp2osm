@@ -2,6 +2,7 @@
 {% import '_error_reasons.html' as reasons %}
 
 {% from '_info_card.html' import info_card %}
+{% from '_poi_type.html' import poi_type, wiki_url %}
 {% import '_wave.html' as wave with context %}
 {% block title %}{% trans brand=brand %}1/2 - Reviewing the data of {{ brand }}{% endtrans %} (<a href="https://www.wikidata.org/wiki/{{ brand_wikidata }}" target="_blank" rel="noopener" class="link font-mono">{{ brand_wikidata }}<i class="iconoir-open-new-window" aria-hidden="true"></i></a>) <span class="join align-middle">{{ wave.badge(wave_number) }}</span>{% endblock %}
 {% block subtitle %}{% trans shown=items | length, size=size %}Review {{ shown }} of the {{ size }} points of interest of this batch, drawn at random. A value marked <span class="text-success"><i class="iconoir-plus align-middle"></i> in green</span> will be written, coming from ATP or from the name-suggestion-index{% endtrans %}{% if wave_number == 2 %}{% trans %}; a value marked <span class="text-error"><i class="iconoir-minus align-middle"></i> in red</span> is the one it replaces in OSM{% endtrans %}{% endif %}. {{ _('Every other tag is already in OSM and will not be updated.') }}{% endblock %}
@@ -97,13 +98,13 @@
                 <p class="flex flex-wrap items-center gap-1">
                     {{ _('POI types integrated then:') }}
                     {% for category in last_import.included_categories or [] %}
-                    <span class="badge badge-sm badge-outline badge-success font-mono">{{ category }}</span>
+                    {{ poi_type(category, 'success') }}
                     {% else %}—{% endfor %}
                 </p>
                 <p class="flex flex-wrap items-center gap-1">
                     {{ _('POI types left out then, unticked again below:') }}
                     {% for category in last_import.excluded_categories or [] %}
-                    <span class="badge badge-sm badge-outline badge-warning font-mono">{{ category }}</span>
+                    {{ poi_type(category, 'warning') }}
                     {% else %}—{% endfor %}
                 </p>
             </div>
@@ -165,7 +166,7 @@
                            {{ 'checked' if value not in excluded }} />
                     <span class="flex-1 truncate">
                         {% if category.tag %}
-                        <span class="font-mono text-sm">{{ category.tag }}</span>
+                        <a class="font-mono text-sm link" href="{{ wiki_url(category.tag) }}" target="_blank" rel="noopener">{{ category.tag }}<i class="iconoir-open-new-window" aria-hidden="true"></i></a>
                         {% else %}
                         <span class="text-warning text-sm">{{ _('no primary tag') }}</span>
                         {% endif %}

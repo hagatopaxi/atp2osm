@@ -6,6 +6,7 @@
 {% block subtitle %}{% trans date=entry.import_date | datetimeformat('short') %}Details of the integration of {{ date }}.{% endtrans %}{% endblock %}
 
 {% from '_info_card.html' import info_card %}
+{% from '_poi_type.html' import poi_type %}
 
 {% block content %}
 {% set banner_statuses = ['success', 'partial', 'cancelled', 'error'] %}
@@ -137,7 +138,7 @@
                 <dd>
                     <div class="flex flex-wrap gap-1">
                         {% for category in entry.included_categories or [] %}
-                        <span class="badge badge-sm badge-outline badge-success font-mono">{{ category }}</span>
+                        {{ poi_type(category, 'success') }}
                         {% else %}<span class="muted">—</span>{% endfor %}
                     </div>
                 </dd>
@@ -146,7 +147,7 @@
                 <dd>
                     <div class="flex flex-wrap gap-1">
                         {% for category in entry.excluded_categories or [] %}
-                        <span class="badge badge-sm badge-outline badge-warning font-mono">{{ category }}</span>
+                        {{ poi_type(category, 'warning') }}
                         {% else %}<span class="muted">—</span>{% endfor %}
                     </div>
                 </dd>
@@ -241,7 +242,7 @@
                             </td>
                             <td>
                                 {% if sub.osm_changeset_id %}
-                                <a class="link font-mono" href="{{ api_url }}/changeset/{{ sub.osm_changeset_id }}" target="_blank">{{ sub.osm_changeset_id }}<i class="iconoir-open-new-window" aria-hidden="true"></i></a>
+                                <a class="link font-mono whitespace-nowrap" href="{{ api_url }}/changeset/{{ sub.osm_changeset_id }}" target="_blank">{{ sub.osm_changeset_id }}<i class="iconoir-open-new-window" aria-hidden="true"></i></a>
                                 {% else %}
                                 <span class="muted">—</span>
                                 {% endif %}

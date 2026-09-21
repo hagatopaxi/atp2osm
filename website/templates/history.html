@@ -121,7 +121,7 @@
             <td>{{ entry.items_count if entry.items_count is not none else '—' }} <span class="list-only text-xs muted">{{ _('POIs integrated') }}</span></td>
             <td>
                 <div class="row-actions">
-                    <a class="btn btn-sm btn-soft btn-primary rounded-md whitespace-nowrap" href="{{ url_for('history.history_detail', entry_id=entry.id, page=page, **filters) }}">{{ _('See more') }}</a>
+                    <a class="btn btn-sm btn-soft btn-primary rounded-md whitespace-nowrap" href="{{ url_for('history.history_detail', entry_id=entry.id, **filters) }}">{{ _('See more') }}</a>
                 </div>
             </td>
         </tr>

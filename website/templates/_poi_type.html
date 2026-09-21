@@ -1,0 +1,17 @@
+{# POI type badge, linked to the OSM wiki page of the tag so the reviewer can
+   read what it means, in the current language when the wiki has it (`FR:Tag:…`;
+   English pages carry no prefix). `none` (NO_CATEGORY) has no page: plain badge.
+   Usage:
+     {% from '_poi_type.html' import poi_type, wiki_url %}
+     {{ poi_type('shop=bakery', 'success') }} #}
+{% macro wiki_url(tag) -%}
+{%- set lang = get_locale().language -%}
+https://wiki.openstreetmap.org/wiki/{{ lang.upper() ~ ':' if lang != 'en' }}Tag:{{ tag | urlencode }}
+{%- endmacro %}
+{% macro poi_type(tag, variant, suffix='') -%}
+{%- if tag and tag != 'none' -%}
+<a class="badge badge-sm badge-outline badge-{{ variant }} font-mono" href="{{ wiki_url(tag) }}" target="_blank" rel="noopener">{{ tag }}{{ suffix }}<i class="iconoir-open-new-window" aria-hidden="true"></i></a>
+{%- else -%}
+<span class="badge badge-sm badge-outline badge-{{ variant }} font-mono">{{ tag or _('no primary tag') }}{{ suffix }}</span>
+{%- endif -%}
+{%- endmacro %}
