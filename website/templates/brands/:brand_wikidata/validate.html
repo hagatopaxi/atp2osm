@@ -96,13 +96,13 @@
             {% if last_import.included_categories is not none or last_import.excluded_categories is not none %}
             <div class="text-xs muted flex flex-col gap-1">
                 <p class="flex flex-wrap items-center gap-1">
-                    {{ _('POI types integrated then:') }}
+                    {{ _('POI types kept:') }}
                     {% for category in last_import.included_categories or [] %}
                     {{ poi_type(category, 'success') }}
                     {% else %}—{% endfor %}
                 </p>
                 <p class="flex flex-wrap items-center gap-1">
-                    {{ _('POI types left out then, unticked again below:') }}
+                    {{ _('POI types left out (unticked below):') }}
                     {% for category in last_import.excluded_categories or [] %}
                     {{ poi_type(category, 'warning') }}
                     {% else %}—{% endfor %}
