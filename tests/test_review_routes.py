@@ -897,7 +897,7 @@ def test_the_list_is_sorted_biggest_first_then_on_request(
 
     web_app.test_client().get("/brands?sort=nonsense")
     assert [r["brand"] for r in listed(rendered)["rows"]] == ["Zed", "Babylone"]
-    assert listed(rendered)["sort"] == "nonsense"
+    assert listed(rendered)["sorts"] == []
 
 
 def test_the_review_is_offered_to_contributors_only(

@@ -50,6 +50,8 @@ from src.utils import (
     determine_import_status,
     fetch_osm_users,
     filter_brands,
+    parse_sorts,
+    sort_rows,
 )
 
 logger = logging.getLogger(__name__)
@@ -281,23 +283,16 @@ def brands() -> str:
     # that fetching it whole costs.
     all_brands = get_all(osmdb)
     rows, filters = filter_brands(all_brands, request.args)
-    sort = request.args.get("sort")
-    direction = "asc" if request.args.get("dir") == "asc" else "desc"
-    if sort in SORT_COLUMNS:
-        key = SORT_COLUMNS[sort]
-        rows = sorted(
-            rows,
-            key=lambda r: (r[key] is None, r[key]),
-            reverse=direction == "desc",
-        )
+    # Unsorted, the rows keep get_all()'s order: biggest first.
+    sorts = parse_sorts(request.args, SORT_COLUMNS, default=[])
+    rows = sort_rows(rows, sorts, SORT_COLUMNS)
     return render_template(
         "brands.html",
         rows=rows,
         total_brands=len(all_brands),
         shown=len(rows),
         filters=filters,
-        sort=sort,
-        direction=direction,
+        sorts=sorts,
         wave_counts=Counter(r["wave"] for r in all_brands),
     )
 

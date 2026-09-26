@@ -32,8 +32,10 @@
 {% set ns = namespace(reason_options=[]) %}
 {% for key in reasons_found %}{% set ns.reason_options = ns.reason_options + [(key, reasons.LABELS.get(key, key))] %}{% endfor %}
 <form method="get" data-autosubmit>
-<input type="hidden" name="sort" value="{{ sort or '' }}" />
-<input type="hidden" name="dir" value="{{ direction }}" />
+{% for key, descending in sorts %}
+<input type="hidden" name="sort" value="{{ key }}" />
+<input type="hidden" name="dir" value="{{ 'desc' if descending else 'asc' }}" />
+{% endfor %}
     {% call filter_bar(filters, [
         ('run', _('ATP run'), [('ok', _('Without error')), ('failed', _('With errors'))]),
         ('status', _('atp2osm status'), [
@@ -123,10 +125,11 @@
                 <span class="badge badge-ghost">—</span>
                 {% endif %}
             </td>
-            <td class="md:max-w-xs">
-                {% for key in row["reasons"] %}<span class="badge badge-soft badge-warning badge-sm h-auto">{{ reasons.LABELS.get(key, key) }}</span> {% endfor %}
+            {# A max-width on a table cell is ignored: the div holds the column. #}
+            <td><div class="flex flex-col items-start gap-1 w-max max-w-xs">
+                {% for key in row["reasons"] %}<p class="text-xs">{{ reasons.LABELS.get(key, key) }}</p>{% endfor %}
                 {% for note in row["notes"] %}<p class="text-xs muted line-clamp-2" title="{{ note }}">{{ note }}</p>{% endfor %}
-            </td>
+            </div></td>
             <td>
                 {% if row["last_id"] %}
                 <a class="link" href="{{ url_for('history.history_detail', entry_id=row['last_id']) }}">{{ row["last_import"] | dateformat('short') }}</a>

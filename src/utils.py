@@ -2,6 +2,7 @@ import logging
 import time
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import UTC, date, datetime, timedelta
+from operator import itemgetter
 from pathlib import Path
 from typing import Any, LiteralString
 
@@ -312,6 +313,55 @@ def filter_brands(
         active["to"] = date_to
 
     return rows, active
+
+
+# The columns a table is sorted on, the leading one first, each with whether
+# it runs descending. The query string carries them as ?sort=&dir= pairs,
+# repeated: a shift+click on a header appends one.
+Sorts = list[tuple[str, bool]]
+
+
+def parse_sorts(args: MultiDict[str, str], columns: Mapping[str, str], default: Sorts) -> Sorts:
+    """The sorts of the query string on `columns`, or `default` if none holds.
+
+    An unknown column is dropped, a column named twice keeps its first
+    place, a missing dir is descending.
+    """
+    dirs = args.getlist("dir")
+    sorts: dict[str, bool] = {}
+    for i, key in enumerate(args.getlist("sort")):
+        if key in columns and key not in sorts:
+            sorts[key] = (dirs[i] if i < len(dirs) else "desc") != "asc"
+    return list(sorts.items()) or default
+
+
+def order_by(sorts: Sorts, columns: Mapping[str, str]) -> sql.Composable:
+    """The ORDER BY list of `sorts`, empty values last whichever the direction."""
+    return sql.SQL(", ").join(
+        sql.SQL("{} {} NULLS LAST").format(
+            sql.Identifier(columns[key]), sql.SQL("DESC" if descending else "ASC")
+        )
+        for key, descending in sorts
+    )
+
+
+def sort_rows(
+    rows: Iterable[Mapping[str, Any]], sorts: Sorts, columns: Mapping[str, str]
+) -> list[Mapping[str, Any]]:
+    """In-memory counterpart of order_by(): empty values last in both directions.
+
+    A column the reader sorts is one they want to see filled: a descending
+    sort that opened on a page of blanks would look like it did nothing.
+    The sort is stable, so sorting on the last column first leaves each
+    earlier one breaking the ties of the next.
+    """
+    rows = list(rows)
+    for key, descending in reversed(sorts):
+        column = columns[key]
+        filled = [r for r in rows if r[column] is not None]
+        empty = [r for r in rows if r[column] is None]
+        rows = sorted(filled, key=itemgetter(column), reverse=descending) + empty
+    return rows
 
 
 # Per-process in-memory cache (OSM user id -> expiry). A display_name almost

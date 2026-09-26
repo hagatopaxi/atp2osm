@@ -5,20 +5,40 @@
   data-tip="{{ text }}" aria-label="{{ text }}"><i class="iconoir-info-circle" aria-hidden="true"></i></button>
 {% endmacro %}
 
-{# Sortable table header. Links back to `endpoint` with the current query string,
-   toggling ?sort=/&dir= — `sort` and `direction` come from the view. The
-   link's ::after stretches over the whole cell, so the cell stays one click
-   target while `help` puts its (i) beside the label: a button cannot sit
-   inside a link. #}
+{# Sortable table header. Links back to `endpoint` with the current query string
+   and its ?sort=/&dir= pairs — `sorts` comes from the view, see parse_sorts().
+   A click sorts on this column alone, toggling its direction if it was
+   sorted; a shift+click (filters.js follows data-shift-href) keeps the other
+   columns and adds this one last, or toggles it in place. The link's ::after
+   stretches over the whole cell, so the cell stays one click target while
+   `help` puts its (i) beside the label: a button cannot sit inside a link.
+   The arrow is a link of its own, set apart on the right: an icon paints over
+   the stretched ::after, so it has to carry the href. It shows on hover only,
+   unless the column is sorted, with its rank once several are. #}
 {% macro sort_th(endpoint, key, label, extra_class='', help=None) %}
-{% set active = sort == key %}
-{% set args = dict(request.args, sort=key, dir='asc' if not active or direction == 'desc' else 'desc') %}
-{% set _ = args.pop('page', None) %}
-<th class="relative p-0 hover:bg-base-200 {{ extra_class }}">
-  <div class="flex items-center gap-1 px-4 py-3 whitespace-nowrap {{ 'text-primary' if active }}">
-    <a class="after:absolute after:inset-0" href="{{ url_for(endpoint, **args) }}">{{ label }}</a>
-    {% if help %}{{ help_tip(help) }}{% endif %}
-    <i class="ml-auto {{ 'iconoir-nav-arrow-up' if active and direction == 'asc' else 'iconoir-nav-arrow-down' }} {{ '' if active else 'opacity-20' }}" aria-hidden="true"></i>
+{% set keys = sorts | map('first') | list %}
+{% set rank = keys.index(key) + 1 if key in keys else 0 %}
+{% set ascending = rank and not sorts[rank - 1][1] %}
+{% set next = 'desc' if ascending else 'asc' %}
+{% set args = dict(request.args, sort=key, dir=next) %}
+{% set ignored = args.pop('page', None) %}
+{% set shift_dirs = [] %}
+{% for k, descending in sorts %}{% set ignored = shift_dirs.append(next if k == key else 'desc' if descending else 'asc') %}{% endfor %}
+{% set shift_args = dict(args, sort=keys if rank else keys + [key], dir=shift_dirs if rank else shift_dirs + [next]) %}
+{% set href = url_for(endpoint, **args) %}
+{% set shift_href = url_for(endpoint, **shift_args) %}
+<th class="group relative p-0 hover:bg-base-200 {{ extra_class }}">
+  <div class="flex items-center justify-between gap-3 px-4 py-3 whitespace-nowrap {{ 'text-primary' if rank }}">
+    <span class="flex items-center gap-1">
+      <a class="after:absolute after:inset-0" href="{{ href }}" data-shift-href="{{ shift_href }}">{{ label }}</a>
+      {% if help %}{{ help_tip(help) }}{% endif %}
+    </span>
+    <a class="tooltip tooltip-bottom relative z-10 -my-1 -mr-1 p-1 inline-flex items-center rounded cursor-pointer font-normal normal-case hover:bg-base-300 {{ '' if rank else 'opacity-0 group-hover:opacity-100' }}"
+       href="{{ href }}" data-shift-href="{{ shift_href }}" data-tip="{{ _('Shift+click to add this column to the sort') }}"
+       tabindex="-1" aria-hidden="true">
+      <i class="{{ 'iconoir-nav-arrow-up' if ascending else 'iconoir-nav-arrow-down' }}"></i>
+      {%- if rank and sorts | length > 1 %}<span class="text-xs">{{ rank }}</span>{% endif %}
+    </a>
   </div>
 </th>
 {% endmacro %}
