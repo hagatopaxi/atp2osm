@@ -44,8 +44,10 @@ for (const table of document.querySelectorAll("table[data-infinite-scroll]")) {
     rows.slice(shown).forEach((row) => (row.hidden = true));
 
     const sentinel = document.createElement("div");
-    sentinel.className = "mx-auto w-fit mt-4 loading loading-dots loading-md";
-    table.after(sentinel);
+    sentinel.className = "mx-auto shrink-0 mt-4 loading loading-dots loading-md";
+    // After the horizontal scroller, not inside it: there, a table scrolled
+    // to its right edge would carry the sentinel out of view.
+    table.parentElement.after(sentinel);
     watch(sentinel, () => {
         rows.slice(shown, (shown += CHUNK)).forEach((row) => (row.hidden = false));
         return shown >= rows.length;
