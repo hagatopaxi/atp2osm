@@ -4,7 +4,7 @@
 {% from '_kpi_card.html' import kpi_card %}
 {% import '_wave.html' as wave with context %}
 
-{% block meta_description %}{{ _('Statistics of the AllThePlaces integrations into OpenStreetMap: POI volume, tags enriched, spider reliability, brands and contributors.') }}{% endblock %}
+{% block meta_description %}{{ _('Statistics of the All The Places integrations into OpenStreetMap: POI volume, tags enriched, spider reliability, brands and contributors.') }}{% endblock %}
 {% block page_title %}{{ _('Statistics') }}{% endblock %}
 {% block og_title %}{{ _('Integration statistics') }} — atp2osm{% endblock %}
 
@@ -131,7 +131,7 @@
     <figcaption class="mb-3">
         <span class="font-semibold text-sm">{{ _('Pace and progress') }}</span>
         <span class="block text-xs muted">
-            {% trans unit=unit_label %}What each {{ unit }} brought to OpenStreetMap, additions and modifications stacked, and what each adds up to on the right-hand scale.{% endtrans %}
+            {% trans unit=unit_label %}What each {{ unit }} brought to OpenStreetMap, additions and modifications stacked; the right-hand scale shows the running total.{% endtrans %}
         </span>
     </figcaption>
     <div class="chart-box chart-box-tall">
@@ -161,7 +161,7 @@
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
     {% call card(_('Integrations per contributor'),
-                 _('OSM contributors ranked by integration volume.')) %}
+                 _('OpenStreetMap contributors ranked by integration volume.')) %}
     {# Both rankings are rendered; the radios swap them in CSS, no reload. #}
     <div class="join mb-3">
         <input class="btn btn-xs join-item" type="radio" name="rank-by" aria-label="{{ _('Integrations') }}" checked />
@@ -176,7 +176,7 @@
     {% endcall %}
 
     {% call card(_('Missing brands added'),
-                 _('OSM contributors ranked by the number of brands missing from ATP they added.')) %}
+                 _('OpenStreetMap contributors ranked by the number of brands missing from ATP they added.')) %}
     {% if reporters %}
     {{ chart('reporters', reporters | map(attribute='label') | join(', '), rows=reporters | length) }}
     {% else %}
@@ -195,7 +195,7 @@
     <p class="text-sm muted">{{ _('No review over this period.') }}</p>
     {% endif %}
     {% endcall %}
-    {% call card(_('Reliability of the OSM data'), _('A changeset is almost always refused because the local copy of OpenStreetMap has aged: one of the POIs no longer carries the same version in OSM and in the atp2osm database. The API then rejects the changeset as a whole.')) %}
+    {% call card(_('Reliability of the OpenStreetMap data'), _('A changeset is almost always refused because the local copy of OpenStreetMap has aged: one of the POIs no longer carries the same version in OpenStreetMap and in the atp2osm database. The API then rejects the changeset as a whole.')) %}
     {% if changesets_max %}
     {% set summary %}{% for c in changesets if c.rate is not none %}{% trans period=c.period | dateformat('short'), rate=c.rate %}{{ period }}: {{ rate }} % of changesets accepted. {% endtrans %}{% endfor %}{% endset %}
     {{ chart('changesets', summary | trim) }}

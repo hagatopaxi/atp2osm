@@ -8,7 +8,7 @@ const sidebar = document.getElementById('sidebar');
 const isMobile = () => window.innerWidth < MD_BREAKPOINT;
 
 toggle.addEventListener('change', function () {
-    // ponytail: on mobile the overlay always starts closed, so nothing to persist.
+    // On mobile the overlay always starts closed, so nothing to persist.
     if (!isMobile()) localStorage.setItem(STORAGE_KEY, this.checked ? '0' : '1');
 });
 

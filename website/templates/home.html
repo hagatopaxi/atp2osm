@@ -1,9 +1,9 @@
 {% extends '_base.html' %}
 {% from '_kpi_card.html' import kpi_card %}
 
-{% block meta_description %}{{ _('atp2osm enriches OpenStreetMap with the AllThePlaces data: opening hours, phone, website, email. A semi-automatic integration reviewed by OSM contributors.') }}{% endblock %}
-{% block og_title %}{{ _('atp2osm — Enrich OpenStreetMap with the AllThePlaces data') }}{% endblock %}
-{% block og_description %}{{ _('A collaborative tool to integrate the AllThePlaces points of interest into OpenStreetMap.') }}{% endblock %}
+{% block meta_description %}{{ _('atp2osm enriches OpenStreetMap with the All The Places data: opening hours, phone, website, email. A semi-automatic integration reviewed by OpenStreetMap contributors.') }}{% endblock %}
+{% block og_title %}{{ _('atp2osm — Enrich OpenStreetMap with the All The Places data') }}{% endblock %}
+{% block og_description %}{{ _('A collaborative tool to integrate the All The Places points of interest into OpenStreetMap.') }}{% endblock %}
 
 {% block structured_data %}
 <script type="application/ld+json">
@@ -11,7 +11,7 @@
         "@context": "https://schema.org",
         "@type": "WebApplication",
         "name": "atp2osm",
-        "description": "{{ _('A semi-automatic tool to integrate the AllThePlaces (ATP) data into OpenStreetMap. Spatial matching and collaborative review of the tags.') }}",
+        "description": "{{ _('A semi-automatic tool to integrate the All The Places (ATP) data into OpenStreetMap. Spatial matching and collaborative review of the tags.') }}",
         "applicationCategory": "UtilitiesApplication",
         "operatingSystem": "Any",
         "inLanguage": "{{ get_locale() }}",
@@ -34,7 +34,7 @@
         "@context": "https://schema.org",
         "@type": "SoftwareSourceCode",
         "name": "atp2osm",
-        "description": "{{ _('A tool to integrate the AllThePlaces data into OpenStreetMap.') }}",
+        "description": "{{ _('A tool to integrate the All The Places data into OpenStreetMap.') }}",
         "codeRepository": "https://github.com/hagatopaxi/atp2osm-import",
         "programmingLanguage": "Python",
         "license": "https://www.gnu.org/licenses/gpl-3.0.html",
@@ -47,7 +47,7 @@
 </script>
 {% endblock %}
 
-{% block title %}{{ _('Enrich OpenStreetMap with the AllThePlaces data') }}{% endblock %}
+{% block title %}{{ _('Enrich OpenStreetMap with the All The Places data') }}{% endblock %}
 
 {% block content %}
 <section class="mb-6 flex flex-wrap gap-4 items-center">
@@ -57,7 +57,7 @@
     </a>
     {% else %}
     <button onclick="login('/brands')" class="btn btn-primary rounded-full">
-        <i class="iconoir-log-in" aria-hidden="true"></i> {{ _('Sign in to OSM to start') }}
+        <i class="iconoir-log-in" aria-hidden="true"></i> {{ _('Sign in to OpenStreetMap to start') }}
     </button>
     {% endif %}
     <a href="/docs" class="link link-primary">{{ _('How does it work?') }}</a>
@@ -90,7 +90,7 @@
         {{ _('For every brand, the tool finds the matches by geographic proximity and by attributes (name, brand, phone, email, website), then offers the tag updates for review before integration.') }}
     </p>
     <p>
-        {% trans link='https://nicofredo.github.io/osm_pois_completude_viewer/main.html' %}To follow how the integrations progress in your area, the result can be browsed on this site: <a class="link link-primary break-all" href="{{ link }}" target="_blank" rel="noopener">{{ link }}<i class="iconoir-open-new-window"></i></a>{% endtrans %}
+        {% trans link='https://nicofredo.github.io/osm_pois_completude_viewer/main.html' %}To follow how the integrations progress in your area, see: <a class="link link-primary break-all" href="{{ link }}" target="_blank" rel="noopener">{{ link }}<i class="iconoir-open-new-window"></i></a>{% endtrans %}
     </p>
 </section>
 

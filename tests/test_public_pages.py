@@ -33,9 +33,11 @@ def seeded(migrated_conn: Connection, monkeypatch: pytest.MonkeyPatch) -> Iterat
             CREATE TABLE mv_places_spider (spider_id TEXT, matched BIGINT);
             INSERT INTO mv_places_brand VALUES ('Babylone', 'Q1', '75', 1, 4);
             INSERT INTO mv_places_spider VALUES ('babylone_fr', 4);
-            INSERT INTO atp_places (id, spider_id, brand_wikidata, brand) VALUES ('a', 'babylone_fr', 'Q1', 'Babylone');
-            INSERT INTO atp_spiders VALUES ('babylone_fr', 'locations/spiders/babylone_fr.py', 0, 4, 1.5, NOW()),
-                                           ('broken_fr', 'locations/spiders/broken_fr.py', 3, 0, 0.1, NULL);
+            INSERT INTO atp_places (id, spider_id, brand_wikidata, brand) VALUES ('a', 'babylone_fr', 'Q1', 'Babylone'),
+                                                                                 ('b', 'broken_fr', 'Q4', 'Reported');
+            INSERT INTO atp_spiders VALUES ('babylone_fr', 'locations/spiders/babylone_fr.py', 0, 4, 1.5, NOW(), NULL),
+                                           ('broken_fr', 'locations/spiders/broken_fr.py', 3, 0, 0.1, NULL,
+                                            'https://example.org/runs/1/logs/broken_fr.txt');
             INSERT INTO data_imports (type, date, status, comment) VALUES
                 ('osm', NOW(), 'success', NULL), ('atp', NOW(), 'pending', NULL), ('nsi', NOW(), 'success', 'v1');
             INSERT INTO todo_brands (brand_wikidata, brand_name, osm_user_id) VALUES ('Q9', 'Missing', 43);
@@ -127,7 +129,16 @@ def test_the_stats_take_every_period(web_app: Flask, seeded: list[int], query: s
 
 
 @pytest.mark.parametrize(
-    "query", ["", "?run=failed", "?run=ok", "?q=baby", "?sort=scraped&dir=asc"]
+    "query",
+    [
+        "",
+        "?run=failed",
+        "?run=ok",
+        "?q=baby",
+        "?sort=scraped&dir=asc",
+        "?sort=match_rate",
+        "?reason=wrong_brand",
+    ],
 )
 def test_the_spiders_take_every_filter(web_app: Flask, seeded: list[int], query: str) -> None:
     assert web_app.test_client().get("/spiders" + query).status_code == 200

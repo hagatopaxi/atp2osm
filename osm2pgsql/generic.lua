@@ -47,8 +47,8 @@ tables.subdivisions = osm2pgsql.define_area_table('subdivisions', {
 
 -- Insert the object as a subdivision and report it, so the caller stops there:
 -- a boundary is never a place, and the POI filters below would drop it anyway.
--- ponytail: relations only. Boundaries mapped as a closed way exist, but not at
--- levels 2-8 in the countries served so far; revisit if one turns up missing.
+-- Relations only: in the countries served so far, levels 2-8 are all mapped as
+-- relations. Revisit if a boundary turns up missing.
 local function insert_subdivision(object)
     local tags = object.tags
     if tags['type'] ~= 'boundary' or tags['boundary'] ~= 'administrative' then

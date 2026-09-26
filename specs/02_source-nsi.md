@@ -1,15 +1,15 @@
-# Source de données NSI — documentation d'implémentation
+# Source de données Name Suggestion Index — documentation d'implémentation
 
 Spécification technique à suivre pour intégrer le
 [name-suggestion-index](https://github.com/osmlab/name-suggestion-index) (NSI)
 comme seconde source de données.
 
-Les chiffres cités sont mesurés sur la version NSI `8.0.20260729` et sur la base
+Les chiffres cités sont mesurés sur la version Name Suggestion Index `8.0.20260729` et sur la base
 de développement. Ils servent de recette : un écart significatif signale un bug.
 
 ---
 
-## 1. Où NSI s'insère
+## 1. Où Name Suggestion Index s'insère
 
 Le processus de l'outil comporte quatre étapes :
 
@@ -20,11 +20,11 @@ Le processus de l'outil comporte quatre étapes :
 3. **Validation** — faire relire un échantillon du résultat par un humain.
 4. **Publication** — pousser le jeu de données complété en masse.
 
-**NSI ne touche que les étapes 1 et 2.** Il n'introduit ni nouveau flux de
+**Name Suggestion Index ne touche que les étapes 1 et 2.** Il n'introduit ni nouveau flux de
 revue, ni nouveau type de lot, ni nouveau chemin d'upload. Une seule contrainte
 retombe sur l'étape 3, au §6.
 
-Ce que NSI apporte, dans l'ordre où ça se produit :
+Ce que Name Suggestion Index apporte, dans l'ordre où ça se produit :
 
 - il **complète l'identité** des objets OSM — un `brand:wikidata` là où il n'y
   avait qu'un libellé — ce qui rend appariables des objets qui ne l'étaient pas ;
@@ -32,7 +32,7 @@ Ce que NSI apporte, dans l'ordre où ça se produit :
   la source ATP ne fournit pas : la classification et les identifiants
   d'opérateur.
 
-NSI décrit des **enseignes**, jamais des POI. ATP décrit des **POI** :
+Name Suggestion Index décrit des **enseignes**, jamais des POI. ATP décrit des **POI** :
 coordonnées, horaires, site, téléphone, courriel. Les deux sources ne se
 recouvrent presque pas — leurs seules clés communes sont `brand` et `name`.
 
@@ -121,7 +121,7 @@ Un item :
 |---|---|---|
 | `tags` | 48 483 | **la seule source de tags** |
 | `locationSet` | 48 483 | filtre géographique (§2.3) |
-| `displayName`, `id` | 48 483 | affichage NSI, ignorés |
+| `displayName`, `id` | 48 483 | affichage Name Suggestion Index, ignorés |
 | `matchNames` | 11 435 | alias pour *reconnaître* — **jamais écrit** |
 | `matchTags` | 598 | classification alternative acceptée en entrée |
 | `preserveTags` | 378 | regex des tags de l'objet à ne pas écraser |
@@ -345,7 +345,7 @@ appariables par QID au tour suivant et rejoignent le flux ATP normal — horaire
 site, téléphone, courriel.
 
 **Sur les objets écartés en amont** : `generic.lua` élimine ceux qui n'ont ni
-nom, ni marque, ni courriel, ni téléphone, ni site — environ 95 % du PBF. NSI ne
+nom, ni marque, ni courriel, ni téléphone, ni site — environ 95 % du PBF. Name Suggestion Index ne
 peut rien pour eux : il s'indexe sur un libellé, ils n'en ont aucun. Le filtre
 reste correct et ne doit pas être relâché. Les 883 646 objets « à nom seul » ne
 sont pas dans ce cas : ils étaient conservés mais invisibles à tout appariement
@@ -373,7 +373,7 @@ lignes = nsi_brands WHERE brand_wikidata = qid
   0 ligne   → ne rien faire
   1 ligne   → elle s'applique ; si l'objet porte une clé principale
               d'une autre catégorie, la clé principale de l'entrée est
-              retirée avant écriture (NSI ne reclasse pas)
+              retirée avant écriture (Name Suggestion Index ne reclasse pas)
   N lignes  → soit p = (clé principale de l'objet OSM, sa valeur)
               p est None            → ne rien faire
               une ligne matche p    → elle s'applique
@@ -387,13 +387,13 @@ catégorie.
 
 Elle reste malgré tout un garde-fou de classification quand elle ne désambiguïse
 rien : un objet `shop=supermarket` portant `brand:wikidata=Q89029184` (les
-stations Casino, seule entrée NSI de ce QID) recevait `amenity=fuel` par-dessus.
+stations Casino, seule entrée Name Suggestion Index de ce QID) recevait `amenity=fuel` par-dessus.
 
 Exemple, sur l'entrée `brands/office/government` de France Travail — une seule
 ligne pour `Q8901192` :
 
 ```
-entrée NSI   {"office": "government",
+entrée Name Suggestion Index   {"office": "government",
               "government": "employment_agency",
               "brand:wikidata": "Q8901192"}
 
@@ -412,7 +412,7 @@ objet C      name=France Travail, sans clé principale
 
 Seule la classification est en cause : ce qui la porte est retiré, tout le reste
 passe. Le désaccord est le plus souvent une nuance de sous-type
-(`shop=telecommunication` côté NSI, `shop=mobile_phone` côté OSM) — et comme
+(`shop=telecommunication` côté Name Suggestion Index, `shop=mobile_phone` côté OSM) — et comme
 `shop` n'est pas dans `NSI_WRITABLE_TAGS`, il n'y a alors rien à retirer.
 
 Lecture de la clé principale **de l'objet OSM** (il n'a pas de path), par ordre
@@ -431,7 +431,7 @@ WHERE osm_tags ? k
 LIMIT 1;
 ```
 
-Cette liste ne sert qu'à *lire* l'objet, jamais à interpréter NSI.
+Cette liste ne sert qu'à *lire* l'objet, jamais à interpréter Name Suggestion Index.
 
 Elle ne retient que les clés qui peuvent réellement atteindre `mv_places` :
 `man_made`, `advertising`, `highway` et `waterway` en sont absentes parce que
@@ -441,14 +441,14 @@ Deux conséquences de l'ordre, arbitraire et propre à l'outil — OSM n'a pas d
 notion de tag principal :
 
 - une station-service avec boutique (`amenity=fuel` + `shop=convenience`) est
-  lue comme un `shop`, donc en désaccord avec une entrée NSI `amenity=fuel` ;
-- une valeur multiple (`shop=convenience;gas`) n'égale aucune catégorie NSI,
+  lue comme un `shop`, donc en désaccord avec une entrée Name Suggestion Index `amenity=fuel` ;
+- une valeur multiple (`shop=convenience;gas`) n'égale aucune catégorie Name Suggestion Index,
   l'objet compte donc toujours comme en désaccord.
 
 Dans les deux cas on s'abstient, ce qui est la direction sûre.
 
 Écriture : pour chaque clé de `tags` absente de l'objet OSM, la poser. Plus le
-`brand:wikidata` lui-même quand il vient de NSI (`brand_wikidata_source = 'nsi'`)
+`brand:wikidata` lui-même quand il vient de Name Suggestion Index (`brand_wikidata_source = 'nsi'`)
 — c'est le tag principal produit par toute la chaîne.
 
 Deux règles absolues :
@@ -457,7 +457,7 @@ Deux règles absolues :
   qui empêcherait, si la liste s'élargissait un jour, de renommer 1 529 agences
   SG en Société Générale ;
 - **une catégorie OSM qui ne correspond à aucune entrée du QID ne produit
-  rien**. NSI ne corrige pas une classification, il complète. Pas d'arbitrage
+  rien**. Name Suggestion Index ne corrige pas une classification, il complète. Pas d'arbitrage
   entre ce que dit la marque et ce qu'un contributeur a relevé sur le terrain.
 
 ### 3.4 Rendement total de l'étape 2
@@ -476,7 +476,7 @@ tags secondaires sont un bonus, pas la justification.
 
 ## 4. Étapes 3 et 4 — inchangées
 
-NSI n'introduit ni flux de revue, ni type de lot, ni chemin d'upload nouveau.
+Name Suggestion Index n'introduit ni flux de revue, ni type de lot, ni chemin d'upload nouveau.
 Les objets rattrapés entrent dans `mv_places_brand` comme les autres et suivent
 `pack_departements`, `select_batch`, le cooldown et `BulkUpload` sans
 modification.
@@ -490,7 +490,7 @@ relire une donnée — et c'est l'inférence la plus forte que fait la chaîne.
 
 ## 5. Périmètre des tags écrits
 
-**Seuls ces dix tags sont écrits dans OSM.** Toute autre clé de NSI est jetée à
+**Seuls ces dix tags sont écrits dans OSM.** Toute autre clé de Name Suggestion Index est jetée à
 l'import (§2.3.f). C'est le seul endroit qui matérialise ce choix, et donc le
 seul à modifier pour l'élargir.
 
@@ -511,8 +511,8 @@ NSI_WRITABLE_TAGS = frozenset(
 )
 ```
 
-La liste est issue d'une mesure d'accord entre NSI et le terrain, sur les
-109 577 objets OSM appariés à une entrée NSI unique. Tous affichent **99,4 %
+La liste est issue d'une mesure d'accord entre Name Suggestion Index et le terrain, sur les
+109 577 objets OSM appariés à une entrée Name Suggestion Index unique. Tous affichent **99,4 %
 d'accord ou plus** :
 
 | tag | accord | n |
@@ -537,7 +537,7 @@ Exclus, avec la raison :
 | `brand` | 96,8 % | 1 529 `SG`, 639 `Total`, 187 `Total Access` |
 | `shop` | 98,2 % | 1 157 écarts, souvent de vraies reclassifications locales |
 | `cuisine` | 98,2 % | `french_tacos`/`mexican` (36) |
-| `takeaway` | 98,4 % | 79 objets en `only` là où NSI dit `yes` |
+| `takeaway` | 98,4 % | 79 objets en `only` là où Name Suggestion Index dit `yes` |
 | `clothes` | 98,3 % | `underwear`/`lingerie` |
 | `vending` | 14,3 % | `drinks;sweets` ne correspond presque jamais |
 
@@ -613,9 +613,9 @@ changement de la logique de sélection.
 - **location-conflation** — une dépendance JS entière pour affiner un filtre qui
   traite déjà 95 % des `locationSet` en dix lignes.
 - **Relâcher `is_definitely_not_a_place`** — les objets sans aucun libellé ne
-  sont pas rattrapables par NSI, qui s'indexe précisément sur un libellé.
+  sont pas rattrapables par Name Suggestion Index, qui s'indexe précisément sur un libellé.
 - **Les 2 groupes (QID, catégorie) aux tags contradictoires** — Intermarché et
   un café : rien ne permet de choisir entre `drive_through=only` et son absence.
-- **Les 27 marques ATP absentes de NSI** (Mercedes-Benz Vans, Sushi Daily,
+- **Les 27 marques ATP absentes de Name Suggestion Index** (Mercedes-Benz Vans, Sushi Daily,
   Delko, MAN…) — la longue traîne, 1 379 POI. Rien à faire ici, sinon contribuer
-  en amont à NSI.
+  en amont à Name Suggestion Index.

@@ -254,7 +254,7 @@ def _migrated(test_db: Database) -> Database:
             DROP TABLE IF EXISTS atp_places, atp_spiders;
             CREATE TABLE atp_places (id TEXT, spider_id TEXT, brand_wikidata TEXT, brand TEXT);
             CREATE TABLE atp_spiders (spider TEXT, filename TEXT, errors INT8, features INT8,
-                                      elapsed_time FLOAT8, updated_at TIMESTAMPTZ);
+                                      elapsed_time FLOAT8, updated_at TIMESTAMPTZ, log_url TEXT);
         """)
         c.commit()
     return test_db

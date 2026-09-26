@@ -401,9 +401,9 @@ def parse_dated_log(log: str) -> dict[str, str]:
 def load_spiders(cur: psycopg.Cursor[Any], path: Path, table: str) -> None:
     """Build `table` from spiders.json, on a declared schema.
 
-    The file is ATP's stats.json plus the `updated_at` the download step adds:
-    inferring the columns from it gave the site a column that was missing,
-    JSON or VARCHAR depending on the file of the day. A column the site reads
+    The file is ATP's stats.json plus the `updated_at` and `log_url` the
+    download step adds: inferring the columns from it gave the site a column
+    that was missing, JSON or VARCHAR depending on the file of the day. A column the site reads
     from here needs a bridging migration too (AGENTS.md, "Pipeline tables and
     the site"): production keeps the old table until this step runs again.
     """
@@ -417,12 +417,13 @@ def load_spiders(cur: psycopg.Cursor[Any], path: Path, table: str) -> None:
                 errors INT8,
                 features INT8,
                 elapsed_time FLOAT8,
-                updated_at TIMESTAMPTZ
+                updated_at TIMESTAMPTZ,
+                log_url TEXT
             )
         """).format(sql.Identifier(table))
     )
     cur.executemany(
-        sql.SQL("INSERT INTO {} VALUES (%s, %s, %s, %s, %s, %s)").format(sql.Identifier(table)),
+        sql.SQL("INSERT INTO {} VALUES (%s, %s, %s, %s, %s, %s, %s)").format(sql.Identifier(table)),
         [
             (
                 s["spider"],
@@ -431,6 +432,7 @@ def load_spiders(cur: psycopg.Cursor[Any], path: Path, table: str) -> None:
                 s.get("features"),
                 s.get("elapsed_time"),
                 s.get("updated_at"),
+                s.get("log_url"),
             )
             for s in spiders
         ],
@@ -485,14 +487,17 @@ def download_atp() -> None:
             with stats_path.open() as infile:
                 spiders: list[dict[str, Any]] = json.load(infile)["results"]
             stats_path.unlink()
-            # ponytail: GitHub down costs the dates of this run, not the run.
+            # GitHub down costs the dates of this run, not the run.
             try:
                 dates = spider_dates()
             except subprocess.CalledProcessError:
                 logger.exception("Could not date the spiders, leaving them undated")
                 dates = {}
+            # The run publishes one log per spider beside its output.
+            run_dir = run["output_url"].rsplit("/", 1)[0]
             for spider in spiders:
                 spider["updated_at"] = dates.get(spider["filename"])
+                spider["log_url"] = f"{run_dir}/logs/{spider['spider']}.txt"
             with SPIDERS_PATH.open("w") as out:
                 json.dump(spiders, out)
 
@@ -552,7 +557,7 @@ def attach_subdivisions(conn: Connection, table: str = "atp_places") -> None:
     postcode-shaped regex, and catches more — a well-formed postcode with wrong
     coordinates used to sail through.
 
-    ponytail: a Geofabrik extract carries the neighbours' national boundaries
+    A Geofabrik extract carries the neighbours' national boundaries
     too, so a POI can attach to Monaco or Andorra. They are not catching
     orphans — a POI no subdivision covers falls back on the country itself, and
     one outside every boundary is dropped above. What lands there is what is
@@ -571,7 +576,7 @@ def attach_subdivisions(conn: Connection, table: str = "atp_places") -> None:
             sql.SQL("""
             UPDATE {} atp
                SET (subdivision_code, subdivision_name) = (
-                    -- ponytail: ref is not unique across levels — 16 codes in
+                    -- ref is not unique across levels — 16 codes in
                     -- France name both a région and a département (75 is Paris
                     -- and Nouvelle-Aquitaine, 93 is Seine-Saint-Denis and PACA).
                     -- Harmless as long as no POI attaches at the coarser level,

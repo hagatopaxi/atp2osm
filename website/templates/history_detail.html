@@ -35,7 +35,7 @@
   {% set banner_btn_href = '/brands' %}
 {% elif s == 'cancelled' %}
   {% set banner_kind = 'warning' %}
-  {% set banner_text %}{{ _('Your report has been recorded. This feedback is valuable to improve the quality of the AllThePlaces data.') }}{% endset %}
+  {% set banner_text %}{{ _('Your report has been recorded. This feedback is valuable to improve the quality of the All The Places data.') }}{% endset %}
   {% set banner_btn_label = _('See the available brands') %}
   {% set banner_btn_href = '/brands' %}
 {% else %}
@@ -107,7 +107,7 @@
                     {% elif s == 'partial' %}
                     <p class="text-xs muted leading-relaxed">{{ _('The integration only partly completed. Some subdivisions could not be integrated — the changes that were sent are visible on OpenStreetMap all the same. The data left out stays available for a later integration.') }}</p>
                     {% elif s == 'cancelled' %}
-                    <p class="text-xs muted leading-relaxed">{{ _('The integration was cancelled after errors were reported in the data. These reports let the AllThePlaces contributors fix the matching spider on its next updates.') }}</p>
+                    <p class="text-xs muted leading-relaxed">{{ _('The integration was cancelled after errors were reported in the data. These reports help the All The Places contributors fix the spider concerned in a later update.') }}</p>
                     {% else %}
                     <p class="text-xs muted leading-relaxed">{{ _('The integration did not complete. Nothing was sent to OpenStreetMap. It can be started again later from the page of the brand concerned.') }}</p>
                     {% endif %}

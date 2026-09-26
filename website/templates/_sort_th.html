@@ -1,14 +1,24 @@
+{# An (i) beside a column title: the explanation shows on hover and on focus,
+   and a screen reader reads it as the button's name. It opens below, centred. #}
+{% macro help_tip(text) %}
+<button type="button" class="tooltip tooltip-bottom relative z-10 inline-flex items-center leading-none font-normal normal-case text-left cursor-help opacity-60 hover:opacity-100"
+  data-tip="{{ text }}" aria-label="{{ text }}"><i class="iconoir-info-circle" aria-hidden="true"></i></button>
+{% endmacro %}
+
 {# Sortable table header. Links back to `endpoint` with the current query string,
-   toggling ?sort=/&dir= — `sort` and `direction` come from the view. #}
-{% macro sort_th(endpoint, key, label, extra_class='') %}
+   toggling ?sort=/&dir= — `sort` and `direction` come from the view. The
+   link's ::after stretches over the whole cell, so the cell stays one click
+   target while `help` puts its (i) beside the label: a button cannot sit
+   inside a link. #}
+{% macro sort_th(endpoint, key, label, extra_class='', help=None) %}
 {% set active = sort == key %}
 {% set args = dict(request.args, sort=key, dir='asc' if not active or direction == 'desc' else 'desc') %}
 {% set _ = args.pop('page', None) %}
-<th class="p-0 {{ extra_class }}">
-  <a class="flex items-center gap-1 px-4 py-3 hover:bg-base-200 {{ 'text-primary' if active }}"
-    href="{{ url_for(endpoint, **args) }}">
-    {{ label }}
-    <i class="{{ 'iconoir-nav-arrow-up' if active and direction == 'asc' else 'iconoir-nav-arrow-down' }} {{ '' if active else 'opacity-20' }}" aria-hidden="true"></i>
-  </a>
+<th class="relative p-0 hover:bg-base-200 {{ extra_class }}">
+  <div class="flex items-center gap-1 px-4 py-3 whitespace-nowrap {{ 'text-primary' if active }}">
+    <a class="after:absolute after:inset-0" href="{{ url_for(endpoint, **args) }}">{{ label }}</a>
+    {% if help %}{{ help_tip(help) }}{% endif %}
+    <i class="ml-auto {{ 'iconoir-nav-arrow-up' if active and direction == 'asc' else 'iconoir-nav-arrow-down' }} {{ '' if active else 'opacity-20' }}" aria-hidden="true"></i>
+  </div>
 </th>
 {% endmacro %}

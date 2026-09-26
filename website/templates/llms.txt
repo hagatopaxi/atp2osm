@@ -1,6 +1,6 @@
 # atp2osm
 
-> {{ _("A semi-automatic tool to integrate the AllThePlaces (ATP) data into OpenStreetMap. It matches the ATP records against the existing OSM nodes and relations by spatial proximity (500 m) and attribute similarity (brand, name, email, phone, website), then lets OSM contributors review and upload the tag changes.") }}
+> {{ _("A semi-automatic tool to integrate the All The Places (ATP) data into OpenStreetMap. It matches the ATP records against the existing OpenStreetMap nodes and relations by spatial proximity (500 m) and attribute similarity (brand, name, email, phone, website), then lets OpenStreetMap contributors review and upload the tag changes.") }}
 
 {% trans %}Open-source project (GPL-3.0). Data © OpenStreetMap contributors (ODbL) and All The Places (CC0).{% endtrans %}
 
@@ -9,7 +9,7 @@
 {% set descriptions = {
     'misc.home':       (_('Home'), _('introduction and integration statistics.')),
     'brands.brands':   (_('Brands to integrate'), _('the ATP brands available for integration.')),
-    'spiders.spiders': (_('Spiders'), _('the ATP spiders producing POIs of the country: deposit, matches and integrations.')),
+    'spiders.spiders': (_('Spiders'), _('the ATP spiders producing POIs of the country: what they scrape, what matches and what was integrated.')),
     'history.history': (_('Integration history'), _('integrations carried out, dates and statuses.')),
     'stats.stats':     (_('Statistics'), _('metrics and charts of the integrations carried out.')),
     'todo.todo':       (_('Missing brands'), _('brands absent from ATP.')),

@@ -4,9 +4,9 @@
 {% from '_sort_th.html' import sort_th with context %}
 {% from '_filters.html' import filter_bar with context %}
 
-{% block meta_description %}{{ _('The brands missing from AllThePlaces. Report the ones absent to help enrich OpenStreetMap.') }}{% endblock %}
+{% block meta_description %}{{ _('The brands missing from All The Places. Report the missing ones to help enrich OpenStreetMap.') }}{% endblock %}
 {% block page_title %}{{ _('Missing brands') }}{% endblock %}
-{% block og_title %}{{ _('Brands missing from AllThePlaces') }} — atp2osm{% endblock %}
+{% block og_title %}{{ _('Brands missing from All The Places') }} — atp2osm{% endblock %}
 
 {% block structured_data %}
 <script type="application/ld+json">
@@ -22,7 +22,7 @@
 {% endblock %}
 
 {% block title %}{{ _('Brands to integrate') }}{% endblock %}
-{% block subtitle %}{{ _('The brands identified for which no AllThePlaces spider exists. This list gives the AllThePlaces contributors a view of what is missing.') }}{% endblock %}
+{% block subtitle %}{{ _('The brands for which no All The Places spider exists yet. This list shows the All The Places contributors what is missing.') }}{% endblock %}
 
 {% block custom_js %}
 <script src="/static/js/filters.js?v={{ app_version }}"></script>
