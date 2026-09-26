@@ -2,7 +2,7 @@
 {% from '_info_card.html' import info_card %}
 
 {% block page_title %}{{ _('Documentation') }}{% endblock %}
-{% block meta_description %}{{ _('atp2osm documentation: how the AllThePlaces database is structured, how it is matched against the OpenStreetMap data, and how the collaborative integration works.') }}{% endblock %}
+{% block meta_description %}{{ _('atp2osm documentation: how the All The Places database is structured, how it is matched against the OpenStreetMap data, and how the collaborative integration works.') }}{% endblock %}
 {% block og_title %}{{ _('Documentation') }} — atp2osm{% endblock %}
 
 {% block structured_data %}
@@ -11,7 +11,7 @@
   "@context": "https://schema.org",
   "@type": "TechArticle",
   "headline": "{{ _('Documentation') }} — atp2osm",
-  "description": "{{ _('How atp2osm works: the brands in AllThePlaces, the spatial matching against OpenStreetMap and the collaborative integration process.') }}",
+  "description": "{{ _('How atp2osm works: the brands in All The Places, the spatial matching against OpenStreetMap and the collaborative integration process.') }}",
   "inLanguage": "{{ get_locale() }}",
   "url": "{{ request.host_url }}docs",
   "license": "https://www.gnu.org/licenses/gpl-3.0.html",
@@ -82,7 +82,7 @@
                 </div>
 
                 <p class="text-sm text-base-content/80 leading-relaxed">
-                    {{ _('atp2osm follows that structure and integrates the data <strong>chain by chain</strong>, faithfully to the ATP spiders. This guarantees that all the data of one chain comes from a single, homogeneous source, which is what makes it possible to judge the quality of a spider by reviewing a random sample of 3 POIs per integrated batch, and to extend that confidence to the whole dataset.') }}
+                    {{ _('atp2osm follows that structure and integrates the data <strong>chain by chain</strong>, following the ATP spiders closely. This guarantees that all the data of one chain comes from a single, homogeneous source, which is what makes it possible to judge the quality of a spider by reviewing a random sample of 3 POIs per integrated batch, and to extend that confidence to the whole dataset.') }}
                 </p>
 
                 {% call info_card('info', 'p-3') %}
@@ -122,7 +122,7 @@
                 <div class="card-body gap-2">
                     <h3 class="font-semibold text-error text-sm flex items-center gap-1"><i class="iconoir-xmark-circle" aria-hidden="true"></i> {{ _('What it does not do') }}</h3>
                     <ul class="text-sm text-base-content/80 flex flex-col gap-1">
-                        <li>{{ _('Create new OSM nodes') }}</li>
+                        <li>{{ _('Create new OpenStreetMap nodes') }}</li>
                         <li>{{ _('Change or delete existing tags') }}</li>
                         <li>{{ _('Change the geometry') }}</li>
                         <li>{{ _('Integrate without a human review') }}</li>
@@ -138,7 +138,7 @@
             {% trans atp='https://alltheplaces.xyz' %}<strong>atp2osm</strong> enriches OpenStreetMap from the <a href="{{ atp }}" target="_blank" rel="noopener" class="link link-primary">All The Places<i class="iconoir-open-new-window"></i></a> (ATP) data. ATP automatically collects the information of points of interest (opening hours, phone, website, email) straight from the official websites of the chains.{% endtrans %}
         </p>
         <p class="text-sm text-base-content/80 leading-relaxed">
-            {{ _('The tool compares that data against the existing OSM nodes, finds the missing tags, and lets you review then integrate them into OSM through your own account. <strong>No node is ever created or deleted</strong>: only missing tags are added.') }}
+            {{ _('The tool compares that data against the existing OpenStreetMap nodes, finds the missing tags, and lets you review then integrate them into OpenStreetMap through your own account. <strong>No node is ever created or deleted</strong>: only missing tags are added.') }}
         </p>
     </section>
 
@@ -153,28 +153,28 @@
             </li>
             <li class="step step-primary">
                 <div class="text-left ml-3">
-                    <p class="font-semibold">{{ _('Refreshing the OSM data') }}</p>
-                    <p class="muted">{{ _('In parallel, the OSM data is imported into the local database through osm2pgsql.') }}</p>
+                    <p class="font-semibold">{{ _('Refreshing the OpenStreetMap data') }}</p>
+                    <p class="muted">{{ _('In parallel, the OpenStreetMap data is imported into the local database through osm2pgsql.') }}</p>
                 </div>
             </li>
             <li class="step step-primary">
                 <div class="text-left ml-3">
                     <p class="font-semibold">{{ _('Spatial and attribute matching') }}</p>
                     <p class="muted">
-                        {% trans %}Every ATP POI is matched against the OSM nodes within <strong>500 m</strong>, checking that at least one attribute is shared among <span class="font-mono text-xs">brand:wikidata</span>, <span class="font-mono text-xs">brand</span>, <span class="font-mono text-xs">name</span>, <span class="font-mono text-xs">phone</span>, <span class="font-mono text-xs">website</span>, <span class="font-mono text-xs">email</span>. Ambiguous matches (several OSM nodes for one ATP POI) are dropped.{% endtrans %}
+                        {% trans %}Every ATP POI is matched against the OpenStreetMap nodes within <strong>500 m</strong>, checking that at least one attribute is shared among <span class="font-mono text-xs">brand:wikidata</span>, <span class="font-mono text-xs">brand</span>, <span class="font-mono text-xs">name</span>, <span class="font-mono text-xs">phone</span>, <span class="font-mono text-xs">website</span>, <span class="font-mono text-xs">email</span>. Ambiguous matches (several OpenStreetMap nodes for one ATP POI) are dropped.{% endtrans %}
                     </p>
                 </div>
             </li>
             <li class="step step-primary">
                 <div class="text-left ml-3">
                     <p class="font-semibold">{{ _('Computing the missing tags') }}</p>
-                    <p class="muted">{{ _('For every match kept, the tool computes which tags exist in ATP but not in OSM. Only the missing ones are offered: <strong>an existing tag is never changed.</strong>') }}</p>
+                    <p class="muted">{{ _('For every match kept, the tool computes which tags exist in ATP but not in OpenStreetMap. Only the missing ones are offered: <strong>an existing tag is never changed.</strong>') }}</p>
                 </div>
             </li>
             <li class="step">
                 <div class="text-left ml-3">
                     <p class="font-semibold">{{ _('Review and integration') }}</p>
-                    <p class="muted">{{ _('You check the changes offered for a brand, then you trigger the automatic integration of the whole dataset. The changes are sent to the OSM API through your account, grouped by subdivision.') }}</p>
+                    <p class="muted">{{ _('You check the changes offered for a brand, then you trigger the automatic integration of the whole dataset. The changes are sent to the OpenStreetMap API through your account, grouped by subdivision.') }}</p>
                 </div>
             </li>
         </ul>
@@ -186,8 +186,8 @@
             <li class="flex gap-3">
                 <span class="badge badge-primary badge-sm mt-0.5 shrink-0">1</span>
                 <div>
-                    <p class="font-semibold">{{ _('Sign in with your OSM account') }}</p>
-                    <p class="muted">{{ _('Use the sign-in button at the bottom of the menu. Your integrations are recorded under your name in the OSM changeset history.') }}</p>
+                    <p class="font-semibold">{{ _('Sign in with your OpenStreetMap account') }}</p>
+                    <p class="muted">{{ _('Use the sign-in button at the bottom of the menu. Your integrations are recorded under your name in the OpenStreetMap changeset history.') }}</p>
                 </div>
             </li>
             <li class="flex gap-3">
@@ -202,7 +202,7 @@
                 <div>
                     <p class="font-semibold">{{ _('Check the matches') }}</p>
                     <p class="muted">
-                        {{ _('For every node, check that the ATP ↔ OSM match is right: location, name of the place, tags offered. When in doubt, open the ATP source or the OSM object before accepting.') }}
+                        {{ _('For every node, check that the ATP ↔ OpenStreetMap match is right: location, name of the place, tags offered. When in doubt, open the ATP source or the OpenStreetMap object before accepting.') }}
                     </p>
                 </div>
             </li>
@@ -210,7 +210,7 @@
                 <span class="badge badge-primary badge-sm mt-0.5 shrink-0">4</span>
                 <div>
                     <p class="font-semibold">{{ _('Integrate') }}</p>
-                    <p class="muted">{{ _('If the data looks right, start the integration. The changesets are created automatically on OSM, one per subdivision. The operation cannot be undone: make sure you have checked the data.') }}</p>
+                    <p class="muted">{{ _('If the data looks right, start the integration. The changesets are created automatically on OpenStreetMap, one per subdivision. The operation cannot be undone: make sure you have checked the data.') }}</p>
                 </div>
             </li>
         </ol>
@@ -219,7 +219,7 @@
     <section>
         <h2 id="review" class="text-lg font-semibold mb-3">{{ toc['review'] }}</h2>
         {% call info_card('warning', 'mb-4') %}
-        <p class="text-sm">{{ _('Only <strong>3 items at the very least</strong> are reviewed by hand per batch, drawn at random among the places of that batch.') }}</p>
+        <p class="text-sm">{{ _('At least <strong>3 items</strong> per batch are reviewed by hand, drawn at random from the places in that batch.') }}</p>
         {% endcall %}
         <p class="text-sm text-base-content/80 leading-relaxed mb-3">
             {{ _('The review goes <strong>batch by batch</strong>: a brand is cut into batches of whole subdivisions, and before integrating a batch you check a sample drawn at random from it. If that sample is right, the data is considered reliable for every place of the batch.') }}
@@ -258,7 +258,7 @@
                             {{ _('Integration partly succeeded') }}
                         </p>
                         <p class="text-sm muted">
-                            {{ _('Some subdivisions could not be integrated because of an OpenStreetMap API error. The changes that were sent are visible on OSM all the same. The data left out stays available for a later integration.') }}
+                            {{ _('Some subdivisions could not be integrated because of an OpenStreetMap API error. The changes that were sent are visible on OpenStreetMap all the same. The data left out stays available for a later integration.') }}
                         </p>
                     </div>
                 </div>
@@ -296,13 +296,13 @@
     <section>
         <h2 id="spiders" class="text-lg font-semibold mb-3">{{ toc['spiders'] }}</h2>
         <p class="text-sm text-base-content/80 leading-relaxed mb-4">
-            {% trans link='/spiders' %}The <a href="{{ link }}" class="link link-primary">spiders</a> page counts what each AllThePlaces spider brings, step by step. Each figure is a subset of the one before it.{% endtrans %}
+            {% trans link='/spiders' %}The <a href="{{ link }}" class="link link-primary">spiders</a> page counts what each All The Places spider brings, step by step.{% endtrans %}
         </p>
         <div class="overflow-x-auto">
         <table class="table table-sm bg-base-100">
             <tbody>
                 <tr><th class="whitespace-nowrap">{{ _('Scraped here') }}</th><td>{{ _('The POIs the spider produced inside the country and its territories.') }}</td></tr>
-                <tr><th class="whitespace-nowrap">{{ _('Matched') }}</th><td>{{ _('Those with an OpenStreetMap object within 500 m sharing a brand, a name, an email, a phone or a website. The rest is either missing from OSM, or present without any attribute to recognise it by.') }}</td></tr>
+                <tr><th class="whitespace-nowrap">{{ _('Matched') }}</th><td>{{ _('Those with an OpenStreetMap object within 500 m sharing a brand, a name, an email, a phone or a website. The rest is either missing from OpenStreetMap, or present without any attribute to recognise it by.') }}</td></tr>
                 <tr><th class="whitespace-nowrap">{{ _('To integrate') }}</th><td>{{ _('The matches with something left to do: a tag to add (wave 1) or to replace (wave 2), minus the subdivisions under cooldown. A POI on both waves counts twice, as two integrations. The brands page shows one wave at a time and only the brands carrying a Wikidata code, so its totals are lower.') }}</td></tr>
                 <tr><th class="whitespace-nowrap">{{ _('Integrated') }}</th><td>{{ _('The POIs actually written to OpenStreetMap through the brands the spider produces; a brand two spiders share counts for both.') }}</td></tr>
             </tbody>
@@ -317,7 +317,7 @@
             <div class="card bg-base-100 shadow-sm">
                 <div class="card-body gap-1 py-3">
                     <h3 class="font-semibold">OpenStreetMap</h3>
-                    <p class="muted">{% trans odbl='https://opendatacommons.org/licenses/odbl/', terms='https://osmfoundation.org/wiki/Licence/Contributor_Terms' %}The OSM data is published under the <a href="{{ odbl }}" target="_blank" rel="noopener" class="link link-primary">ODbL 1.0<i class="iconoir-open-new-window"></i></a> (Open Database License). Every contribution made through this tool falls under the OpenStreetMap <a href="{{ terms }}" target="_blank" rel="noopener" class="link link-primary">Contributor Terms<i class="iconoir-open-new-window"></i></a>.{% endtrans %}</p>
+                    <p class="muted">{% trans odbl='https://opendatacommons.org/licenses/odbl/', terms='https://osmfoundation.org/wiki/Licence/Contributor_Terms' %}The OpenStreetMap data is published under the <a href="{{ odbl }}" target="_blank" rel="noopener" class="link link-primary">ODbL 1.0<i class="iconoir-open-new-window"></i></a> (Open Database License). Every contribution made through this tool falls under the OpenStreetMap <a href="{{ terms }}" target="_blank" rel="noopener" class="link link-primary">Contributor Terms<i class="iconoir-open-new-window"></i></a>.{% endtrans %}</p>
                 </div>
             </div>
             <div class="card bg-base-100 shadow-sm">
@@ -351,7 +351,7 @@
                     </div>
                     <div class="border border-base-300 rounded-md p-3 flex flex-col gap-1">
                         <dt class="flex items-center gap-2 font-mono text-xs"><span class="badge badge-soft badge-sm font-mono">GET</span><a href="/api/export/subdivisions.csv" class="link link-primary" target="_blank" rel="noopener">/api/export/subdivisions.csv<i class="iconoir-open-new-window" aria-hidden="true"></i></a></dt>
-                        <dd class="muted">{{ _('The detail per changeset: administrative subdivision, number of objects, OSM changeset identifier and status.') }}</dd>
+                        <dd class="muted">{{ _('The detail per changeset: administrative subdivision, number of objects, OpenStreetMap changeset identifier and status.') }}</dd>
                     </div>
                     <div class="border border-base-300 rounded-md p-3 flex flex-col gap-1">
                         <dt class="flex items-center gap-2 font-mono text-xs"><span class="badge badge-soft badge-sm font-mono">GET</span><a href="/api/export/todo.csv" class="link link-primary" target="_blank" rel="noopener">/api/export/todo.csv<i class="iconoir-open-new-window" aria-hidden="true"></i></a></dt>
@@ -382,7 +382,7 @@
             </li>
             <li>
                 <a href="https://wiki.openstreetmap.org/wiki/atp2osm" target="_blank" rel="noopener" class="link link-primary">
-                    <i class="icown-wikipedia" aria-hidden="true"></i> {{ _('OSM wiki page') }}
+                    <i class="icown-wikipedia" aria-hidden="true"></i> {{ _('OpenStreetMap wiki page') }}
                 <i class="iconoir-open-new-window" aria-hidden="true"></i></a>
                 — {{ _('documentation of the automated integrations') }}
             </li>

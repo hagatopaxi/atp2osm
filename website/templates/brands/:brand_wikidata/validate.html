@@ -5,7 +5,7 @@
 {% from '_poi_type.html' import poi_type, wiki_url %}
 {% import '_wave.html' as wave with context %}
 {% block title %}{% trans brand=brand %}1/2 - Reviewing the data of {{ brand }}{% endtrans %} (<a href="https://www.wikidata.org/wiki/{{ brand_wikidata }}" target="_blank" rel="noopener" class="link font-mono">{{ brand_wikidata }}<i class="iconoir-open-new-window" aria-hidden="true"></i></a>) <span class="join align-middle">{{ wave.badge(wave_number) }}</span>{% endblock %}
-{% block subtitle %}{% trans shown=items | length, size=size %}Review {{ shown }} of the {{ size }} points of interest of this batch, drawn at random. A value marked <span class="text-success"><i class="iconoir-plus align-middle"></i> in green</span> will be written, coming from ATP or from the name-suggestion-index{% endtrans %}{% if wave_number == 2 %}{% trans %}; a value marked <span class="text-error"><i class="iconoir-minus align-middle"></i> in red</span> is the one it replaces in OSM{% endtrans %}{% endif %}. {{ _('Every other tag is already in OSM and will not be updated.') }}{% endblock %}
+{% block subtitle %}{% trans shown=items | length, size=size %}Review {{ shown }} of the {{ size }} points of interest of this batch, drawn at random. A value marked <span class="text-success"><i class="iconoir-plus align-middle"></i> in green</span> will be written, coming from ATP or from the Name Suggestion Index{% endtrans %}{% if wave_number == 2 %}{% trans %}; a value marked <span class="text-error"><i class="iconoir-minus align-middle"></i> in red</span> is the one it replaces in OpenStreetMap{% endtrans %}{% endif %}. {{ _('Every other tag is already in OpenStreetMap and will not be updated.') }}{% endblock %}
 
 {% block custom_js %}
 <script src="/static/js/validate.js?v={{ app_version }}" type="text/javascript"></script>
@@ -152,7 +152,7 @@
             <legend class="text-xs font-semibold uppercase tracking-wide muted flex items-center gap-2 w-full">
                 <i class="iconoir-filter" aria-hidden="true"></i>{{ _('POI types matched') }}<span class="flex-1 border-t border-base-300"></span>
             </legend>
-            <p class="text-xs muted">{{ _('Untick a type that does not belong to this brand: its POIs leave the batch.') }}</p>
+            <p class="text-xs muted">{{ _('Untick a type that does not belong to this brand: its POIs are removed from the batch.') }}</p>
             {% if replayed_filter %}
             {% call info_card('warning') %}
             <span>{{ _('The types left out of the last integration of this brand are unticked again. Check that this is still what you want before going on.') }}</span>
@@ -178,7 +178,7 @@
             <div class="flex flex-col md:flex-row-reverse md:items-center md:justify-end gap-2">
                 <p class="hidden text-xs text-warning" data-filter-hint>
                     <i class="iconoir-warning-triangle" aria-hidden="true"></i>
-                    {{ _('The types changed: apply the filter to review the batch it describes.') }}
+                    {{ _('The selection changed: apply the filter to review the matching batch.') }}
                 </p>
                 {# Nothing to apply until a box moves: enabled by validate.js, and disabled
                    again when the ticks come back to what the page was built on. #}
@@ -195,10 +195,10 @@
     {% call info_card('warning', 'my-4') %}
     <div class="flex flex-col gap-2">
         <p class="font-semibold text-sm">{{ _('No POI type is left ticked') }}</p>
-        <p class="text-xs muted">{{ _('This batch is empty: confirming closes this brand as integrated for this wave, without touching anything in OpenStreetMap. Tick a type again to review it instead.') }}</p>
+        <p class="text-xs muted">{{ _('This batch is empty: confirming marks this brand as integrated for this wave, without touching anything in OpenStreetMap. Tick a type again to review it instead.') }}</p>
         <a class="btn btn-sm btn-warning self-start"
            href="/brands/{{ brand_wikidata }}/validate?{{ request.query_string.decode() }}&confirm_empty=1">
-            <i class="iconoir-check" aria-hidden="true"></i>{{ _('Close this brand as integrated') }}
+            <i class="iconoir-check" aria-hidden="true"></i>{{ _('Mark this brand as integrated') }}
         </a>
     </div>
     {% endcall %}
@@ -243,7 +243,7 @@
 
                 {% if item['brand_wikidata_source'] == 'nsi' %}
                 {% call info_card('warning') %}
-                <span>{{ _('This Wikidata code was <strong>inferred from the name</strong> of the object through the name-suggestion-index; it was not in OSM. Check that it really is this brand.') }}</span>
+                <span>{{ _('This Wikidata code was <strong>inferred from the name</strong> of the object through the Name Suggestion Index; it was not in OpenStreetMap. Check that it really is this brand.') }}</span>
                 {% endcall %}
                 {% endif %}
 

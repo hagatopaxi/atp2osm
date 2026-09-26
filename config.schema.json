@@ -129,7 +129,7 @@
           "default": "0"
         },
         "nsi_locations": {
-          "description": "Location codes whose name-suggestion-index items apply here: the country, the code for its mainland when it has a separate one (fx for metropolitan France, which a thousand NSI items use), its dependent territories, and the codes that contain it without naming it — the world (001), the continent or sub-region (150 for Europe), a union it belongs to (eu). An item applies when its locationSet includes one of these and excludes none.",
+          "description": "Location codes whose name-suggestion-index items apply here: the country, the code for its mainland when it has a separate one (fx for metropolitan France, which a thousand Name Suggestion Index items use), its dependent territories, and the codes that contain it without naming it — the world (001), the continent or sub-region (150 for Europe), a union it belongs to (eu). An item applies when its locationSet includes one of these and excludes none.",
           "type": "array",
           "items": {
             "type": "string",
@@ -166,7 +166,7 @@
           ]
         },
         "nsi_writable_tags": {
-          "description": "Tags NSI is allowed to write. NOT copied from another country: the list is produced by measuring, tag by tag, how often NSI agrees with the OSM objects of this country — run scripts/calibrate_nsi_tags.py, which writes this key and nsi_calibration together. A tag wrongly listed here raises no error, it just mistags thousands of objects. Default: the one tag whose correctness does not depend on the language.",
+          "description": "Tags Name Suggestion Index is allowed to write. NOT copied from another country: the list is produced by measuring, tag by tag, how often Name Suggestion Index agrees with the OSM objects of this country — run scripts/calibrate_nsi_tags.py, which writes this key and nsi_calibration together. A tag wrongly listed here raises no error, it just mistags thousands of objects. Default: the one tag whose correctness does not depend on the language.",
           "type": "array",
           "items": {
             "type": "string",
@@ -183,7 +183,7 @@
           "additionalProperties": false,
           "properties": {
             "nsi_version": {
-              "description": "NSI release the measurement was taken on.",
+              "description": "Name Suggestion Index release the measurement was taken on.",
               "type": [
                 "string",
                 "null"
@@ -197,7 +197,7 @@
               ]
             },
             "agreement": {
-              "description": "Tag → share of objects where NSI agrees with what OSM already carries, between 0 and 1.",
+              "description": "Tag → share of objects where Name Suggestion Index agrees with what OSM already carries, between 0 and 1.",
               "type": "object",
               "additionalProperties": {
                 "type": "number"

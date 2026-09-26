@@ -8,14 +8,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-22 08:49+0200\n"
+"POT-Creation-Date: 2026-09-26 09:29+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #: src/templating.py:62
 msgid "The data is being prepared, this instance has not run its first refresh yet."
@@ -57,7 +57,7 @@ msgstr ""
 
 #: website/templates/_aside.html:25 website/templates/brands.html:16
 #: website/templates/docs.html:26 website/templates/history.html:17
-#: website/templates/llms.txt:10 website/templates/spiders.html:15
+#: website/templates/llms.txt:10 website/templates/spiders.html:16
 #: website/templates/stats.html:17 website/templates/todo.html:17
 msgid "Home"
 msgstr ""
@@ -69,8 +69,8 @@ msgid "Brands to integrate"
 msgstr ""
 
 #: website/templates/_aside.html:27 website/templates/llms.txt:12
-#: website/templates/spiders.html:6 website/templates/spiders.html:7
-#: website/templates/spiders.html:16
+#: website/templates/spiders.html:7 website/templates/spiders.html:8
+#: website/templates/spiders.html:17
 msgid "Spiders"
 msgstr ""
 
@@ -146,19 +146,19 @@ msgid "Sign in with OSM"
 msgstr ""
 
 #: website/templates/_base.html:8
-msgid "Enrich OpenStreetMap with AllThePlaces"
+msgid "Enrich OpenStreetMap with All The Places"
 msgstr ""
 
 #: website/templates/_base.html:9
-msgid "atp2osm — Integrate AllThePlaces points of interest into OpenStreetMap. A collaborative contribution tool for OSM mappers."
+msgid "atp2osm — Integrate All The Places points of interest into OpenStreetMap. A collaborative contribution tool for OpenStreetMap mappers."
 msgstr ""
 
 #: website/templates/_base.html:24 website/templates/_base.html:29
-msgid "atp2osm — Enrich OpenStreetMap with AllThePlaces"
+msgid "atp2osm — Enrich OpenStreetMap with All The Places"
 msgstr ""
 
 #: website/templates/_base.html:25
-msgid "Integrate AllThePlaces points of interest into OpenStreetMap. A collaborative contribution tool for OSM mappers."
+msgid "Integrate All The Places points of interest into OpenStreetMap. A collaborative contribution tool for OpenStreetMap mappers."
 msgstr ""
 
 #: website/templates/_base.html:60
@@ -166,7 +166,7 @@ msgid "Open the sidebar"
 msgstr ""
 
 #: website/templates/_error_reasons.html:12
-msgid "Website: ATP gives the generic brand site"
+msgid "Website: ATP points to the brand's generic website"
 msgstr ""
 
 #: website/templates/_error_reasons.html:13
@@ -178,23 +178,23 @@ msgid "Website: the ATP link is not in the local language"
 msgstr ""
 
 #: website/templates/_error_reasons.html:15
-msgid "Phone: ATP is wrong"
+msgid "Phone: the ATP number is wrong"
 msgstr ""
 
 #: website/templates/_error_reasons.html:16
-msgid "Phone: the ATP format is wrong"
+msgid "Phone: the ATP number is badly formatted"
 msgstr ""
 
 #: website/templates/_error_reasons.html:17
-msgid "Opening hours: ATP is wrong"
+msgid "Opening hours: the ATP hours are wrong"
 msgstr ""
 
 #: website/templates/_error_reasons.html:18
-msgid "Address: ATP is wrong"
+msgid "Address: the ATP address is wrong"
 msgstr ""
 
 #: website/templates/_error_reasons.html:19
-msgid "E-mail: ATP gives a generic address"
+msgid "Email: ATP gives a generic address"
 msgstr ""
 
 #: website/templates/_error_reasons.html:20
@@ -206,7 +206,7 @@ msgid "Data that cannot be verified"
 msgstr ""
 
 #: website/templates/_error_reasons.html:22
-msgid "No POI type kept: these POIs are not this brand"
+msgid "No POI type kept: these POIs do not belong to this brand"
 msgstr ""
 
 #: website/templates/_error_reasons.html:23
@@ -324,7 +324,7 @@ msgid "Modifying"
 msgstr ""
 
 #: website/templates/about.html:4
-msgid "About atp2osm: an open-source tool to integrate the AllThePlaces data into OpenStreetMap, its licence and the licences of the data it handles."
+msgid "About atp2osm: an open-source tool to integrate the All The Places data into OpenStreetMap, its licence and the licences of the data it handles."
 msgstr ""
 
 #: website/templates/about.html:8
@@ -365,7 +365,7 @@ msgstr ""
 
 #: website/templates/brands.html:6
 #, python-format
-msgid "The %(count)s brands available for integration into OpenStreetMap through atp2osm. Data from AllThePlaces, reviewed by OSM contributors."
+msgid "The %(count)s brands available for integration into OpenStreetMap through atp2osm. Data from All The Places, reviewed by OpenStreetMap contributors."
 msgstr ""
 
 #: website/templates/brands.html:23
@@ -387,11 +387,10 @@ msgid "Wave"
 msgstr ""
 
 #: website/templates/brands.html:52 website/templates/brands.html:77
-#: website/templates/spiders.html:36 website/templates/spiders.html:79
 msgid "Previous status"
 msgstr ""
 
-#: website/templates/brands.html:53 website/templates/spiders.html:37
+#: website/templates/brands.html:53 website/templates/spiders.html:40
 msgid "Never integrated"
 msgstr ""
 
@@ -399,8 +398,8 @@ msgstr ""
 #: website/templates/brands/:brand_wikidata/validate.html:77
 #: website/templates/docs.html:243 website/templates/history.html:40
 #: website/templates/history.html:94 website/templates/history_detail.html:85
-#: website/templates/history_detail.html:240 website/templates/spiders.html:38
-#: website/templates/spiders.html:55
+#: website/templates/history_detail.html:240 website/templates/spiders.html:41
+#: website/templates/spiders.html:59
 msgid "Success"
 msgstr ""
 
@@ -408,7 +407,7 @@ msgstr ""
 #: website/templates/brands/:brand_wikidata/validate.html:77
 #: website/templates/docs.html:255 website/templates/history.html:41
 #: website/templates/history.html:95 website/templates/history_detail.html:86
-#: website/templates/spiders.html:39 website/templates/spiders.html:56
+#: website/templates/spiders.html:42 website/templates/spiders.html:60
 msgid "Partial"
 msgstr ""
 
@@ -416,7 +415,7 @@ msgstr ""
 #: website/templates/brands/:brand_wikidata/validate.html:77
 #: website/templates/docs.html:269 website/templates/history.html:42
 #: website/templates/history.html:96 website/templates/history_detail.html:87
-#: website/templates/spiders.html:40 website/templates/spiders.html:57
+#: website/templates/spiders.html:43 website/templates/spiders.html:61
 msgid "Cancelled"
 msgstr ""
 
@@ -425,15 +424,15 @@ msgstr ""
 #: website/templates/docs.html:283 website/templates/history.html:43
 #: website/templates/history.html:97 website/templates/history_detail.html:88
 #: website/templates/history_detail.html:240 website/templates/home.html:107
-#: website/templates/spiders.html:41 website/templates/spiders.html:58
+#: website/templates/spiders.html:44 website/templates/spiders.html:62
 msgid "Error"
 msgstr ""
 
-#: website/templates/brands.html:59
+#: website/templates/brands.html:59 website/templates/spiders.html:47
 msgid "Last integration after"
 msgstr ""
 
-#: website/templates/brands.html:60
+#: website/templates/brands.html:60 website/templates/spiders.html:48
 msgid "Last integration before"
 msgstr ""
 
@@ -461,7 +460,7 @@ msgid "Proposed wave"
 msgstr ""
 
 #: website/templates/brands.html:78 website/templates/brands.html:120
-#: website/templates/spiders.html:80
+#: website/templates/spiders.html:90
 msgid "Last integration"
 msgstr ""
 
@@ -469,11 +468,11 @@ msgstr ""
 msgid "Actions"
 msgstr ""
 
-#: website/templates/brands.html:124 website/templates/spiders.html:71
+#: website/templates/brands.html:124 website/templates/spiders.html:75
 msgid "Spider"
 msgstr ""
 
-#: website/templates/brands.html:127 website/templates/spiders.html:114
+#: website/templates/brands.html:127 website/templates/spiders.html:135
 msgid "Never"
 msgstr ""
 
@@ -486,11 +485,11 @@ msgid "Integrate"
 msgstr ""
 
 #: website/templates/docs.html:5
-msgid "atp2osm documentation: how the AllThePlaces database is structured, how it is matched against the OpenStreetMap data, and how the collaborative integration works."
+msgid "atp2osm documentation: how the All The Places database is structured, how it is matched against the OpenStreetMap data, and how the collaborative integration works."
 msgstr ""
 
 #: website/templates/docs.html:14
-msgid "How atp2osm works: the brands in AllThePlaces, the spatial matching against OpenStreetMap and the collaborative integration process."
+msgid "How atp2osm works: the brands in All The Places, the spatial matching against OpenStreetMap and the collaborative integration process."
 msgstr ""
 
 #: website/templates/docs.html:34
@@ -563,7 +562,7 @@ msgid "The technique of automatically extracting information from web pages. It 
 msgstr ""
 
 #: website/templates/docs.html:85
-msgid "atp2osm follows that structure and integrates the data <strong>chain by chain</strong>, faithfully to the ATP spiders. This guarantees that all the data of one chain comes from a single, homogeneous source, which is what makes it possible to judge the quality of a spider by reviewing a random sample of 3 POIs per integrated batch, and to extend that confidence to the whole dataset."
+msgid "atp2osm follows that structure and integrates the data <strong>chain by chain</strong>, following the ATP spiders closely. This guarantees that all the data of one chain comes from a single, homogeneous source, which is what makes it possible to judge the quality of a spider by reviewing a random sample of 3 POIs per integrated batch, and to extend that confidence to the whole dataset."
 msgstr ""
 
 #: website/templates/docs.html:90
@@ -603,7 +602,7 @@ msgid "What it does not do"
 msgstr ""
 
 #: website/templates/docs.html:125
-msgid "Create new OSM nodes"
+msgid "Create new OpenStreetMap nodes"
 msgstr ""
 
 #: website/templates/docs.html:126
@@ -624,7 +623,7 @@ msgid "<strong>atp2osm</strong> enriches OpenStreetMap from the <a href=\"%(atp)
 msgstr ""
 
 #: website/templates/docs.html:141
-msgid "The tool compares that data against the existing OSM nodes, finds the missing tags, and lets you review then integrate them into OSM through your own account. <strong>No node is ever created or deleted</strong>: only missing tags are added."
+msgid "The tool compares that data against the existing OpenStreetMap nodes, finds the missing tags, and lets you review then integrate them into OpenStreetMap through your own account. <strong>No node is ever created or deleted</strong>: only missing tags are added."
 msgstr ""
 
 #: website/templates/docs.html:150
@@ -636,11 +635,11 @@ msgid "Every week, the latest ATP data is downloaded from alltheplaces.xyz. It h
 msgstr ""
 
 #: website/templates/docs.html:156
-msgid "Refreshing the OSM data"
+msgid "Refreshing the OpenStreetMap data"
 msgstr ""
 
 #: website/templates/docs.html:157
-msgid "In parallel, the OSM data is imported into the local database through osm2pgsql."
+msgid "In parallel, the OpenStreetMap data is imported into the local database through osm2pgsql."
 msgstr ""
 
 #: website/templates/docs.html:162
@@ -648,7 +647,7 @@ msgid "Spatial and attribute matching"
 msgstr ""
 
 #: website/templates/docs.html:164
-msgid "Every ATP POI is matched against the OSM nodes within <strong>500 m</strong>, checking that at least one attribute is shared among <span class=\"font-mono text-xs\">brand:wikidata</span>, <span class=\"font-mono text-xs\">brand</span>, <span class=\"font-mono text-xs\">name</span>, <span class=\"font-mono text-xs\">phone</span>, <span class=\"font-mono text-xs\">website</span>, <span class=\"font-mono text-xs\">email</span>. Ambiguous matches (several OSM nodes for one ATP POI) are dropped."
+msgid "Every ATP POI is matched against the OpenStreetMap nodes within <strong>500 m</strong>, checking that at least one attribute is shared among <span class=\"font-mono text-xs\">brand:wikidata</span>, <span class=\"font-mono text-xs\">brand</span>, <span class=\"font-mono text-xs\">name</span>, <span class=\"font-mono text-xs\">phone</span>, <span class=\"font-mono text-xs\">website</span>, <span class=\"font-mono text-xs\">email</span>. Ambiguous matches (several OpenStreetMap nodes for one ATP POI) are dropped."
 msgstr ""
 
 #: website/templates/docs.html:170
@@ -656,7 +655,7 @@ msgid "Computing the missing tags"
 msgstr ""
 
 #: website/templates/docs.html:171
-msgid "For every match kept, the tool computes which tags exist in ATP but not in OSM. Only the missing ones are offered: <strong>an existing tag is never changed.</strong>"
+msgid "For every match kept, the tool computes which tags exist in ATP but not in OpenStreetMap. Only the missing ones are offered: <strong>an existing tag is never changed.</strong>"
 msgstr ""
 
 #: website/templates/docs.html:176
@@ -664,15 +663,15 @@ msgid "Review and integration"
 msgstr ""
 
 #: website/templates/docs.html:177
-msgid "You check the changes offered for a brand, then you trigger the automatic integration of the whole dataset. The changes are sent to the OSM API through your account, grouped by subdivision."
+msgid "You check the changes offered for a brand, then you trigger the automatic integration of the whole dataset. The changes are sent to the OpenStreetMap API through your account, grouped by subdivision."
 msgstr ""
 
 #: website/templates/docs.html:189
-msgid "Sign in with your OSM account"
+msgid "Sign in with your OpenStreetMap account"
 msgstr ""
 
 #: website/templates/docs.html:190
-msgid "Use the sign-in button at the bottom of the menu. Your integrations are recorded under your name in the OSM changeset history."
+msgid "Use the sign-in button at the bottom of the menu. Your integrations are recorded under your name in the OpenStreetMap changeset history."
 msgstr ""
 
 #: website/templates/docs.html:196
@@ -689,15 +688,15 @@ msgid "Check the matches"
 msgstr ""
 
 #: website/templates/docs.html:205
-msgid "For every node, check that the ATP ↔ OSM match is right: location, name of the place, tags offered. When in doubt, open the ATP source or the OSM object before accepting."
+msgid "For every node, check that the ATP ↔ OpenStreetMap match is right: location, name of the place, tags offered. When in doubt, open the ATP source or the OpenStreetMap object before accepting."
 msgstr ""
 
 #: website/templates/docs.html:213
-msgid "If the data looks right, start the integration. The changesets are created automatically on OSM, one per subdivision. The operation cannot be undone: make sure you have checked the data."
+msgid "If the data looks right, start the integration. The changesets are created automatically on OpenStreetMap, one per subdivision. The operation cannot be undone: make sure you have checked the data."
 msgstr ""
 
 #: website/templates/docs.html:222
-msgid "Only <strong>3 items at the very least</strong> are reviewed by hand per batch, drawn at random among the places of that batch."
+msgid "At least <strong>3 items</strong> per batch are reviewed by hand, drawn at random from the places in that batch."
 msgstr ""
 
 #: website/templates/docs.html:225
@@ -730,7 +729,7 @@ msgid "Integration partly succeeded"
 msgstr ""
 
 #: website/templates/docs.html:261
-msgid "Some subdivisions could not be integrated because of an OpenStreetMap API error. The changes that were sent are visible on OSM all the same. The data left out stays available for a later integration."
+msgid "Some subdivisions could not be integrated because of an OpenStreetMap API error. The changes that were sent are visible on OpenStreetMap all the same. The data left out stays available for a later integration."
 msgstr ""
 
 #: website/templates/docs.html:272
@@ -751,10 +750,10 @@ msgstr ""
 
 #: website/templates/docs.html:299
 #, python-format
-msgid "The <a href=\"%(link)s\" class=\"link link-primary\">spiders</a> page counts what each AllThePlaces spider brings, step by step. Each figure is a subset of the one before it."
+msgid "The <a href=\"%(link)s\" class=\"link link-primary\">spiders</a> page counts what each All The Places spider brings, step by step."
 msgstr ""
 
-#: website/templates/docs.html:304 website/templates/spiders.html:75
+#: website/templates/docs.html:304
 msgid "Scraped here"
 msgstr ""
 
@@ -762,15 +761,15 @@ msgstr ""
 msgid "The POIs the spider produced inside the country and its territories."
 msgstr ""
 
-#: website/templates/docs.html:305 website/templates/spiders.html:76
+#: website/templates/docs.html:305 website/templates/spiders.html:83
 msgid "Matched"
 msgstr ""
 
 #: website/templates/docs.html:305
-msgid "Those with an OpenStreetMap object within 500 m sharing a brand, a name, an email, a phone or a website. The rest is either missing from OSM, or present without any attribute to recognise it by."
+msgid "Those with an OpenStreetMap object within 500 m sharing a brand, a name, an email, a phone or a website. The rest is either missing from OpenStreetMap, or present without any attribute to recognise it by."
 msgstr ""
 
-#: website/templates/docs.html:306 website/templates/spiders.html:77
+#: website/templates/docs.html:306
 msgid "To integrate"
 msgstr ""
 
@@ -778,7 +777,7 @@ msgstr ""
 msgid "The matches with something left to do: a tag to add (wave 1) or to replace (wave 2), minus the subdivisions under cooldown. A POI on both waves counts twice, as two integrations. The brands page shows one wave at a time and only the brands carrying a Wikidata code, so its totals are lower."
 msgstr ""
 
-#: website/templates/docs.html:307 website/templates/spiders.html:78
+#: website/templates/docs.html:307
 msgid "Integrated"
 msgstr ""
 
@@ -788,7 +787,7 @@ msgstr ""
 
 #: website/templates/docs.html:320
 #, python-format
-msgid "The OSM data is published under the <a href=\"%(odbl)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">ODbL 1.0<i class=\"iconoir-open-new-window\"></i></a> (Open Database License). Every contribution made through this tool falls under the OpenStreetMap <a href=\"%(terms)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">Contributor Terms<i class=\"iconoir-open-new-window\"></i></a>."
+msgid "The OpenStreetMap data is published under the <a href=\"%(odbl)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">ODbL 1.0<i class=\"iconoir-open-new-window\"></i></a> (Open Database License). Every contribution made through this tool falls under the OpenStreetMap <a href=\"%(terms)s\" target=\"_blank\" rel=\"noopener\" class=\"link link-primary\">Contributor Terms<i class=\"iconoir-open-new-window\"></i></a>."
 msgstr ""
 
 #: website/templates/docs.html:344
@@ -801,7 +800,7 @@ msgid "One row per integration: brand, contributor, date, status, number of obje
 msgstr ""
 
 #: website/templates/docs.html:354
-msgid "The detail per changeset: administrative subdivision, number of objects, OSM changeset identifier and status."
+msgid "The detail per changeset: administrative subdivision, number of objects, OpenStreetMap changeset identifier and status."
 msgstr ""
 
 #: website/templates/docs.html:358
@@ -821,7 +820,7 @@ msgid "the source of the POI data"
 msgstr ""
 
 #: website/templates/docs.html:385
-msgid "OSM wiki page"
+msgid "OpenStreetMap wiki page"
 msgstr ""
 
 #: website/templates/docs.html:387
@@ -837,7 +836,7 @@ msgid "contributions welcome"
 msgstr ""
 
 #: website/templates/history.html:7
-msgid "History of the AllThePlaces integrations into OpenStreetMap made through atp2osm: brands integrated, dates and statuses."
+msgid "History of the All The Places integrations into OpenStreetMap made through atp2osm: brands integrated, dates and statuses."
 msgstr ""
 
 #: website/templates/history.html:30
@@ -942,7 +941,7 @@ msgid "The integration only partly completed: some subdivisions could not be int
 msgstr ""
 
 #: website/templates/history_detail.html:38
-msgid "Your report has been recorded. This feedback is valuable to improve the quality of the AllThePlaces data."
+msgid "Your report has been recorded. This feedback is valuable to improve the quality of the All The Places data."
 msgstr ""
 
 #: website/templates/history_detail.html:39
@@ -980,7 +979,7 @@ msgid "The integration only partly completed. Some subdivisions could not be int
 msgstr ""
 
 #: website/templates/history_detail.html:110
-msgid "The integration was cancelled after errors were reported in the data. These reports let the AllThePlaces contributors fix the matching spider on its next updates."
+msgid "The integration was cancelled after errors were reported in the data. These reports help the All The Places contributors fix the spider concerned in a later update."
 msgstr ""
 
 #: website/templates/history_detail.html:112
@@ -1034,27 +1033,27 @@ msgid "No changeset recorded."
 msgstr ""
 
 #: website/templates/home.html:4
-msgid "atp2osm enriches OpenStreetMap with the AllThePlaces data: opening hours, phone, website, email. A semi-automatic integration reviewed by OSM contributors."
+msgid "atp2osm enriches OpenStreetMap with the All The Places data: opening hours, phone, website, email. A semi-automatic integration reviewed by OpenStreetMap contributors."
 msgstr ""
 
 #: website/templates/home.html:5
-msgid "atp2osm — Enrich OpenStreetMap with the AllThePlaces data"
+msgid "atp2osm — Enrich OpenStreetMap with the All The Places data"
 msgstr ""
 
 #: website/templates/home.html:6
-msgid "A collaborative tool to integrate the AllThePlaces points of interest into OpenStreetMap."
+msgid "A collaborative tool to integrate the All The Places points of interest into OpenStreetMap."
 msgstr ""
 
 #: website/templates/home.html:14
-msgid "A semi-automatic tool to integrate the AllThePlaces (ATP) data into OpenStreetMap. Spatial matching and collaborative review of the tags."
+msgid "A semi-automatic tool to integrate the All The Places (ATP) data into OpenStreetMap. Spatial matching and collaborative review of the tags."
 msgstr ""
 
 #: website/templates/home.html:37
-msgid "A tool to integrate the AllThePlaces data into OpenStreetMap."
+msgid "A tool to integrate the All The Places data into OpenStreetMap."
 msgstr ""
 
 #: website/templates/home.html:50
-msgid "Enrich OpenStreetMap with the AllThePlaces data"
+msgid "Enrich OpenStreetMap with the All The Places data"
 msgstr ""
 
 #: website/templates/home.html:56
@@ -1062,7 +1061,7 @@ msgid "Start integrating!"
 msgstr ""
 
 #: website/templates/home.html:60
-msgid "Sign in to OSM to start"
+msgid "Sign in to OpenStreetMap to start"
 msgstr ""
 
 #: website/templates/home.html:63
@@ -1100,7 +1099,7 @@ msgstr ""
 
 #: website/templates/home.html:93
 #, python-format
-msgid "To follow how the integrations progress in your area, the result can be browsed on this site: <a class=\"link link-primary break-all\" href=\"%(link)s\" target=\"_blank\" rel=\"noopener\">%(link)s<i class=\"iconoir-open-new-window\"></i></a>"
+msgid "To follow how the integrations progress in your area, see: <a class=\"link link-primary break-all\" href=\"%(link)s\" target=\"_blank\" rel=\"noopener\">%(link)s<i class=\"iconoir-open-new-window\"></i></a>"
 msgstr ""
 
 #: website/templates/home.html:98
@@ -1124,7 +1123,7 @@ msgid "No data integrated"
 msgstr ""
 
 #: website/templates/llms.txt:3
-msgid "A semi-automatic tool to integrate the AllThePlaces (ATP) data into OpenStreetMap. It matches the ATP records against the existing OSM nodes and relations by spatial proximity (500 m) and attribute similarity (brand, name, email, phone, website), then lets OSM contributors review and upload the tag changes."
+msgid "A semi-automatic tool to integrate the All The Places (ATP) data into OpenStreetMap. It matches the ATP records against the existing OpenStreetMap nodes and relations by spatial proximity (500 m) and attribute similarity (brand, name, email, phone, website), then lets OpenStreetMap contributors review and upload the tag changes."
 msgstr ""
 
 #: website/templates/llms.txt:5
@@ -1144,7 +1143,7 @@ msgid "the ATP brands available for integration."
 msgstr ""
 
 #: website/templates/llms.txt:12
-msgid "the ATP spiders producing POIs of the country: deposit, matches and integrations."
+msgid "the ATP spiders producing POIs of the country: what they scrape, what matches and what was integrated."
 msgstr ""
 
 #: website/templates/llms.txt:13
@@ -1167,73 +1166,117 @@ msgstr ""
 msgid "the project, its licence and the licences of the data."
 msgstr ""
 
-#: website/templates/spiders.html:5
+#: website/templates/spiders.html:6
 #, python-format
-msgid "The %(count)s AllThePlaces spiders producing POIs of the country: what they scrape, what matches OpenStreetMap, what was integrated through atp2osm."
-msgstr ""
-
-#: website/templates/spiders.html:22
-msgid "AllThePlaces spiders"
+msgid "The %(count)s All The Places spiders producing POIs of the country: what they scrape, what matches OpenStreetMap, what was integrated through atp2osm."
 msgstr ""
 
 #: website/templates/spiders.html:23
+msgid "All The Places spiders"
+msgstr ""
+
+#: website/templates/spiders.html:24
 #, python-format
 msgid "%(count)s spider producing POIs of the country: what it scrapes here, what matches OpenStreetMap, what was integrated."
 msgid_plural "%(count)s spiders producing POIs of the country: what they scrape here, what matches OpenStreetMap, what was integrated."
 msgstr[0] ""
 msgstr[1] ""
 
-#: website/templates/spiders.html:35 website/templates/spiders.html:73
+#: website/templates/spiders.html:38 website/templates/spiders.html:77
 msgid "ATP run"
 msgstr ""
 
-#: website/templates/spiders.html:35 website/templates/spiders.html:97
+#: website/templates/spiders.html:38 website/templates/spiders.html:109
 msgid "Without error"
 msgstr ""
 
-#: website/templates/spiders.html:35 website/templates/spiders.html:99
+#: website/templates/spiders.html:38 website/templates/spiders.html:112
+#: website/templates/spiders.html:114
 msgid "With errors"
 msgstr ""
 
-#: website/templates/spiders.html:43
-msgid "Integrated since"
-msgstr ""
-
-#: website/templates/spiders.html:44
-msgid "Integrated until"
-msgstr ""
-
-#: website/templates/spiders.html:45
-msgid "Spider, brand or Wikidata code"
+#: website/templates/spiders.html:39 website/templates/spiders.html:87
+msgid "atp2osm status"
 msgstr ""
 
 #: website/templates/spiders.html:46
+msgid "Cancellation reason"
+msgstr ""
+
+#: website/templates/spiders.html:49
+msgid "Spider, brand or Wikidata code"
+msgstr ""
+
+#: website/templates/spiders.html:50
 #, python-format
 msgid "%(count)s spider"
 msgid_plural "%(count)s spiders"
 msgstr[0] ""
 msgstr[1] ""
 
-#: website/templates/spiders.html:51
+#: website/templates/spiders.html:55
 msgid "No spider matches these filters."
 msgstr ""
 
-#: website/templates/spiders.html:72 website/templates/stats.html:95
+#: website/templates/spiders.html:76 website/templates/stats.html:95
 msgid "Brands"
 msgstr ""
 
-#: website/templates/spiders.html:74
+#: website/templates/spiders.html:78
+msgid "Result of the spider on the ATP side."
+msgstr ""
+
+#: website/templates/spiders.html:79
 msgid "Last change"
 msgstr ""
 
-#: website/templates/spiders.html:97
+#: website/templates/spiders.html:80
+msgid "Date of the last change to the spider's source code."
+msgstr ""
+
+#: website/templates/spiders.html:81
+msgid "Scraped"
+msgstr ""
+
+#: website/templates/spiders.html:82
+msgid "Number of ATP POIs scraped."
+msgstr ""
+
+#: website/templates/spiders.html:84
+msgid "Number of matches detected between OpenStreetMap and ATP."
+msgstr ""
+
+#: website/templates/spiders.html:85
+msgid "Match rate"
+msgstr ""
+
+#: website/templates/spiders.html:86
+msgid "Share of the scraped POIs that have a match."
+msgstr ""
+
+#: website/templates/spiders.html:88
+msgid "Status of the last integration."
+msgstr ""
+
+#: website/templates/spiders.html:89
+msgid "Cancellation reasons"
+msgstr ""
+
+#: website/templates/spiders.html:109
 #, python-format
 msgid "%(count)s POI worldwide"
 msgid_plural "%(count)s POIs worldwide"
 msgstr[0] ""
 msgstr[1] ""
 
-#: website/templates/spiders.html:99
+#: website/templates/spiders.html:112
+#, python-format
+msgid "%(count)s error — see the log"
+msgid_plural "%(count)s errors — see the log"
+msgstr[0] ""
+msgstr[1] ""
+
+#: website/templates/spiders.html:114
 #, python-format
 msgid "%(count)s error"
 msgid_plural "%(count)s errors"
@@ -1241,7 +1284,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: website/templates/stats.html:7
-msgid "Statistics of the AllThePlaces integrations into OpenStreetMap: POI volume, tags enriched, spider reliability, brands and contributors."
+msgid "Statistics of the All The Places integrations into OpenStreetMap: POI volume, tags enriched, spider reliability, brands and contributors."
 msgstr ""
 
 #: website/templates/stats.html:9
@@ -1315,7 +1358,7 @@ msgstr ""
 
 #: website/templates/stats.html:134
 #, python-format
-msgid "What each %(unit)s brought to OpenStreetMap, additions and modifications stacked, and what each adds up to on the right-hand scale."
+msgid "What each %(unit)s brought to OpenStreetMap, additions and modifications stacked; the right-hand scale shows the running total."
 msgstr ""
 
 #: website/templates/stats.html:139
@@ -1349,7 +1392,7 @@ msgid "Integrations per contributor"
 msgstr ""
 
 #: website/templates/stats.html:164
-msgid "OSM contributors ranked by integration volume."
+msgid "OpenStreetMap contributors ranked by integration volume."
 msgstr ""
 
 #: website/templates/stats.html:178
@@ -1357,7 +1400,7 @@ msgid "Missing brands added"
 msgstr ""
 
 #: website/templates/stats.html:179
-msgid "OSM contributors ranked by the number of brands missing from ATP they added."
+msgid "OpenStreetMap contributors ranked by the number of brands missing from ATP they added."
 msgstr ""
 
 #: website/templates/stats.html:189
@@ -1379,11 +1422,11 @@ msgid "No review over this period."
 msgstr ""
 
 #: website/templates/stats.html:198
-msgid "Reliability of the OSM data"
+msgid "Reliability of the OpenStreetMap data"
 msgstr ""
 
 #: website/templates/stats.html:198
-msgid "A changeset is almost always refused because the local copy of OpenStreetMap has aged: one of the POIs no longer carries the same version in OSM and in the atp2osm database. The API then rejects the changeset as a whole."
+msgid "A changeset is almost always refused because the local copy of OpenStreetMap has aged: one of the POIs no longer carries the same version in OpenStreetMap and in the atp2osm database. The API then rejects the changeset as a whole."
 msgstr ""
 
 #: website/templates/stats.html:200
@@ -1396,15 +1439,15 @@ msgid "No changeset over this period."
 msgstr ""
 
 #: website/templates/todo.html:7
-msgid "The brands missing from AllThePlaces. Report the ones absent to help enrich OpenStreetMap."
+msgid "The brands missing from All The Places. Report the missing ones to help enrich OpenStreetMap."
 msgstr ""
 
 #: website/templates/todo.html:9
-msgid "Brands missing from AllThePlaces"
+msgid "Brands missing from All The Places"
 msgstr ""
 
 #: website/templates/todo.html:25
-msgid "The brands identified for which no AllThePlaces spider exists. This list gives the AllThePlaces contributors a view of what is missing."
+msgid "The brands for which no All The Places spider exists yet. This list shows the All The Places contributors what is missing."
 msgstr ""
 
 #: website/templates/todo.html:38
@@ -1597,11 +1640,11 @@ msgid "This brand has been marked as up to date."
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/empty.html:11
-msgid "No difference was found between the OSM and the ATP data for this brand."
+msgid "No difference was found between the OpenStreetMap and the All The Places data for this brand."
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/empty.html:12
-msgid "The OSM tags are already up to date: the brand was automatically marked as integrated."
+msgid "The OpenStreetMap tags are already up to date: the brand was automatically marked as integrated."
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/empty.html:16
@@ -1634,7 +1677,7 @@ msgid "Errors were found in the data; the integration will not be carried out."
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/rejected.html:13
-msgid "Data points rejected"
+msgid "Rejected items"
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/rejected.html:19
@@ -1652,15 +1695,15 @@ msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:8
 #, python-format
-msgid "Review %(shown)s of the %(size)s points of interest of this batch, drawn at random. A value marked <span class=\"text-success\"><i class=\"iconoir-plus align-middle\"></i> in green</span> will be written, coming from ATP or from the name-suggestion-index"
+msgid "Review %(shown)s of the %(size)s points of interest of this batch, drawn at random. A value marked <span class=\"text-success\"><i class=\"iconoir-plus align-middle\"></i> in green</span> will be written, coming from ATP or from the Name Suggestion Index"
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:8
-msgid "; a value marked <span class=\"text-error\"><i class=\"iconoir-minus align-middle\"></i> in red</span> is the one it replaces in OSM"
+msgid "; a value marked <span class=\"text-error\"><i class=\"iconoir-minus align-middle\"></i> in red</span> is the one it replaces in OpenStreetMap"
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:8
-msgid "Every other tag is already in OSM and will not be updated."
+msgid "Every other tag is already in OpenStreetMap and will not be updated."
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:17
@@ -1732,7 +1775,7 @@ msgid "POI types matched"
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:155
-msgid "Untick a type that does not belong to this brand: its POIs leave the batch."
+msgid "Untick a type that does not belong to this brand: its POIs are removed from the batch."
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:158
@@ -1740,7 +1783,7 @@ msgid "The types left out of the last integration of this brand are unticked aga
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:181
-msgid "The types changed: apply the filter to review the batch it describes."
+msgid "The selection changed: apply the filter to review the matching batch."
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:186
@@ -1752,11 +1795,11 @@ msgid "No POI type is left ticked"
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:198
-msgid "This batch is empty: confirming closes this brand as integrated for this wave, without touching anything in OpenStreetMap. Tick a type again to review it instead."
+msgid "This batch is empty: confirming marks this brand as integrated for this wave, without touching anything in OpenStreetMap. Tick a type again to review it instead."
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:201
-msgid "Close this brand as integrated"
+msgid "Mark this brand as integrated"
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:223
@@ -1780,7 +1823,7 @@ msgid "No"
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:246
-msgid "This Wikidata code was <strong>inferred from the name</strong> of the object through the name-suggestion-index; it was not in OSM. Check that it really is this brand."
+msgid "This Wikidata code was <strong>inferred from the name</strong> of the object through the Name Suggestion Index; it was not in OpenStreetMap. Check that it really is this brand."
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:250
@@ -1849,7 +1892,7 @@ msgid "403 - Not authorised"
 msgstr ""
 
 #: website/templates/errors/403.html:6
-msgid "You tried something forbidden, maybe next time."
+msgid "You are not allowed to do this."
 msgstr ""
 
 #: website/templates/errors/404.html:3
@@ -1865,7 +1908,7 @@ msgid "500 - Internal error"
 msgstr ""
 
 #: website/templates/errors/500.html:6
-msgid "Internal error, sorry."
+msgid "Sorry, something went wrong on our side."
 msgstr ""
 
 #: website/templates/errors/503.html:3

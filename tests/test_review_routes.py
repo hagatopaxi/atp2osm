@@ -358,7 +358,7 @@ def test_an_inferred_wikidata_code_is_flagged(
     give(brand, 1, [("75", 1)])
     stage(monkeypatch, [change(1, {"phone": "+33 1 00 00 00 00"}, {}, brand_wikidata_source="nsi")])
     res = contributor.get("/brands/Q1/validate")
-    assert "name-suggestion-index" in res.text
+    assert "Name Suggestion Index" in res.text
 
 
 # --- The batch and its sample -----------------------------------------------------
