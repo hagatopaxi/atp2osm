@@ -1,8 +1,9 @@
 {% extends '_base.html' %}
-{% from '_sort_th.html' import sort_th with context %}
+{% from '_sort_th.html' import sort_th, help_tip with context %}
 {% from '_filters.html' import filter_bar with context %}
+{% import '_error_reasons.html' as reasons %}
 
-{% block meta_description %}{% trans count=total_spiders %}The {{ count }} AllThePlaces spiders producing POIs of the country: what they scrape, what matches OpenStreetMap, what was integrated through atp2osm.{% endtrans %}{% endblock %}
+{% block meta_description %}{% trans count=total_spiders %}The {{ count }} All The Places spiders producing POIs of the country: what they scrape, what matches OpenStreetMap, what was integrated through atp2osm.{% endtrans %}{% endblock %}
 {% block page_title %}{{ _('Spiders') }}{% endblock %}
 {% block og_title %}{{ _('Spiders') }} — atp2osm{% endblock %}
 
@@ -19,7 +20,7 @@
 </script>
 {% endblock %}
 
-{% block title %}{{ _('AllThePlaces spiders') }}{% endblock %}
+{% block title %}{{ _('All The Places spiders') }}{% endblock %}
 {% block subtitle %}{% trans count=total_spiders %}{{ count }} spider producing POIs of the country: what it scrapes here, what matches OpenStreetMap, what was integrated.{% pluralize %}{{ count }} spiders producing POIs of the country: what they scrape here, what matches OpenStreetMap, what was integrated.{% endtrans %}{% endblock %}
 
 {% block custom_js %}
@@ -28,20 +29,23 @@
 {% endblock %}
 
 {% block content %}
+{% set ns = namespace(reason_options=[]) %}
+{% for key in reasons_found %}{% set ns.reason_options = ns.reason_options + [(key, reasons.LABELS.get(key, key))] %}{% endfor %}
 <form method="get" data-autosubmit>
 <input type="hidden" name="sort" value="{{ sort or '' }}" />
 <input type="hidden" name="dir" value="{{ direction }}" />
     {% call filter_bar(filters, [
         ('run', _('ATP run'), [('ok', _('Without error')), ('failed', _('With errors'))]),
-        ('status', _('Previous status'), [
+        ('status', _('atp2osm status'), [
             ('none',      _('Never integrated'), 'badge-ghost'),
             ('success',   _('Success'),          'badge-success'),
             ('partial',   _('Partial'),          'badge-success'),
             ('cancelled', _('Cancelled'),        'badge-warning'),
             ('error',     _('Error'),            'badge-error')
-        ]),
-        ('from', _('Integrated since'), 'date'),
-        ('to', _('Integrated until'), 'date')
+        ])
+    ] + ([('reason', _('Cancellation reason'), ns.reason_options)] if ns.reason_options else []) + [
+        ('from', _('Last integration after'), 'date'),
+        ('to', _('Last integration before'), 'date')
     ], url_for('spiders.spiders'), _('Spider, brand or Wikidata code')) %}
         <span class="text-sm muted">{% trans count=shown %}{{ count }} spider{% pluralize %}{{ count }} spiders{% endtrans %}</span>
     {% endcall %}
@@ -70,13 +74,19 @@
         <tr>
             {{ sort_th('spiders.spiders', 'spider', _('Spider')) }}
             <th>{{ _('Brands') }}</th>
-            <th>{{ _('ATP run') }}</th>
-            {{ sort_th('spiders.spiders', 'updated', _('Last change')) }}
-            {{ sort_th('spiders.spiders', 'scraped', _('Scraped here')) }}
-            {{ sort_th('spiders.spiders', 'matched', _('Matched')) }}
-            {{ sort_th('spiders.spiders', 'to_integrate', _('To integrate')) }}
-            {{ sort_th('spiders.spiders', 'integrated', _('Integrated')) }}
-            {{ sort_th('spiders.spiders', 'status', _('Previous status')) }}
+            <th><div class="flex items-center gap-1 whitespace-nowrap">{{ _('ATP run') }}
+                {{ help_tip(_('Result of the spider on the ATP side.')) }}</div></th>
+            {{ sort_th('spiders.spiders', 'updated', _('Last change'),
+                help=_("Date of the last change to the spider's source code.")) }}
+            {{ sort_th('spiders.spiders', 'scraped', _('Scraped'),
+                help=_('Number of ATP POIs scraped.')) }}
+            {{ sort_th('spiders.spiders', 'matched', _('Matched'),
+                help=_('Number of matches detected between OpenStreetMap and ATP.')) }}
+            {{ sort_th('spiders.spiders', 'match_rate', _('Match rate'),
+                help=_('Share of the scraped POIs that have a match.')) }}
+            {{ sort_th('spiders.spiders', 'status', _('atp2osm status'),
+                help=_('Status of the last integration.')) }}
+            <th>{{ _('Cancellation reasons') }}</th>
             {{ sort_th('spiders.spiders', 'last_import', _('Last integration')) }}
         </tr>
     </thead>
@@ -95,6 +105,9 @@
             <td>
                 {% if row["errors"] == 0 %}
                 <span class="badge badge-soft badge-success" title="{% trans count=row['features'] %}{{ count }} POI worldwide{% pluralize %}{{ count }} POIs worldwide{% endtrans %}">{{ _('Without error') }}</span>
+                {% elif row["log_url"] %}
+                <a class="badge badge-soft badge-error" href="{{ row['log_url'] }}" target="_blank" rel="noopener"
+                   title="{% trans count=row['errors'] %}{{ count }} error — see the log{% pluralize %}{{ count }} errors — see the log{% endtrans %}">{{ _('With errors') }}<i class="iconoir-open-new-window" aria-hidden="true"></i></a>
                 {% else %}
                 <span class="badge badge-soft badge-error" title="{% trans count=row['errors'] %}{{ count }} error{% pluralize %}{{ count }} errors{% endtrans %}">{{ _('With errors') }}</span>
                 {% endif %}
@@ -102,8 +115,7 @@
             <td>{{ row["updated_at"] | dateformat('short') if row["updated_at"] else '—' }}</td>
             <td>{{ row["scraped"] }}</td>
             <td>{{ row["matched"] }}</td>
-            <td>{{ row["to_integrate"] }}</td>
-            <td>{{ row["integrated"] }}</td>
+            <td>{{ row["match_rate"] | int ~ ' %' if row["match_rate"] is not none else '—' }}</td>
             <td>
                 {% if row["last_status"] %}
                 <span class="badge badge-soft {{ status_classes.get(row['last_status'], 'badge-ghost') }}">{{ status_labels.get(row['last_status'], row['last_status']) }}</span>
@@ -111,7 +123,15 @@
                 <span class="badge badge-ghost">—</span>
                 {% endif %}
             </td>
-            <td>{{ row["last_import"] | dateformat('short') if row["last_import"] else _('Never') }}</td>
+            <td class="md:max-w-xs">
+                {% for key in row["reasons"] %}<span class="badge badge-soft badge-warning badge-sm h-auto">{{ reasons.LABELS.get(key, key) }}</span> {% endfor %}
+                {% for note in row["notes"] %}<p class="text-xs muted line-clamp-2" title="{{ note }}">{{ note }}</p>{% endfor %}
+            </td>
+            <td>
+                {% if row["last_id"] %}
+                <a class="link" href="{{ url_for('history.history_detail', entry_id=row['last_id']) }}">{{ row["last_import"] | dateformat('short') }}</a>
+                {% else %}{{ _('Never') }}{% endif %}
+            </td>
         </tr>
         {% endfor %}
     </tbody>

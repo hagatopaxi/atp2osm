@@ -119,12 +119,13 @@ def seed(conn: Connection) -> None:
 
         CREATE TABLE atp_spiders (
             spider TEXT, filename TEXT, errors INT8, features INT8,
-            elapsed_time FLOAT8, updated_at TIMESTAMPTZ
+            elapsed_time FLOAT8, updated_at TIMESTAMPTZ, log_url TEXT
         );
         INSERT INTO atp_spiders VALUES
             ('babylone_fr', 'locations/spiders/babylone_fr.py', 0, 2, 1.5,
-             NOW() - INTERVAL '3 days'),
-            ('broken_fr', 'locations/spiders/broken_fr.py', 3, 0, 0.1, NULL);
+             NOW() - INTERVAL '3 days', NULL),
+            ('broken_fr', 'locations/spiders/broken_fr.py', 3, 0, 0.1, NULL,
+             'https://example.org/runs/1/logs/broken_fr.txt');
 
         INSERT INTO todo_brands (brand_wikidata, brand_name, osm_user_id, estimation)
         VALUES ('Q999002', 'Missing Brand', 42, 120);
