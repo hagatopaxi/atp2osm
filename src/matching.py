@@ -302,12 +302,29 @@ def _within(cooldown: LiteralString) -> LiteralString:
 # `wave` travels with the row: a cooldown belongs to the typology that earned
 # it. A subdivision whose missing tags were added in wave 1 is not thereby
 # blocked from having its existing ones reviewed in wave 2.
+#
+# It is blocked from it until the local OSM data has caught up, though: the
+# matches of wave 2 were computed on the objects wave 1 has just changed, and
+# uploading them would clash with the versions wave 1 created. The other
+# subdivisions need not wait: MATCHED_POI_SQL gives an OSM object one ATP POI
+# per brand, so both waves place it in the same subdivision. The OSM date is
+# that of the data (Geofabrik's timestamp), not of the import, so an edit made
+# after the extract was cut stays unseen until the next one.
 BLOCKED_DEPARTEMENTS_SQL = f"""
     SELECT ih.brand_wikidata, ih.wave, sub.subdivision_code
     FROM import_subdivisions sub
     JOIN import_history ih ON ih.id = sub.import_id
     WHERE (sub.status IN ('error_osm_api','error_unknown') AND {_within(ERROR_COOLDOWN)})
        OR (sub.status = 'success'                          AND {_within(SUCCESS_COOLDOWN)})
+    UNION ALL
+    SELECT ih.brand_wikidata, later.wave, sub.subdivision_code
+    FROM import_subdivisions sub
+    JOIN import_history ih ON ih.id = sub.import_id
+    JOIN mv_places_brand later ON later.brand_wikidata = ih.brand_wikidata
+                              AND later.subdivision_code = sub.subdivision_code
+                              AND later.wave > ih.wave
+    WHERE sub.status = 'success'
+      AND ih.import_date >= (SELECT MAX(date) FROM data_imports WHERE type = 'osm')
 """  # noqa: S608 — composed from the constants above
 
 # Imports with no changeset at all: a cancellation, a brand with nothing left to
@@ -415,7 +432,8 @@ def current_wave(cursor: DictCursor, brand_wikidata: str) -> Wave:
     """The wave the brand is on: the first that still has something to give.
 
     Falls back to the last wave when nothing is left at all — /validate then
-    finds an empty batch and closes the brand, as it always has.
+    finds an empty batch and closes the brand, unless that wave's matches are
+    only blocked, in which case it waits.
     """
     row = cursor.execute(
         f"""SELECT MIN(wave) AS wave

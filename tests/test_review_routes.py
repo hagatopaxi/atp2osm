@@ -223,6 +223,42 @@ def test_a_brand_whose_matches_are_all_under_cooldown_is_closed(
     assert [(e["items_count"], e["wave"]) for e in history(brand)] == [(1, 1), (0, 2)]
 
 
+def test_a_brand_waiting_for_the_osm_refresh_is_not_closed(
+    contributor: FlaskClient,
+    brand: Connection,
+    monkeypatch: pytest.MonkeyPatch,
+    rendered: Rendered,
+) -> None:
+    """Wave 1 done today, wave 2 left in the same subdivision: the brand is
+    not integrated, it waits for the OSM data that carries wave 1's edits.
+    """
+    give(brand, 2, [("75", 1)])
+    stage(
+        monkeypatch,
+        [change(1, {"phone": "+33 1 00 00 00 00"}, {"phone": "01 23 45 67 89"})],
+        wave=2,
+    )
+    with brand.cursor() as cur:
+        cur.execute(
+            "INSERT INTO data_imports (type, date, status) VALUES ('osm', NOW() - INTERVAL '1 day', 'success')"
+        )
+        cur.execute(
+            "INSERT INTO import_history (brand_wikidata, osm_user_id, status, items_count, wave)"
+            " VALUES ('Q1', 42, 'success', 1, 1) RETURNING id"
+        )
+        import_id = one(cur.fetchone())[0]
+        cur.execute(
+            "INSERT INTO import_subdivisions (import_id, subdivision_code, subdivision_name, items_count, status)"
+            " VALUES (%s, '75', 'Paris', 1, 'success')",
+            (import_id,),
+        )
+    brand.commit()
+
+    assert contributor.get("/brands/Q1/validate").status_code == 200
+    assert rendered[0][0] == "brands/:brand_wikidata/waiting.html"
+    assert [e["wave"] for e in history(brand)] == [1]
+
+
 # --- What the reviewer sees -----------------------------------------------------
 
 

@@ -159,6 +159,34 @@ def test_the_next_wave_comes_only_once_the_first_is_done(brand_waves: Connection
         assert current_wave(cur, "Q1").number == 2
 
 
+def osm_data_of(conn: Connection, when: str) -> None:
+    """The date of the OSM data the pipeline imported last."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "INSERT INTO data_imports (type, date, status) VALUES ('osm', NOW() + %s::interval, 'success')",
+            (when,),
+        )
+    conn.commit()
+
+
+def test_the_next_wave_waits_for_the_osm_data_to_catch_up(brand_waves: Connection) -> None:
+    """Wave 2 was matched on the objects wave 1 has just changed: uploading it
+    before the refresh would clash with the versions wave 1 created. A
+    subdivision wave 1 never touched holds none of those objects: it goes on.
+    """
+    with brand_waves.cursor() as cur:
+        cur.execute("INSERT INTO mv_places_brand VALUES ('Babylone', 'Q1', '06', 2, 1)")
+    osm_data_of(brand_waves, "-1 day")
+    integrate(brand_waves, "75", wave=1)
+    integrate(brand_waves, "33", wave=1)
+    with brand_waves.cursor(row_factory=dict_row) as cur:
+        assert get_blocked_subdivisions(cur, "Q1", 2) == {"75"}
+        assert current_wave(cur, "Q1").number == 2  # on 06
+    osm_data_of(brand_waves, "1 hour")
+    with brand_waves.cursor(row_factory=dict_row) as cur:
+        assert get_blocked_subdivisions(cur, "Q1", 2) == set()
+
+
 def test_highlight_marks_the_time_not_the_space() -> None:
     from src.routes.brands import highlight_diff
 

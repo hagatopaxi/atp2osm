@@ -195,6 +195,9 @@ class Batch(NamedTuple):
     # True when the exclusions come from the last integration rather than from
     # the form: /validate says so, so nobody drops a type without knowing.
     replayed: bool
+    # Matches are left, but every one is in a blocked subdivision: the brand
+    # is not done, it is waiting for a cooldown or for the next OSM refresh.
+    waiting: bool = False
 
 
 def read_excluded(
@@ -237,7 +240,8 @@ def get_batch(brand_wikidata: str) -> Batch:
     matches = brand_matches(brand_wikidata, wave.number)
     # The counts the form shows are those of the unfiltered batch: a type the
     # reviewer took out must stay tickable, with the weight it would have had.
-    categories = batch_categories(select_batch(matches, blocked, wave.batch_size))
+    unfiltered = select_batch(matches, blocked, wave.batch_size)
+    categories = batch_categories(unfiltered)
     excluded, replayed = read_excluded(brand_wikidata, categories)
     changes = select_batch(exclude_categories(matches, excluded), blocked, wave.batch_size)
     # A value a human posted recently is theirs, not ours. Costs no request on
@@ -245,7 +249,8 @@ def get_batch(brand_wikidata: str) -> Batch:
     # ponytail: replayed on /validate, /confirm and /upload rather than cached
     # — a batch is one POI in alpha. Memoize it if the batch size is raised.
     changes = protect_recent_edits(changes)
-    return Batch(changes, batch_scope(changes), wave, categories, excluded, replayed)
+    waiting = bool(matches) and not unfiltered
+    return Batch(changes, batch_scope(changes), wave, categories, excluded, replayed, waiting)
 
 
 @brands_bp.errorhandler(OsmApiUnavailableError)
@@ -333,6 +338,9 @@ def brands_validate(brand_wikidata: str) -> str:
     # A batch the filter emptied is not a brand that is done: unticking every
     # type would close it as integrated, so the reviewer confirms it instead.
     filtered_out = not changes and bool(batch.categories) and not request.args.get("confirm_empty")
+
+    if batch.waiting:
+        return render_template("brands/:brand_wikidata/waiting.html")
 
     if not changes and not filtered_out:
         # Nothing left because the reviewer turned every type down is not a
