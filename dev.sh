@@ -84,8 +84,8 @@ fi
 # eux le site sert les msgid anglais sans rien dire.
 uv run pybabel compile -d website/translations >/dev/null 2>&1 || true
 
-# ponytail: les worktrees partagent la base PostGIS de dev (OSM_DB_* dans .env).
-# Suffisant pour tester ; override OSM_DB_NAME si des migrations entrent en conflit.
+# The worktrees share the dev PostGIS database (OSM_DB_* in .env), which is
+# enough to test; override OSM_DB_NAME if their migrations conflict.
 : > "$log"
 setsid bash -c "cd '$wt' && ATP2OSM_CONFIG='$wt/config.json' exec uv run --env-file .env flask $flask_args" >>"$log" 2>&1 &
 

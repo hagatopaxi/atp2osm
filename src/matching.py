@@ -660,8 +660,8 @@ def sample_for_review(changes: list[Change], min_size: int = BATCH_SAMPLE_SIZE) 
             by_tag.setdefault(tag, []).append(i)
 
     picked: set[int] = set()
-    # ponytail: naive greedy, not a minimal cover — a few POIs too many at
-    # worst, and the tag count stays single-digit.
+    # A greedy pick: a few POIs too many at worst, and the tag count stays
+    # single-digit.
     for candidates in by_tag.values():
         if not picked.intersection(candidates):
             picked.add(random.choice(candidates))  # noqa: S311 — a sample, not a secret

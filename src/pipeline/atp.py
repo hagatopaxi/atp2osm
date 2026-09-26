@@ -485,7 +485,7 @@ def download_atp() -> None:
             with stats_path.open() as infile:
                 spiders: list[dict[str, Any]] = json.load(infile)["results"]
             stats_path.unlink()
-            # ponytail: GitHub down costs the dates of this run, not the run.
+            # GitHub down costs the dates of this run, not the run.
             try:
                 dates = spider_dates()
             except subprocess.CalledProcessError:
@@ -552,7 +552,7 @@ def attach_subdivisions(conn: Connection, table: str = "atp_places") -> None:
     postcode-shaped regex, and catches more — a well-formed postcode with wrong
     coordinates used to sail through.
 
-    ponytail: a Geofabrik extract carries the neighbours' national boundaries
+    A Geofabrik extract carries the neighbours' national boundaries
     too, so a POI can attach to Monaco or Andorra. They are not catching
     orphans — a POI no subdivision covers falls back on the country itself, and
     one outside every boundary is dropped above. What lands there is what is
@@ -571,7 +571,7 @@ def attach_subdivisions(conn: Connection, table: str = "atp_places") -> None:
             sql.SQL("""
             UPDATE {} atp
                SET (subdivision_code, subdivision_name) = (
-                    -- ponytail: ref is not unique across levels — 16 codes in
+                    -- ref is not unique across levels — 16 codes in
                     -- France name both a région and a département (75 is Paris
                     -- and Nouvelle-Aquitaine, 93 is Seine-Saint-Denis and PACA).
                     -- Harmless as long as no POI attaches at the coarser level,

@@ -242,8 +242,8 @@ def get_batch(brand_wikidata: str) -> Batch:
     changes = select_batch(exclude_categories(matches, excluded), blocked, wave.batch_size)
     # A value a human posted recently is theirs, not ours. Costs no request on
     # a wave that only adds tags, and one batch's worth on wave 2.
-    # ponytail: replayed on /validate, /confirm and /upload rather than cached
-    # — a batch is one POI in alpha. Memoize it if the batch size is raised.
+    # Replayed on /validate, /confirm and /upload: a batch is one POI in alpha,
+    # so the replay is cheap. Memoize it if the batch size is raised.
     changes = protect_recent_edits(changes)
     return Batch(changes, batch_scope(changes), wave, categories, excluded, replayed)
 

@@ -44,7 +44,7 @@ with sync_playwright() as p, TemporaryDirectory() as out:
         for prof, (w, h) in SIZES.items():
             page.set_viewport_size({"width": w, "height": h})
             page.goto(BASE + path)
-            page.wait_for_timeout(1500)  # ponytail: Tailwind's runtime compiles after load
+            page.wait_for_timeout(1500)  # Tailwind's runtime compiles after load
             page.screenshot(path=f"{out}/{name}__{prof}_{w}x{h}.png")
             print(name, prof)
     browser.close()

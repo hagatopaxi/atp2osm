@@ -79,8 +79,8 @@ DATASETS: dict[str, tuple[tuple[str, ...], str, FilterSpec, LiteralString]] = {
     ),
 }
 
-# ponytail: no pagination — these tables are in the thousands of rows at most.
-# Add a LIMIT/cursor if they ever grow past what a single response can hold.
+# One response per table: they hold a few thousand rows at most. A LIMIT or a
+# cursor becomes necessary once one outgrows a single response.
 
 
 @export_bp.route("/api/export/departements.<fmt>")

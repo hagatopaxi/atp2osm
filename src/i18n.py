@@ -35,8 +35,8 @@ COOKIE_NAME = "lang"
 COOKIE_MAX_AGE = 365 * 24 * 3600
 ENVIRON_KEY = "atp2osm.locale"
 
-# ponytail: a two-letter first segment is assumed to be a language code, so a
-# page route may never start with one. The translated paths below are the guard.
+# A two-letter first segment is taken as a language code, so a page route may
+# never start with one. The translated paths below are the guard.
 LANG_CODE = re.compile(r"[a-z]{2}(-[a-z]{2})?", re.IGNORECASE)
 
 

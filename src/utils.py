@@ -314,9 +314,9 @@ def filter_brands(
     return rows, active
 
 
-# ponytail: per-process in-memory cache (OSM user id -> expiry). A display_name
-# almost never changes, a week is enough. With several workers each keeps its
-# own — that is intended, no need to bring in Redis.
+# Per-process in-memory cache (OSM user id -> expiry). A display_name almost
+# never changes, so a week is enough, and each worker keeping its own copy
+# costs at most one extra API call per worker.
 OSM_USER_CACHE_TTL = timedelta(weeks=1)
 osm_user_cache: dict[int, tuple[str, datetime]] = {}
 
