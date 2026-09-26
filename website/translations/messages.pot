@@ -8,14 +8,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-22 08:49+0200\n"
+"POT-Creation-Date: 2026-09-25 16:44+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #: src/templating.py:62
 msgid "The data is being prepared, this instance has not run its first refresh yet."
@@ -26,7 +26,7 @@ msgstr ""
 msgid "ATP data integration (%(subdivision)s; %(brand)s)"
 msgstr ""
 
-#: src/routes/brands.py:265
+#: src/routes/brands.py:270
 msgid "OpenStreetMap could not be reached: nothing was changed."
 msgstr ""
 
@@ -1606,6 +1606,7 @@ msgstr ""
 
 #: website/templates/brands/:brand_wikidata/empty.html:16
 #: website/templates/brands/:brand_wikidata/refused.html:22
+#: website/templates/brands/:brand_wikidata/waiting.html:16
 msgid "Back to the brand list"
 msgstr ""
 
@@ -1842,6 +1843,22 @@ msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:342
 msgid "Submit"
+msgstr ""
+
+#: website/templates/brands/:brand_wikidata/waiting.html:3
+msgid "Brand on hold"
+msgstr ""
+
+#: website/templates/brands/:brand_wikidata/waiting.html:4
+msgid "Nothing can be integrated for this brand right now."
+msgstr ""
+
+#: website/templates/brands/:brand_wikidata/waiting.html:11
+msgid "The POIs left for this brand are in areas that were integrated recently."
+msgstr ""
+
+#: website/templates/brands/:brand_wikidata/waiting.html:12
+msgid "They come back once the local OpenStreetMap data has been refreshed, usually the next day, or once their cooldown is over."
 msgstr ""
 
 #: website/templates/errors/403.html:3

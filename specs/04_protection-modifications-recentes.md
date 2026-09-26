@@ -22,6 +22,18 @@ Règles :
   entières, un changeset par subdivision, cooldown par subdivision. Une vague
   est finie quand aucune de ses subdivisions n'est intégrable — soit qu'elles
   aient été intégrées, soit qu'elles soient sous cooldown.
+- **La vague suivante attend les données OSM.** Une subdivision intégrée en
+  vague N reste bloquée pour les vagues suivantes tant que les données OSM
+  locales sont antérieures à l'intégration : les correspondances de la vague
+  N+1 ont été calculées sur les objets que la vague N vient de modifier, et
+  leur envoi entrerait en conflit avec les versions qu'elle a créées. Les
+  autres subdivisions n'attendent pas : un objet OSM ne correspond qu'à un
+  seul POI ATP par marque, donc les deux vagues le placent dans la même
+  subdivision. La date comparée est celle des données (horodatage
+  Geofabrik), pas celle de l'import : en pratique, la vague suivante revient
+  au rafraîchissement du lendemain. Une marque dont il ne reste que des
+  correspondances bloquées n'est pas close : `/validate` affiche une page
+  d'attente et n'écrit rien.
 - **Chaque vague a sa propre taille de lot.** `pack_subdivisions` reçoit la
   taille de la vague courante ; il n'y a pas de constante unique.
 - **Le nombre de vagues n'est pas figé.** Une vague est une entrée d'une liste
@@ -33,8 +45,9 @@ Règles :
 
 `import_history` gagne une colonne `wave SMALLINT NOT NULL`. Elle sert à
 l'affichage et à cantonner le cooldown à sa vague : une subdivision intégrée
-en vague 1 ne doit pas bloquer la vague 2 de la même marque. Les requêtes de
-blocage de la spec 01 gagnent donc `AND ih.wave = %s`.
+en vague 1 ne doit pas bloquer la vague 2 de la même marque au-delà du
+prochain rafraîchissement OSM. Les requêtes de blocage de la spec 01 gagnent
+donc `AND ih.wave = %s`.
 
 Rien d'autre n'est persisté : la vague courante se déduit des correspondances
 restantes, comme le lot se déduit des subdivisions non bloquées. Les lignes

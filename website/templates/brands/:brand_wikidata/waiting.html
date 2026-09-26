@@ -1,0 +1,17 @@
+{% extends '_base.html' %}
+
+{% block title %}{{ _('Brand on hold') }}{% endblock %}
+{% block subtitle %}{{ _('Nothing can be integrated for this brand right now.') }}{% endblock %}
+
+{% from '_info_card.html' import info_card %}
+
+{% block content %}
+{% call info_card('info') %}
+<div>
+    <p>{{ _('The POIs left for this brand are in areas that were integrated recently.') }}</p>
+    <p>{{ _('They come back once the local OpenStreetMap data has been refreshed, usually the next day, or once their cooldown is over.') }}</p>
+</div>
+{% endcall %}
+
+<a class="btn btn-primary mt-4" href="/brands">{{ _('Back to the brand list') }}</a>
+{% endblock %}
