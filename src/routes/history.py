@@ -45,7 +45,9 @@ def history() -> str:
                        (SELECT COUNT(*) FROM import_subdivisions sub
                         WHERE sub.import_id = import_history.id) AS subdivisions_count
                 FROM import_history {where}
-                ORDER BY {order}
+                -- The id settles the ties: without it, OFFSET may repeat or
+                -- skip a row from one page to the next.
+                ORDER BY {order}, id DESC
                 LIMIT %s OFFSET %s""").format(where=where, order=order_by(sorts, SORT_COLUMNS)),
             [*params, HISTORY_PER_PAGE, offset],
         ).fetchall()
