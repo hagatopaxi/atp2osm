@@ -7,7 +7,6 @@ only the columns the expression touches.
 """
 
 import json
-import pathlib
 from collections.abc import Iterator
 
 import psycopg
@@ -15,7 +14,6 @@ import pytest
 from psycopg.rows import dict_row
 
 from src.config import Database
-from src.db import code_sql
 from src.matching import matched_poi_sql
 from src.phone import ensure_normalize_phone
 from tests.conftest import Connection
@@ -39,29 +37,15 @@ SCHEMA = """
     );
 """
 
-MIGRATIONS = pathlib.Path(__file__).parent.parent / "migrations"
-OPENING_HOURS_FN = MIGRATIONS / "026_normalize_opening_hours_fn.sql"
-# MATCHED_POI_SQL calls osm_primary_tag() to guard the match on the name.
-PRIMARY_TAG_FN = MIGRATIONS / "019_create_nsi_brands.sql"
 POINT = "ST_SetSRID(ST_MakePoint(2.35, 48.85), 4326)"
 GEOJSON = '{"type":"Point","coordinates":[2.35,48.85]}'
 
 
-def primary_tag_fn() -> str:
-    """Just osm_primary_tag() out of the NSI migration: the rest of that file
-    builds tables this test has no use for.
-    """
-    body = PRIMARY_TAG_FN.read_text()
-    start = body.index("CREATE OR REPLACE FUNCTION osm_primary_tag")
-    return body[start : body.index("$$ LANGUAGE sql", start)] + "$$ LANGUAGE sql IMMUTABLE;"
-
-
 @pytest.fixture
-def places(test_db: Database) -> Iterator[Connection]:
-    with psycopg.connect(test_db.conninfo) as conn:
+def places(_migrated: Database) -> Iterator[Connection]:
+    # The migrations define the SQL functions the query calls.
+    with psycopg.connect(_migrated.conninfo) as conn:
         ensure_normalize_phone(conn)
-        conn.execute(code_sql(OPENING_HOURS_FN.read_text()))
-        conn.execute(code_sql(primary_tag_fn()))
         conn.execute(SCHEMA)
         conn.commit()
         yield conn
@@ -104,7 +88,7 @@ def modifiable(
                 GEOJSON,
             ),
         )
-        row = cur.execute(code_sql(matched_poi_sql())).fetchone()
+        row = cur.execute(matched_poi_sql()).fetchone()
     return (row or {}).get("modifiable_tags"), (row or {}).get("is_modifiable")
 
 

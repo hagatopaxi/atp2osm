@@ -28,7 +28,6 @@ from flask import Flask
 from flask.sessions import SecureCookieSessionInterface
 
 from src.config import Database
-from src.db import code_sql
 from src.phone import ensure_normalize_phone
 from src.pipeline.atp2osm import mv_places_brand_sql, mv_places_spider_sql
 from src.pipeline.osm import mv_places_sql
@@ -158,9 +157,9 @@ def seed(conn: Connection) -> None:
     """,
         (rows[0][0], rows[2][0], rows[2][0]),
     )
-    conn.execute(code_sql(mv_places_sql()))
-    conn.execute(code_sql(mv_places_brand_sql()))
-    conn.execute(code_sql(mv_places_spider_sql()))
+    conn.execute(mv_places_sql())
+    conn.execute(mv_places_brand_sql())
+    conn.execute(mv_places_spider_sql())
     conn.commit()
 
 

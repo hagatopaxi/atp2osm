@@ -12,18 +12,25 @@ happens in a throwaway schema.
 
 import pathlib
 from collections.abc import Iterator
-from typing import LiteralString
+from typing import Final, LiteralString
 
 import psycopg
 import pytest
 
 from src.config import Database
-from src.db import code_sql
+from src.db import sql_file
 from src.phone import ensure_normalize_phone, normalize_phone_sql
 from tests.conftest import Connection, one
 
 MIGRATIONS = pathlib.Path(__file__).parent.parent / "migrations"
-SCHEMA: LiteralString = "test_normalize_phone"
+SCHEMA: Final = "test_normalize_phone"
+# Each generation of the function in a schema of its own: the CREATE is
+# unqualified, so it lands in the first schema of the search_path.
+LEGACY: Final = f"{SCHEMA}_legacy"
+GERMAN: Final = f"{SCHEMA}_de"
+SCHEMAS: Final = (SCHEMA, LEGACY, GERMAN)
+LEGACY_FUNCTION: Final = f"{LEGACY}.normalize_phone"
+GERMAN_FUNCTION: Final = f"{GERMAN}.normalize_phone"
 
 LEGACY_SQL = MIGRATIONS / "012_normalize_phone_fn.sql"
 
@@ -31,34 +38,25 @@ LEGACY_SQL = MIGRATIONS / "012_normalize_phone_fn.sql"
 @pytest.fixture(scope="module")
 def conn(test_db: Database) -> Iterator[Connection]:
     with psycopg.connect(test_db.conninfo) as c:
-        c.execute(f"DROP SCHEMA IF EXISTS {SCHEMA} CASCADE")
-        c.execute(f"CREATE SCHEMA {SCHEMA}")
-        c.execute(f"SET search_path TO {SCHEMA}")
-        # The function 012 defines, kept under another name: the reference the
-        # rewrite must not silently diverge from. Read from the migration
-        # rather than copied over, so an edit there breaks this test instead of
-        # going unnoticed.
-        c.execute(
-            code_sql(
-                LEGACY_SQL.read_text().replace(
-                    "FUNCTION normalize_phone(", "FUNCTION legacy_normalize_phone("
-                )
-            )
-        )
-        c.execute(code_sql(normalize_phone_sql()))
+        for schema in SCHEMAS:
+            c.execute(f"DROP SCHEMA IF EXISTS {schema} CASCADE")
+            c.execute(f"CREATE SCHEMA {schema}")
+        # The function 012 defines: the reference the rewrite must not silently
+        # diverge from. Read from the migration rather than copied over, so an
+        # edit there breaks this test instead of going unnoticed.
+        c.execute(f"SET search_path TO {LEGACY}")
+        c.execute(sql_file(LEGACY_SQL))
         # The same generator with German constants. Nothing but the two values
         # changes, which is the whole claim being made about the rewrite.
-        c.execute(
-            code_sql(
-                normalize_phone_sql(("49",), "0").replace(
-                    "FUNCTION normalize_phone(", "FUNCTION de_normalize_phone("
-                )
-            )
-        )
+        c.execute(f"SET search_path TO {GERMAN}")
+        c.execute(normalize_phone_sql(("49",), "0"))
+        c.execute(f"SET search_path TO {SCHEMA}")
+        c.execute(normalize_phone_sql())
         c.commit()
         yield c
         c.rollback()
-        c.execute(f"DROP SCHEMA IF EXISTS {SCHEMA} CASCADE")
+        for schema in SCHEMAS:
+            c.execute(f"DROP SCHEMA IF EXISTS {schema} CASCADE")
         c.commit()
 
 
@@ -182,7 +180,7 @@ GERMAN_CLASS = [
 
 
 def test_the_same_algorithm_works_for_another_country(conn: Connection) -> None:
-    keys = {norm(conn, value, "de_normalize_phone") for value in GERMAN_CLASS}
+    keys = {norm(conn, value, GERMAN_FUNCTION) for value in GERMAN_CLASS}
     assert keys == {"30123456"}
 
 
@@ -355,7 +353,7 @@ def _partition(conn: Connection, corpus: list[str], function: LiteralString) -> 
 
 def test_partition_is_identical_to_the_legacy_function(conn: Connection) -> None:
     assert _partition(conn, PLAIN_FRENCH_CORPUS, "normalize_phone") == _partition(
-        conn, PLAIN_FRENCH_CORPUS, "legacy_normalize_phone"
+        conn, PLAIN_FRENCH_CORPUS, LEGACY_FUNCTION
     )
 
 
@@ -377,7 +375,7 @@ DIVERGENCES = [
 
 @pytest.mark.parametrize(("odd", "plain"), DIVERGENCES, ids=[repr(a) for a, _ in DIVERGENCES])
 def test_listed_divergences_are_fixes(conn: Connection, odd: str, plain: str) -> None:
-    assert norm(conn, odd, "legacy_normalize_phone") != norm(conn, plain, "legacy_normalize_phone")
+    assert norm(conn, odd, LEGACY_FUNCTION) != norm(conn, plain, LEGACY_FUNCTION)
     assert norm(conn, odd) == norm(conn, plain)
 
 
@@ -390,7 +388,7 @@ MANGLED_BY_LEGACY = [
 
 @pytest.mark.parametrize("value", MANGLED_BY_LEGACY, ids=[repr(v) for v in MANGLED_BY_LEGACY])
 def test_values_the_legacy_function_mangled_are_now_refused(conn: Connection, value: str) -> None:
-    assert norm(conn, value, "legacy_normalize_phone") is not None
+    assert norm(conn, value, LEGACY_FUNCTION) is not None
     assert norm(conn, value) is None
 
 

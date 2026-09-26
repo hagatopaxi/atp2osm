@@ -14,25 +14,17 @@ import pytest
 from psycopg.rows import dict_row
 
 from src.config import Database
-from src.db import code_sql
 from src.matching import matched_poi_sql
 from src.phone import ensure_normalize_phone
 from tests.conftest import Connection
-from tests.test_modifiable_tags import (
-    GEOJSON,
-    OPENING_HOURS_FN,
-    POINT,
-    SCHEMA,
-    primary_tag_fn,
-)
+from tests.test_modifiable_tags import GEOJSON, POINT, SCHEMA
 
 
 @pytest.fixture
-def places(test_db: Database) -> Iterator[Connection]:
-    with psycopg.connect(test_db.conninfo) as conn:
+def places(_migrated: Database) -> Iterator[Connection]:
+    # The migrations define the SQL functions the query calls.
+    with psycopg.connect(_migrated.conninfo) as conn:
         ensure_normalize_phone(conn)
-        conn.execute(code_sql(OPENING_HOURS_FN.read_text()))
-        conn.execute(code_sql(primary_tag_fn()))
         conn.execute(SCHEMA)
         conn.commit()
         yield conn
@@ -58,7 +50,7 @@ def matches(conn: Connection, osm_tags: dict[str, str], atp_category: list[str] 
                    '75', %s, %s)""",
             (atp_category, GEOJSON),
         )
-        return cur.execute(code_sql(matched_poi_sql())).fetchone() is not None
+        return cur.execute(matched_poi_sql()).fetchone() is not None
 
 
 NAMED = {"name": "Les Petits Chaperons Rouges"}

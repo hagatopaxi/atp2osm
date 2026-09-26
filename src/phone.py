@@ -16,13 +16,12 @@ move, and the indexes built on it are rebuilt with it.
 import logging
 import re
 from functools import lru_cache
-from typing import Any
+from typing import Any, Final
 
 import psycopg
 from psycopg import sql
 
 from src.config import get_country
-from src.db import code_sql
 from src.pipeline._matview import signature
 
 logger = logging.getLogger(__name__)
@@ -38,7 +37,7 @@ logger = logging.getLogger(__name__)
 # that formats every number it holds the international way still writes
 # "+33 3631", so the calling code has to come off for that writing to meet the
 # bare one. 118XYZ is six digits and already clears the length guard below.
-SHORT_NUMBER = r"(?:3\d{3}|10\d{2})"
+SHORT_NUMBER: Final = r"(?:3\d{3}|10\d{2})"
 
 # Built on normalize_phone(), so they hold keys computed by whichever
 # definition was current when they were built.
@@ -50,13 +49,13 @@ _LOCK_KEY = 8_314_020_251
 
 def normalize_phone_sql(
     calling_codes: tuple[str, ...] | None = None, trunk_prefix: str | None = None
-) -> str:
+) -> sql.Composed:
     """The CREATE OR REPLACE for this country's phone key.
 
-    The two values are spliced into the SQL, and they come from a
-    configuration file written outside the repository: they are checked here
-    rather than escaped, because anything that is not a run of digits is not a
-    calling code in the first place.
+    The two values come from a configuration file written outside the
+    repository, so they go in as SQL literals. They are checked first all the
+    same: anything that is not a run of digits is not a calling code, and a
+    configuration saying otherwise is refused rather than installed.
     """
     country = get_country()
     calling_codes = country.calling_codes if calling_codes is None else calling_codes
@@ -68,18 +67,17 @@ def normalize_phone_sql(
             raise ValueError(f"calling code must be 1 to 3 digits, got {code!r}")
     if not re.fullmatch(r"\d{0,2}", trunk_prefix):
         raise ValueError(f"trunk_prefix must be 0 to 2 digits, got {trunk_prefix!r}")
-    codes = ", ".join(f"'{code}'" for code in calling_codes)
-    return f"""
+    return sql.SQL(r"""
 CREATE OR REPLACE FUNCTION normalize_phone(phone TEXT) RETURNS TEXT
 LANGUAGE SQL IMMUTABLE STRICT PARALLEL SAFE AS $fn$
   WITH country AS (
-    SELECT ARRAY[{codes}] AS calling_codes, '{trunk_prefix}' AS trunk_prefix
+    SELECT ARRAY[{codes}] AS calling_codes, {trunk_prefix} AS trunk_prefix
   ),
   cleaned AS (
     SELECT REGEXP_REPLACE(BTRIM($1), '^tel:', '', 'i') AS value
   ),
   digits AS (
-    SELECT value, REGEXP_REPLACE(value, '\\D', '', 'g') AS d FROM cleaned
+    SELECT value, REGEXP_REPLACE(value, '\D', '', 'g') AS d FROM cleaned
   ),
   refused AS (
     SELECT value, d,
@@ -114,7 +112,7 @@ LANGUAGE SQL IMMUTABLE STRICT PARALLEL SAFE AS $fn$
           -- writing the other side holds.
           WHEN d LIKE code || '%' AND (
                  LENGTH(d) - LENGTH(code) >= 6
-                 OR SUBSTRING(d FROM 1 + LENGTH(code)) ~ '^{SHORT_NUMBER}$'
+                 OR SUBSTRING(d FROM 1 + LENGTH(code)) ~ '^{short_number}$'
                )
             THEN SUBSTRING(d FROM 1 + LENGTH(code))
         END AS stripped, LENGTH(code) AS code_length
@@ -134,7 +132,11 @@ LANGUAGE SQL IMMUTABLE STRICT PARALLEL SAFE AS $fn$
   END
   FROM without_country;
 $fn$;
-"""  # noqa: S608 — the codes and the prefix were checked against a regex above
+""").format(
+        codes=sql.SQL(", ").join(sql.Literal(code) for code in calling_codes),
+        trunk_prefix=sql.Literal(trunk_prefix),
+        short_number=sql.SQL(SHORT_NUMBER),
+    )
 
 
 def ensure_normalize_phone(
@@ -154,7 +156,7 @@ def ensure_normalize_phone(
     """
     body = normalize_phone_sql(calling_codes, trunk_prefix)
     calling_codes = calling_codes or get_country().calling_codes
-    sig = signature(body)
+    sig = signature(body.as_string(conn))
 
     with conn.cursor() as cur:
         # Gunicorn starts several workers at once and REINDEX takes an
@@ -167,7 +169,7 @@ def ensure_normalize_phone(
         if row and row[0] == sig:
             return False
 
-        cur.execute(code_sql(body))
+        cur.execute(body)
         cur.execute(
             sql.SQL("COMMENT ON FUNCTION normalize_phone(text) IS {}").format(sql.Literal(sig))
         )

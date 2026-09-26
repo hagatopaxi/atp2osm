@@ -16,7 +16,7 @@ import psycopg
 import pytest
 
 from src.config import Database
-from src.db import code_sql
+from src.db import sql_file
 from src.matching import merge_opening_hours
 from tests.conftest import one
 
@@ -31,7 +31,7 @@ Normalize = Callable[..., str | None]  # (value, *, with_off=False)
 @pytest.fixture(scope="module")
 def normalize(test_db: Database) -> Iterator[Normalize]:
     with psycopg.connect(test_db.conninfo) as conn:
-        conn.execute(code_sql(FN.read_text()))
+        conn.execute(sql_file(FN))
         conn.commit()
 
         def _normalize(value: str | None, *, with_off: bool = False) -> str | None:

@@ -2,7 +2,7 @@ import json
 import logging
 from collections.abc import Iterable
 from datetime import UTC, date, datetime
-from typing import Any, LiteralString
+from typing import Any, Final, LiteralString
 
 from flask import Blueprint, Response, render_template, request
 from flask.typing import ResponseReturnValue
@@ -11,7 +11,7 @@ from psycopg import sql
 from psycopg.rows import DictRow, dict_row
 from werkzeug.datastructures import MultiDict
 
-from src.db import code_sql, get_osmdb
+from src.db import get_osmdb
 from src.matching import BLOCKED_BRANDS_SQL, WAVES_BY_NUMBER
 from src.utils import TODO_NOT_IN_ATP_SQL, build_filters, fetch_osm_users, where_clause
 
@@ -170,7 +170,7 @@ CHANGESETS_SQL = """
 # that ATP still lacks, and the brands turned down that no spider has fixed
 # since — the same readings as the todo list and the brands list.
 MISSING_SQL = sql.SQL("SELECT COUNT(*) FROM todo_brands WHERE ") + TODO_NOT_IN_ATP_SQL
-AWAITING_FIX_SQL = f"""
+AWAITING_FIX_SQL: Final = f"""
     SELECT COUNT(DISTINCT brand_wikidata)
     FROM ({BLOCKED_BRANDS_SQL}) b
     WHERE b.status = 'cancelled'
@@ -234,7 +234,7 @@ def compute(args: MultiDict[str, str]) -> dict[str, Any]:
             sql.SQL(CHANGESETS_SQL).format(extra=extra, **bounds), params
         ).fetchall()
         missing = _count(cursor.execute(MISSING_SQL).fetchone())
-        awaiting_fix = _count(cursor.execute(code_sql(AWAITING_FIX_SQL)).fetchone())
+        awaiting_fix = _count(cursor.execute(AWAITING_FIX_SQL).fetchone())
         all_user_ids = [
             int(r["osm_user_id"])
             for r in cursor.execute(

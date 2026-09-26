@@ -27,7 +27,6 @@ import requests
 from psycopg import sql
 
 from src.config import Database
-from src.db import code_sql
 from src.phone import ensure_normalize_phone
 from src.pipeline import _matview, _version, atp, atp2osm, nsi, osm
 from src.pipeline._db import record_import, start_import
@@ -44,7 +43,7 @@ EARLIER = TS - timedelta(days=1)
 LATER = TS + timedelta(days=1)
 
 # The shape osm2pgsql leaves, reduced to what the views and the attachment read.
-OSM_TABLES_SQL = """
+OSM_TABLES_SQL: LiteralString = """
     CREATE TABLE {schema}.points (
         node_id INT8 PRIMARY KEY, tags JSONB, geom GEOMETRY(Point, 4326) NOT NULL,
         version INT, osm_timestamp INT8
@@ -100,7 +99,7 @@ def pipeline(
     conn = migrated_conn
     ensure_normalize_phone(conn)
     conn.execute("DROP TABLE IF EXISTS atp_places, atp_spiders")
-    conn.execute(code_sql(OSM_TABLES_SQL.format(schema="public")))
+    conn.execute(sql.SQL(OSM_TABLES_SQL).format(schema=sql.Identifier("public")))
     conn.execute("""
         CREATE TABLE subdivision_parts AS
             SELECT osm_id, ref, name, admin_level, geom FROM subdivisions;
@@ -326,7 +325,7 @@ def osm2pgsql(
         calls.append({"args": args, "env": env})
         schema = env["ATP2OSM_IMPORT_SCHEMA"]
         with psycopg.connect(test_db.conninfo) as c:
-            c.execute(code_sql(OSM_TABLES_SQL.format(schema=schema)))
+            c.execute(sql.SQL(OSM_TABLES_SQL).format(schema=sql.Identifier(schema)))
             # A marker telling the new table from the old one.
             c.execute(
                 sql.SQL(

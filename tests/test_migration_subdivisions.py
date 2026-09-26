@@ -17,7 +17,7 @@ import pytest
 from psycopg.rows import DictRow, dict_row
 
 from src.config import Database
-from src.db import code_sql
+from src.db import sql_file
 from src.migrate import discover_migrations
 from tests.conftest import Connection, load_module, one
 
@@ -51,7 +51,7 @@ def conn(test_db: Database) -> Iterator[Connection]:
         for version, path in sorted(_sql_migrations()):
             if version > 15:
                 break
-            c.execute(code_sql(path.read_text()))
+            c.execute(sql_file(path))
         c.execute(
             """INSERT INTO import_history (brand_wikidata, brand_name, osm_user_id, status)
                VALUES ('Q1', 'Chez Michel', 42, 'success') RETURNING id"""
@@ -72,7 +72,7 @@ def conn(test_db: Database) -> Iterator[Connection]:
 
 def apply_022(conn: Connection) -> None:
     _version, path = next((v, p) for v, p in _sql_migrations() if p.name.startswith("022_"))
-    conn.execute(code_sql(path.read_text()))
+    conn.execute(sql_file(path))
     conn.commit()
 
 

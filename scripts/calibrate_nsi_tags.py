@@ -22,14 +22,14 @@ import json
 import pathlib
 import re
 import sys
-from typing import Any, LiteralString
+from typing import Any, LiteralString, cast
 
 import psycopg
+from psycopg import sql
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 from src.config import get_database
-from src.db import code_sql
 from src.pipeline.constants import NSI_CDN_URL, NSI_DIR, NSI_PATH
 from src.pipeline.nsi import (
     Tags,
@@ -140,7 +140,11 @@ def install(cur: psycopg.Cursor[Any], rows: list[Row]) -> None:
         # and every non-writable tag measures as absent — a silent empty result.
         if replaced != 1:
             raise SystemExit(f"{name} no longer pins its search_path as expected")
-        cur.execute(code_sql(body))
+        # A definition migrations of this repository wrote, read back from the
+        # catalog and renamed with this script's constants: code, though it
+        # comes out of the database as text. A maintenance script run by hand,
+        # never by the site.
+        cur.execute(sql.SQL(cast("LiteralString", body)))
 
 
 # Measured through nsi_match, which is the point: it is the agreement of what

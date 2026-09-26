@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import LiteralString, cast
 
 import psycopg
@@ -21,13 +22,13 @@ def teardown_osmdb(_exception: BaseException | None) -> None:
         osmdb.close()
 
 
-def code_sql(query: str) -> sql.SQL:
-    """A query assembled from code constants alone, vouched for as such.
+def sql_file(path: Path) -> sql.SQL:
+    """The SQL a file of the repository holds, run as it is written.
 
     psycopg only takes literal SQL, so that a value never reaches a query
-    outside a bound parameter. What is composed here is composed from module
-    constants or values the caller has validated — the cooldowns are checked
-    at import time, the calling codes against a regex — and this is where
-    that is stated.
+    outside a bound parameter, and pyright proves it everywhere else. A
+    migration or a function definition is versioned code, reviewed like the
+    Python beside it: nothing a request carries gets into it without a commit.
+    Only a `Path` is taken, so a string built at run time cannot come through.
     """
-    return sql.SQL(cast("LiteralString", query))
+    return sql.SQL(cast("LiteralString", path.read_text(encoding="utf-8")))

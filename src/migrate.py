@@ -8,7 +8,7 @@ from typing import Any
 import psycopg
 
 from src.config import get_settings
-from src.db import code_sql
+from src.db import sql_file
 from src.phone import ensure_normalize_phone
 
 logger = logging.getLogger(__name__)
@@ -120,7 +120,7 @@ def run_migrations(conn: Connection) -> None:
                 if path.suffix == ".py":
                     run_python_migration(path, conn)
                 else:
-                    cursor.execute(code_sql(path.read_text(encoding="utf-8")))
+                    cursor.execute(sql_file(path))
                 cursor.execute(
                     "INSERT INTO schema_migrations (version, filename) VALUES (%s, %s);",
                     (version, path.name),
