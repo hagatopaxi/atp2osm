@@ -110,7 +110,7 @@ def spiders() -> str:
     if reason:
         rows = [r for r in rows if reason in r["reasons"]]
         filters["reason"] = reason
-    sorts = parse_sorts(request.args, SORT_COLUMNS, default=[("updated", True)])
+    sorts = parse_sorts(request.args, SORT_COLUMNS, default=[("scraped", True)])
     rows = sort_rows(rows, sorts, SORT_COLUMNS)
     return render_template(
         "spiders.html",
