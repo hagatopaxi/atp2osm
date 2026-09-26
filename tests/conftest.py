@@ -122,7 +122,6 @@ from psycopg import sql  # noqa: E402
 from psycopg.rows import TupleRow  # noqa: E402
 
 from src.config import Database  # noqa: E402
-from src.db import code_sql  # noqa: E402
 from src.matching import Change  # noqa: E402
 
 # What the fixtures hand out: a connection on the throwaway database.
@@ -265,16 +264,20 @@ def migrated_conn(_migrated: Database) -> Iterator[Connection]:
     """A connection on the migrated schema, emptied before each test."""
     with psycopg.connect(_migrated.conninfo) as c:
         found = c.execute(
-            "SELECT string_agg(quote_ident(tablename), ', ') FROM pg_tables"
+            "SELECT array_agg(tablename) FROM pg_tables"
             " WHERE schemaname = 'public'"
             # schema_migrations is the record of what has been applied, and
             # spatial_ref_sys is PostGIS's own catalogue: emptying it leaves a
             # database where no geometry can be given an SRID.
             " AND tablename NOT IN ('schema_migrations', 'spatial_ref_sys')"
         ).fetchone()
-        tables: str | None = found[0] if found else None
+        tables: list[str] | None = found[0] if found else None
         if tables:
-            c.execute(code_sql(f"TRUNCATE {tables} CASCADE"))
+            c.execute(
+                sql.SQL("TRUNCATE {} CASCADE").format(
+                    sql.SQL(", ").join(map(sql.Identifier, tables))
+                )
+            )
         c.commit()
         yield c
 

@@ -17,7 +17,7 @@ import pytest
 from psycopg import sql
 
 from src.config import Database
-from src.db import code_sql
+from src.db import sql_file
 from src.migrate import discover_migrations
 from tests.conftest import Connection, load_module, one
 
@@ -73,7 +73,7 @@ def conn(test_db: Database) -> Iterator[Connection]:
         for version, path in sorted(_sql_migrations()):
             if version > 15:
                 break
-            c.execute(code_sql(path.read_text()))
+            c.execute(sql_file(path))
         c.commit()
         yield c
         c.rollback()  # a test can leave the transaction in a failed state
@@ -309,7 +309,7 @@ def test_changeset_ids_is_dropped_by_the_cleanup(
     insert_import(conn, import_date=DAY, changeset_ids=[100])
 
     load_migration(tmp_path, monkeypatch).BackfillImportDepartements(conn).migrate()
-    conn.execute(code_sql(dict(_sql_migrations())[17].read_text()))
+    conn.execute(sql_file(dict(_sql_migrations())[17]))
 
     assert (
         conn.execute(
@@ -361,7 +361,7 @@ def test_cleanup_flattens_legacy_statuses(conn: Connection) -> None:
         )
     }
 
-    conn.execute(code_sql(dict(_sql_migrations())[17].read_text()))
+    conn.execute(sql_file(dict(_sql_migrations())[17]))
 
     got = {
         i: one(conn.execute("SELECT status FROM import_history WHERE id = %s", (i,)).fetchone())[0]

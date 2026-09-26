@@ -50,9 +50,12 @@ uv run pyright                                        # types
 Every function is annotated. The shapes the site passes around are named:
 `Change` (a proposal, `src/matching.py`), `Settings`/`Country`/`Database`
 (`src/config.py`), `Region` (`src/pipeline/constants.py`). psycopg only
-takes literal SQL, so a query is either a literal, a `psycopg.sql`
-composition, or — when it is assembled from module constants — passed
-through `code_sql()` (`src/db.py`), which is where that is stated. A
+takes literal SQL, and pyright proves it: a query is a literal, an f-string
+of constants typed `LiteralString` (a module constant is `Final`, or pyright
+widens it to `str` on import), or a `psycopg.sql` composition — a value from
+the configuration goes in as `sql.Literal`, a name as `sql.Identifier`. A
+file of the repository — a migration, a function definition — is read
+through `sql_file()` (`src/db.py`), the one place a string is vouched for. A
 `fetchone()` is `None` until proven otherwise: the tests wrap it in `one()`.
 
 Libraries that ship no types get a stub in `typings/`, limited to the surface

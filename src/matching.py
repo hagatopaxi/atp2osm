@@ -2,13 +2,12 @@ import random
 import re
 from collections import Counter
 from collections.abc import Collection, Iterable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any, LiteralString, NamedTuple, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, Final, LiteralString, NamedTuple, NotRequired, TypedDict
 
-from psycopg import Connection, Cursor
+from psycopg import Connection, Cursor, sql
 from psycopg.rows import DictRow, dict_row
 
 from src.config import get_country
-from src.db import code_sql
 from src.phone import format_phone
 
 if TYPE_CHECKING:
@@ -88,7 +87,7 @@ class Stats(TypedDict):
 # `matched_poi_sql()` fills the radius, which the country sets: 500 m is
 # calibrated on European urban density, and a country whose POIs sit further
 # apart says so in its configuration rather than in this file.
-MATCHED_POI_SQL = """
+MATCHED_POI_SQL: Final = """
     WITH joined_poi AS (
     SELECT
         *,
@@ -203,14 +202,16 @@ MATCHED_POI_SQL = """
 """
 
 
-def matched_poi_sql(where_options: LiteralString = "TRUE") -> str:
+def matched_poi_sql(where_options: LiteralString = "TRUE") -> sql.Composed:
     """The matching query, ready to run: its filters and the country's radius.
 
     One `format` call, never two: the SQL escapes its own braces (`'{{}}'::jsonb`)
-    and a second pass would unescape them into replacement fields.
+    and a second pass would unescape them into replacement fields. The radius
+    comes from the configuration, so it goes in as a literal.
     """
-    return MATCHED_POI_SQL.format(
-        where_options=where_options, match_radius_m=get_country().match_radius_m
+    return sql.SQL(MATCHED_POI_SQL).format(
+        where_options=sql.SQL(where_options),
+        match_radius_m=sql.Literal(get_country().match_radius_m),
     )
 
 
@@ -223,7 +224,7 @@ class Wave(NamedTuple):
     """
 
     number: int
-    flag: str
+    flag: LiteralString
     batch_size: int
     # Floor of POIs reviewed per batch — the sample may exceed it to cover
     # every changed tag. A batch smaller than that is reviewed in full.
@@ -244,12 +245,14 @@ WAVES = (
 WAVES_BY_NUMBER = {wave.number: wave for wave in WAVES}
 
 
-def waves_lateral_sql() -> str:
+def waves_lateral_sql() -> sql.Composed:
     """`VALUES (number, flag)` for every wave — how mv_places_brand fans a
     match out over the waves it belongs to. A POI can be on two: adding a
     missing phone and replacing a stale website are two integrations.
     """
-    return ", ".join(f"({wave.number}, {wave.flag})" for wave in WAVES)
+    return sql.SQL(", ").join(
+        sql.SQL("({}, {})").format(wave.number, sql.SQL(wave.flag)) for wave in WAVES
+    )
 
 
 def get_filtered(
@@ -272,22 +275,15 @@ def get_filtered(
 
     query = matched_poi_sql(" AND ".join(options) or "TRUE")
 
-    return cursor.execute(code_sql(query), params)
+    return cursor.execute(query, params)
 
 
 # Cooldowns: how long an import keeps hiding what it just touched, until the
 # daily refresh drops the integrated POIs from the matches.
-SUCCESS_COOLDOWN = "3 months"
-ERROR_COOLDOWN = "4 weeks"
-
-# Cooldowns are code constants, never values coming from a request: splicing
-# them into the SQL below cannot inject anything. The format is checked at import
-# time so that it stays that way.
-if not all(
-    re.fullmatch(r"\d+ (days|weeks|months)", cooldown)
-    for cooldown in (SUCCESS_COOLDOWN, ERROR_COOLDOWN)
-):
-    raise ValueError("a cooldown is written '<n> days|weeks|months'")
+# Written into the SQL below, which their LiteralString type allows: a value
+# from a request could not take their place without pyright refusing it.
+SUCCESS_COOLDOWN: Final = "3 months"
+ERROR_COOLDOWN: Final = "4 weeks"
 
 
 def _within(cooldown: LiteralString) -> LiteralString:
@@ -310,7 +306,7 @@ def _within(cooldown: LiteralString) -> LiteralString:
 # per brand, so both waves place it in the same subdivision. The OSM date is
 # that of the data (Geofabrik's timestamp), not of the import, so an edit made
 # after the extract was cut stays unseen until the next one.
-BLOCKED_DEPARTEMENTS_SQL = f"""
+BLOCKED_DEPARTEMENTS_SQL: Final = f"""
     SELECT ih.brand_wikidata, ih.wave, sub.subdivision_code
     FROM import_subdivisions sub
     JOIN import_history ih ON ih.id = sub.import_id
@@ -338,7 +334,7 @@ BLOCKED_DEPARTEMENTS_SQL = f"""
 # A cancellation has no cooldown: the contributor looked at the data and turned
 # it down, so the brand comes back when the data can have changed — one of its
 # spiders was edited after the cancellation. An undated spider never lifts it.
-BLOCKED_BRANDS_SQL = f"""
+BLOCKED_BRANDS_SQL: Final = f"""
     SELECT ih.*
     FROM import_history ih
     WHERE NOT EXISTS (SELECT 1 FROM import_subdivisions sub WHERE sub.import_id = ih.id)
@@ -360,7 +356,7 @@ BLOCKED_BRANDS_SQL = f"""
 # their say. get_all() reads the brand's first unfinished wave off it, and
 # current_wave() one brand's — the same rows, so the list and /validate can
 # never disagree on which wave a brand is on.
-UNBLOCKED_WAVES_SQL = f"""
+UNBLOCKED_WAVES_SQL: Final = f"""
     WITH blocked AS (
         SELECT brand_wikidata, wave, ARRAY_AGG(DISTINCT subdivision_code) AS subs
         FROM ({BLOCKED_DEPARTEMENTS_SQL}) b

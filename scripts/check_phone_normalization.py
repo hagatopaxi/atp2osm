@@ -6,13 +6,13 @@ move. Run it on a database cloned from production, before deploying:
     OSM_DB_NAME=… OSM_DB_USER=… OSM_DB_PASSWORD=… OSM_DB_HOST=… OSM_DB_PORT=… \
         uv run python scripts/check_phone_normalization.py
 
-It only reads, and it installs the legacy function under its own name in a
-temporary schema that it drops on the way out.
+It only reads, and it installs the legacy function in a schema of its own,
+which it drops on the way out.
 """
 
 import pathlib
 import sys
-from typing import Any, LiteralString
+from typing import Any, Final, LiteralString
 
 import psycopg
 from psycopg import sql
@@ -20,13 +20,14 @@ from psycopg import sql
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 from src.config import get_database
-from src.db import code_sql
+from src.db import sql_file
 
 Cursor = psycopg.Cursor[Any]
 
 MIGRATIONS = pathlib.Path(__file__).parent.parent / "migrations"
 LEGACY_SQL = MIGRATIONS / "012_normalize_phone_fn.sql"
-SCHEMA: LiteralString = "phone_check"
+SCHEMA: Final = "phone_check"
+LEGACY_FUNCTION: Final = f"{SCHEMA}.normalize_phone"
 
 # Both sides of the join, as they are named today.
 TABLES = (("atp_places", "phone"), ("mv_places", "phone"))
@@ -95,16 +96,13 @@ def main() -> None:
     conn = psycopg.connect(get_database().conninfo)
     with conn, conn.cursor() as cur:
         cur.execute(f"CREATE SCHEMA IF NOT EXISTS {SCHEMA}")
+        # The migration creates an unqualified normalize_phone: with SCHEMA
+        # first on the path it lands there, beside the live one in public.
+        cur.execute(f"SET search_path TO {SCHEMA}")
+        cur.execute(sql_file(LEGACY_SQL))
         cur.execute(f"SET search_path TO public, {SCHEMA}")
-        cur.execute(
-            code_sql(
-                LEGACY_SQL.read_text().replace(
-                    "FUNCTION normalize_phone(", f"FUNCTION {SCHEMA}.legacy_normalize_phone("
-                )
-            )
-        )
 
-        before = pairs_matched_on_phone_only(cur, f"{SCHEMA}.legacy_normalize_phone")
+        before = pairs_matched_on_phone_only(cur, LEGACY_FUNCTION)
         after = pairs_matched_on_phone_only(cur, "normalize_phone")
         drift = abs(after - before) / before * 100 if before else 0.0
         print(f"pairs matched on phone alone: {before} → {after} ({drift:.2f} % drift)")
@@ -112,7 +110,7 @@ def main() -> None:
             print("  DRIFT ABOVE 1 % — inspect before deploying")
 
         for table, column in TABLES:
-            legacy = collisions(cur, table, column, f"{SCHEMA}.legacy_normalize_phone")
+            legacy = collisions(cur, table, column, LEGACY_FUNCTION)
             current = collisions(cur, table, column, "normalize_phone")
             print(f"{table}.{column}: keys shared by several writings {legacy} → {current}")
             if current > legacy:

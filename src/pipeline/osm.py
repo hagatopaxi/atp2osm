@@ -13,7 +13,6 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from src.config import get_database, get_pipeline
-from src.db import code_sql
 from src.pipeline import _matview
 from src.pipeline._db import (
     connect,
@@ -355,7 +354,7 @@ def run_osm2pgsql() -> None:
     build_subdivision_parts()
 
 
-def mv_places_sql(name: str = "mv_places") -> str:
+def mv_places_sql(name: LiteralString = "mv_places") -> LiteralString:
     # Only rows that can ever match are kept: the join in
     # MATCHED_POI_SQL requires an equality on one of brand:wikidata,
     # brand, name, email, website or phone, and NULL never equals
@@ -483,7 +482,7 @@ def setup_mv_places() -> None:
             with conn.cursor() as cur:
                 cur.execute("DROP MATERIALIZED VIEW IF EXISTS mv_places_new;")
                 logger.info("Creating mv_places and indexes...")
-                cur.execute(code_sql(mv_places_sql("mv_places_new")))
+                cur.execute(mv_places_sql("mv_places_new"))
                 _matview.create_indexes(cur, "mv_places_new", MV_PLACES_INDEXES)
                 _matview.stamp(cur, "mv_places_new", signature)
                 _matview.swap(
