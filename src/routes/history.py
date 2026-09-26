@@ -7,7 +7,7 @@ from psycopg.rows import dict_row
 
 from src.db import get_osmdb
 from src.utils import HISTORY_FILTERS as FILTERS
-from src.utils import build_filters, fetch_osm_users, where_clause
+from src.utils import build_filters, fetch_osm_users, order_by, parse_sorts, where_clause
 
 logger = logging.getLogger(__name__)
 
@@ -32,9 +32,7 @@ def history() -> str:
     offset = (page - 1) * HISTORY_PER_PAGE
     conditions, params, filters = build_filters(request.args, FILTERS)
     where = where_clause(conditions)
-    sort = request.args.get("sort", "date")
-    sort = sort if sort in SORT_COLUMNS else "date"
-    direction = "ASC" if request.args.get("dir") == "asc" else "DESC"
+    sorts = parse_sorts(request.args, SORT_COLUMNS, default=[("date", True)])
 
     with osmdb.cursor(row_factory=dict_row) as cursor:
         counted = cursor.execute(
@@ -47,12 +45,8 @@ def history() -> str:
                        (SELECT COUNT(*) FROM import_subdivisions sub
                         WHERE sub.import_id = import_history.id) AS subdivisions_count
                 FROM import_history {where}
-                ORDER BY {column} {direction} NULLS LAST
-                LIMIT %s OFFSET %s""").format(
-                where=where,
-                column=sql.Identifier(SORT_COLUMNS[sort]),
-                direction=sql.SQL(direction),
-            ),
+                ORDER BY {order}
+                LIMIT %s OFFSET %s""").format(where=where, order=order_by(sorts, SORT_COLUMNS)),
             [*params, HISTORY_PER_PAGE, offset],
         ).fetchall()
 
@@ -72,8 +66,7 @@ def history() -> str:
         total_pages=total_pages,
         total=total,
         filters=filters,
-        sort=sort,
-        direction=direction.lower(),
+        sorts=sorts,
         filter_users=sorted(
             ((uid, users.get(uid, str(uid))) for uid in all_user_ids),
             key=lambda u: u[1].lower(),

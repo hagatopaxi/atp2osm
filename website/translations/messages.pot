@@ -8,14 +8,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-26 09:52+0200\n"
+"POT-Creation-Date: 2026-09-26 11:44+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 #: src/templating.py:62
 msgid "The data is being prepared, this instance has not run its first refresh yet."
@@ -26,7 +26,7 @@ msgstr ""
 msgid "ATP data integration (%(subdivision)s; %(brand)s)"
 msgstr ""
 
-#: src/routes/brands.py:270
+#: src/routes/brands.py:272
 msgid "OpenStreetMap could not be reached: nothing was changed."
 msgstr ""
 
@@ -302,6 +302,10 @@ msgstr ""
 msgid "no primary tag"
 msgstr ""
 
+#: website/templates/_sort_th.html:37
+msgid "Shift+click to add this column to the sort"
+msgstr ""
+
 #: website/templates/_wave.html:12
 msgid "Adding tags"
 msgstr ""
@@ -380,107 +384,107 @@ msgstr ""
 msgid "Sign in with your OpenStreetMap account to start an integration."
 msgstr ""
 
-#: website/templates/brands.html:51 website/templates/history.html:45
-#: website/templates/history.html:71 website/templates/history_detail.html:129
+#: website/templates/brands.html:53 website/templates/history.html:47
+#: website/templates/history.html:73 website/templates/history_detail.html:129
 #: website/templates/stats.html:73
 msgid "Wave"
 msgstr ""
 
-#: website/templates/brands.html:52 website/templates/brands.html:77
+#: website/templates/brands.html:54 website/templates/brands.html:79
 msgid "Previous status"
 msgstr ""
 
-#: website/templates/brands.html:53 website/templates/spiders.html:40
+#: website/templates/brands.html:55 website/templates/spiders.html:42
 msgid "Never integrated"
-msgstr ""
-
-#: website/templates/brands.html:54 website/templates/brands.html:101
-#: website/templates/brands/:brand_wikidata/validate.html:77
-#: website/templates/docs.html:243 website/templates/history.html:40
-#: website/templates/history.html:94 website/templates/history_detail.html:85
-#: website/templates/history_detail.html:240 website/templates/spiders.html:41
-#: website/templates/spiders.html:59
-msgid "Success"
-msgstr ""
-
-#: website/templates/brands.html:55 website/templates/brands.html:102
-#: website/templates/brands/:brand_wikidata/validate.html:77
-#: website/templates/docs.html:255 website/templates/history.html:41
-#: website/templates/history.html:95 website/templates/history_detail.html:86
-#: website/templates/spiders.html:42 website/templates/spiders.html:60
-msgid "Partial"
 msgstr ""
 
 #: website/templates/brands.html:56 website/templates/brands.html:103
 #: website/templates/brands/:brand_wikidata/validate.html:77
-#: website/templates/docs.html:269 website/templates/history.html:42
-#: website/templates/history.html:96 website/templates/history_detail.html:87
-#: website/templates/spiders.html:43 website/templates/spiders.html:61
-msgid "Cancelled"
+#: website/templates/docs.html:243 website/templates/history.html:42
+#: website/templates/history.html:96 website/templates/history_detail.html:85
+#: website/templates/history_detail.html:240 website/templates/spiders.html:43
+#: website/templates/spiders.html:61
+msgid "Success"
 msgstr ""
 
 #: website/templates/brands.html:57 website/templates/brands.html:104
 #: website/templates/brands/:brand_wikidata/validate.html:77
-#: website/templates/docs.html:283 website/templates/history.html:43
-#: website/templates/history.html:97 website/templates/history_detail.html:88
-#: website/templates/history_detail.html:240 website/templates/home.html:107
+#: website/templates/docs.html:255 website/templates/history.html:43
+#: website/templates/history.html:97 website/templates/history_detail.html:86
 #: website/templates/spiders.html:44 website/templates/spiders.html:62
+msgid "Partial"
+msgstr ""
+
+#: website/templates/brands.html:58 website/templates/brands.html:105
+#: website/templates/brands/:brand_wikidata/validate.html:77
+#: website/templates/docs.html:269 website/templates/history.html:44
+#: website/templates/history.html:98 website/templates/history_detail.html:87
+#: website/templates/spiders.html:45 website/templates/spiders.html:63
+msgid "Cancelled"
+msgstr ""
+
+#: website/templates/brands.html:59 website/templates/brands.html:106
+#: website/templates/brands/:brand_wikidata/validate.html:77
+#: website/templates/docs.html:283 website/templates/history.html:45
+#: website/templates/history.html:99 website/templates/history_detail.html:88
+#: website/templates/history_detail.html:240 website/templates/home.html:107
+#: website/templates/spiders.html:46 website/templates/spiders.html:64
 msgid "Error"
 msgstr ""
 
-#: website/templates/brands.html:59 website/templates/spiders.html:47
+#: website/templates/brands.html:61 website/templates/spiders.html:49
 msgid "Last integration after"
 msgstr ""
 
-#: website/templates/brands.html:60 website/templates/spiders.html:48
+#: website/templates/brands.html:62 website/templates/spiders.html:50
 msgid "Last integration before"
 msgstr ""
 
-#: website/templates/brands.html:62 website/templates/todo.html:94
+#: website/templates/brands.html:64 website/templates/todo.html:96
 #, python-format
 msgid "%(count)s brand"
 msgid_plural "%(count)s brands"
 msgstr[0] ""
 msgstr[1] ""
 
-#: website/templates/brands.html:67 website/templates/todo.html:92
+#: website/templates/brands.html:69 website/templates/todo.html:94
 msgid "No brand matches these filters."
 msgstr ""
 
-#: website/templates/brands.html:74 website/templates/history.html:69
+#: website/templates/brands.html:76 website/templates/history.html:71
 msgid "Brand (Wikidata)"
 msgstr ""
 
-#: website/templates/brands.html:75 website/templates/brands.html:92
+#: website/templates/brands.html:77 website/templates/brands.html:94
 msgid "POIs to integrate"
 msgstr ""
 
-#: website/templates/brands.html:76
+#: website/templates/brands.html:78
 msgid "Proposed wave"
 msgstr ""
 
-#: website/templates/brands.html:78 website/templates/brands.html:120
-#: website/templates/spiders.html:90
+#: website/templates/brands.html:80 website/templates/brands.html:122
+#: website/templates/spiders.html:92
 msgid "Last integration"
 msgstr ""
 
-#: website/templates/brands.html:79
+#: website/templates/brands.html:81
 msgid "Actions"
 msgstr ""
 
-#: website/templates/brands.html:124 website/templates/spiders.html:75
+#: website/templates/brands.html:126 website/templates/spiders.html:77
 msgid "Spider"
 msgstr ""
 
-#: website/templates/brands.html:127 website/templates/spiders.html:133
+#: website/templates/brands.html:129 website/templates/spiders.html:136
 msgid "Never"
 msgstr ""
 
-#: website/templates/brands.html:134
+#: website/templates/brands.html:136
 msgid "You must sign in"
 msgstr ""
 
-#: website/templates/brands.html:141 website/templates/docs.html:212
+#: website/templates/brands.html:143 website/templates/docs.html:212
 msgid "Integrate"
 msgstr ""
 
@@ -761,7 +765,7 @@ msgstr ""
 msgid "The POIs the spider produced inside the country and its territories."
 msgstr ""
 
-#: website/templates/docs.html:305 website/templates/spiders.html:83
+#: website/templates/docs.html:305 website/templates/spiders.html:85
 msgid "Matched"
 msgstr ""
 
@@ -843,63 +847,63 @@ msgstr ""
 msgid "Every integration carried out or reported as faulty."
 msgstr ""
 
-#: website/templates/history.html:39 website/templates/history.html:70
+#: website/templates/history.html:41 website/templates/history.html:72
 #: website/templates/history_detail.html:96
 #: website/templates/history_detail.html:220
 msgid "Status"
 msgstr ""
 
-#: website/templates/history.html:46 website/templates/stats.html:61
+#: website/templates/history.html:48 website/templates/stats.html:61
 msgid "User"
 msgstr ""
 
-#: website/templates/history.html:47 website/templates/stats.html:62
+#: website/templates/history.html:49 website/templates/stats.html:62
 msgid "Start date"
 msgstr ""
 
-#: website/templates/history.html:48 website/templates/stats.html:63
+#: website/templates/history.html:50 website/templates/stats.html:63
 msgid "End date"
 msgstr ""
 
-#: website/templates/history.html:54
+#: website/templates/history.html:56
 msgid "See the integration statistics"
 msgstr ""
 
-#: website/templates/history.html:60
+#: website/templates/history.html:62
 msgid "No integration matches these filters."
 msgstr ""
 
-#: website/templates/history.html:60
+#: website/templates/history.html:62
 msgid "No integration recorded yet."
 msgstr ""
 
-#: website/templates/history.html:63
+#: website/templates/history.html:65
 #, python-format
 msgid "%(count)s integration"
 msgid_plural "%(count)s integrations"
 msgstr[0] ""
 msgstr[1] ""
 
-#: website/templates/history.html:68 website/templates/history_detail.html:81
-#: website/templates/todo.html:103
+#: website/templates/history.html:70 website/templates/history_detail.html:81
+#: website/templates/todo.html:105
 msgid "Date"
 msgstr ""
 
-#: website/templates/history.html:72 website/templates/history_detail.html:116
+#: website/templates/history.html:74 website/templates/history_detail.html:116
 msgid "OSM user"
 msgstr ""
 
-#: website/templates/history.html:73 website/templates/history.html:121
+#: website/templates/history.html:75 website/templates/history.html:123
 #: website/templates/history_detail.html:126 website/templates/home.html:75
 #: website/templates/stats.html:91
 msgid "POIs integrated"
 msgstr ""
 
-#: website/templates/history.html:74
+#: website/templates/history.html:76
 msgid "Action"
 msgstr ""
 
-#: website/templates/history.html:124
+#: website/templates/history.html:126
 msgid "See more"
 msgstr ""
 
@@ -1182,101 +1186,101 @@ msgid_plural "%(count)s spiders producing POIs of the country: what they scrape 
 msgstr[0] ""
 msgstr[1] ""
 
-#: website/templates/spiders.html:38 website/templates/spiders.html:77
+#: website/templates/spiders.html:40 website/templates/spiders.html:79
 msgid "ATP run"
 msgstr ""
 
-#: website/templates/spiders.html:38 website/templates/spiders.html:107
+#: website/templates/spiders.html:40 website/templates/spiders.html:109
 msgid "Without error"
 msgstr ""
 
-#: website/templates/spiders.html:38 website/templates/spiders.html:110
-#: website/templates/spiders.html:112
+#: website/templates/spiders.html:40 website/templates/spiders.html:112
+#: website/templates/spiders.html:114
 msgid "With errors"
 msgstr ""
 
-#: website/templates/spiders.html:39 website/templates/spiders.html:87
+#: website/templates/spiders.html:41 website/templates/spiders.html:89
 msgid "atp2osm status"
 msgstr ""
 
-#: website/templates/spiders.html:46
+#: website/templates/spiders.html:48
 msgid "Cancellation reason"
 msgstr ""
 
-#: website/templates/spiders.html:49
+#: website/templates/spiders.html:51
 msgid "Spider, brand or Wikidata code"
 msgstr ""
 
-#: website/templates/spiders.html:50
+#: website/templates/spiders.html:52
 #, python-format
 msgid "%(count)s spider"
 msgid_plural "%(count)s spiders"
 msgstr[0] ""
 msgstr[1] ""
 
-#: website/templates/spiders.html:55
+#: website/templates/spiders.html:57
 msgid "No spider matches these filters."
 msgstr ""
 
-#: website/templates/spiders.html:76 website/templates/stats.html:95
+#: website/templates/spiders.html:78 website/templates/stats.html:95
 msgid "Brands"
 msgstr ""
 
-#: website/templates/spiders.html:78
+#: website/templates/spiders.html:80
 msgid "Result of the spider on the ATP side."
 msgstr ""
 
-#: website/templates/spiders.html:79
+#: website/templates/spiders.html:81
 msgid "Last change"
 msgstr ""
 
-#: website/templates/spiders.html:80
+#: website/templates/spiders.html:82
 msgid "Date of the last change to the spider's source code."
 msgstr ""
 
-#: website/templates/spiders.html:81
+#: website/templates/spiders.html:83
 msgid "Scraped"
 msgstr ""
 
-#: website/templates/spiders.html:82
+#: website/templates/spiders.html:84
 msgid "Number of ATP POIs scraped."
 msgstr ""
 
-#: website/templates/spiders.html:84
+#: website/templates/spiders.html:86
 msgid "Number of matches detected between OpenStreetMap and ATP."
 msgstr ""
 
-#: website/templates/spiders.html:85
+#: website/templates/spiders.html:87
 msgid "Match rate"
 msgstr ""
 
-#: website/templates/spiders.html:86
+#: website/templates/spiders.html:88
 msgid "Share of the scraped POIs that have a match."
 msgstr ""
 
-#: website/templates/spiders.html:88
+#: website/templates/spiders.html:90
 msgid "Status of the last integration."
 msgstr ""
 
-#: website/templates/spiders.html:89
+#: website/templates/spiders.html:91
 msgid "Cancellation reasons"
 msgstr ""
 
-#: website/templates/spiders.html:107
+#: website/templates/spiders.html:109
 #, python-format
 msgid "%(count)s POI worldwide"
 msgid_plural "%(count)s POIs worldwide"
 msgstr[0] ""
 msgstr[1] ""
 
-#: website/templates/spiders.html:110
+#: website/templates/spiders.html:112
 #, python-format
 msgid "%(count)s error — see the log"
 msgid_plural "%(count)s errors — see the log"
 msgstr[0] ""
 msgstr[1] ""
 
-#: website/templates/spiders.html:112
+#: website/templates/spiders.html:114
 #, python-format
 msgid "%(count)s error"
 msgid_plural "%(count)s errors"
@@ -1455,7 +1459,7 @@ msgid "Add a brand"
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:240
-#: website/templates/todo.html:42 website/templates/todo.html:175
+#: website/templates/todo.html:42 website/templates/todo.html:177
 msgid "Brand name"
 msgstr ""
 
@@ -1464,12 +1468,12 @@ msgid "e.g. Carrefour"
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:242
-#: website/templates/todo.html:47 website/templates/todo.html:179
+#: website/templates/todo.html:47 website/templates/todo.html:181
 msgid "Wikidata code"
 msgstr ""
 
 #: website/templates/todo.html:47 website/templates/todo.html:52
-#: website/templates/todo.html:179 website/templates/todo.html:183
+#: website/templates/todo.html:181 website/templates/todo.html:185
 msgid "(optional)"
 msgstr ""
 
@@ -1477,7 +1481,7 @@ msgstr ""
 msgid "e.g. Q123456"
 msgstr ""
 
-#: website/templates/todo.html:52 website/templates/todo.html:183
+#: website/templates/todo.html:52 website/templates/todo.html:185
 msgid "Estimated POI count"
 msgstr ""
 
@@ -1497,72 +1501,72 @@ msgstr ""
 msgid "No brand in the list yet."
 msgstr ""
 
-#: website/templates/todo.html:84 website/templates/todo.html:102
+#: website/templates/todo.html:86 website/templates/todo.html:104
 msgid "Added by"
 msgstr ""
 
-#: website/templates/todo.html:85
+#: website/templates/todo.html:87
 msgid "Added after"
 msgstr ""
 
-#: website/templates/todo.html:86
+#: website/templates/todo.html:88
 msgid "Added before"
 msgstr ""
 
-#: website/templates/todo.html:87
+#: website/templates/todo.html:89
 msgid "Brands already in ATP"
 msgstr ""
 
-#: website/templates/todo.html:87
+#: website/templates/todo.html:89
 msgid "Shown"
 msgstr ""
 
-#: website/templates/todo.html:99
+#: website/templates/todo.html:101
 msgid "Name"
 msgstr ""
 
-#: website/templates/todo.html:100
+#: website/templates/todo.html:102
 msgid "Wikidata"
 msgstr ""
 
-#: website/templates/todo.html:101
+#: website/templates/todo.html:103
 msgid "Estimate"
 msgstr ""
 
-#: website/templates/todo.html:104
+#: website/templates/todo.html:106
 msgid "Edited by"
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:85
-#: website/templates/todo.html:140
+#: website/templates/todo.html:142
 #, python-format
 msgid "on %(date)s"
 msgstr ""
 
-#: website/templates/todo.html:148
+#: website/templates/todo.html:150
 msgid "Edit"
 msgstr ""
 
-#: website/templates/todo.html:154
+#: website/templates/todo.html:156
 msgid "Delete"
 msgstr ""
 
-#: website/templates/todo.html:171
+#: website/templates/todo.html:173
 msgid "Edit the brand"
 msgstr ""
 
 #: website/templates/brands/:brand_wikidata/confirm.html:90
 #: website/templates/brands/:brand_wikidata/rejected.html:23
 #: website/templates/brands/:brand_wikidata/validate.html:343
-#: website/templates/todo.html:188
+#: website/templates/todo.html:190
 msgid "Cancel"
 msgstr ""
 
-#: website/templates/todo.html:189
+#: website/templates/todo.html:191
 msgid "Save"
 msgstr ""
 
-#: website/templates/todo.html:193
+#: website/templates/todo.html:195
 msgid "Close"
 msgstr ""
 

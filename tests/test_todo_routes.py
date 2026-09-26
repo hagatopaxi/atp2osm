@@ -90,7 +90,7 @@ def test_the_list_can_be_sorted_on_a_column(
 
     web_app.test_client().get("/todo?sort=not-a-column")
     # An unknown column is the default, not an injection.
-    assert rendered[-1]["sort"] == "estimation"
+    assert rendered[-1]["sorts"] == [("estimation", True)]
 
 
 def test_brands_already_in_atp_are_hidden_unless_asked(

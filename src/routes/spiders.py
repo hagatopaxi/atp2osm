@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request
 from psycopg.rows import dict_row
 
 from src.db import get_osmdb
-from src.utils import filter_brands
+from src.utils import filter_brands, parse_sorts, sort_rows
 
 spiders_bp = Blueprint("spiders", __name__)
 
@@ -110,11 +110,8 @@ def spiders() -> str:
     if reason:
         rows = [r for r in rows if reason in r["reasons"]]
         filters["reason"] = reason
-    sort = request.args.get("sort", "updated")
-    sort = sort if sort in SORT_COLUMNS else "updated"
-    direction = "asc" if request.args.get("dir") == "asc" else "desc"
-    key = SORT_COLUMNS[sort]
-    rows = sorted(rows, key=lambda r: (r[key] is None, r[key]), reverse=direction == "desc")
+    sorts = parse_sorts(request.args, SORT_COLUMNS, default=[("updated", True)])
+    rows = sort_rows(rows, sorts, SORT_COLUMNS)
     return render_template(
         "spiders.html",
         rows=rows,
@@ -122,6 +119,5 @@ def spiders() -> str:
         shown=len(rows),
         reasons_found=sorted({key for r in all_spiders for key in r["reasons"]}),
         filters=filters,
-        sort=sort,
-        direction=direction,
+        sorts=sorts,
     )

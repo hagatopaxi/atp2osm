@@ -60,3 +60,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+
+// Sortable headers (_sort_th.html): shift+click adds the column to the sort
+// instead of sorting on it alone — and does not open a new window.
+document.addEventListener("click", (event) => {
+  const link = event.shiftKey && event.target.closest("a[data-shift-href]");
+  if (!link) return;
+  event.preventDefault();
+  location.href = link.dataset.shiftHref;
+});

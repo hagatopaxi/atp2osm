@@ -11,7 +11,14 @@ from psycopg.rows import dict_row
 from src.db import get_osmdb
 from src.routes.auth import auth_required
 from src.utils import TODO_FILTERS as FILTERS
-from src.utils import build_filters, fetch_osm_users, hide_brands_in_atp, where_clause
+from src.utils import (
+    build_filters,
+    fetch_osm_users,
+    hide_brands_in_atp,
+    order_by,
+    parse_sorts,
+    where_clause,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -32,17 +39,11 @@ def todo() -> str:
     conditions, params, filters = build_filters(request.args, FILTERS)
     conditions = hide_brands_in_atp(conditions, request.args, filters)
     # Biggest brands first by default: that is the work worth doing.
-    sort = request.args.get("sort", "estimation")
-    sort = sort if sort in SORT_COLUMNS else "estimation"
-    direction = "ASC" if request.args.get("dir") == "asc" else "DESC"
+    sorts = parse_sorts(request.args, SORT_COLUMNS, default=[("estimation", True)])
     with osmdb.cursor(row_factory=dict_row) as cursor:
         entries = cursor.execute(
-            sql.SQL(
-                "SELECT * FROM todo_brands {where} ORDER BY {column} {direction} NULLS LAST"
-            ).format(
-                where=where_clause(conditions),
-                column=sql.Identifier(SORT_COLUMNS[sort]),
-                direction=sql.SQL(direction),
+            sql.SQL("SELECT * FROM todo_brands {where} ORDER BY {order}").format(
+                where=where_clause(conditions), order=order_by(sorts, SORT_COLUMNS)
             ),
             params,
         ).fetchall()
@@ -68,8 +69,7 @@ def todo() -> str:
         current_user_id=current_user_id,
         total=total,
         filters=filters,
-        sort=sort,
-        direction=direction.lower(),
+        sorts=sorts,
         filter_users=sorted(
             ((uid, users.get(uid, str(uid))) for uid in all_user_ids),
             key=lambda u: u[1].lower(),
