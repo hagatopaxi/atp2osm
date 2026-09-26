@@ -123,10 +123,11 @@
                 <span class="badge badge-ghost">—</span>
                 {% endif %}
             </td>
-            <td class="md:max-w-xs">
-                {% for key in row["reasons"] %}<span class="badge badge-soft badge-warning badge-sm h-auto">{{ reasons.LABELS.get(key, key) }}</span> {% endfor %}
+            {# A max-width on a table cell is ignored: the div holds the column. #}
+            <td><div class="flex flex-col items-start gap-1 w-max max-w-xs">
+                {% for key in row["reasons"] %}<p class="text-xs">{{ reasons.LABELS.get(key, key) }}</p>{% endfor %}
                 {% for note in row["notes"] %}<p class="text-xs muted line-clamp-2" title="{{ note }}">{{ note }}</p>{% endfor %}
-            </td>
+            </div></td>
             <td>
                 {% if row["last_id"] %}
                 <a class="link" href="{{ url_for('history.history_detail', entry_id=row['last_id']) }}">{{ row["last_import"] | dateformat('short') }}</a>
