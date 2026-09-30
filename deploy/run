@@ -91,6 +91,9 @@ rm -f "$SYSTEMD_USER_DIR/${CONTAINER_NAME}-refresh.service" "$SYSTEMD_USER_DIR/$
 # (src/, osm2pgsql/, etc. live inside the container image)
 git --git-dir="$GIT_DIR" archive "$COMMIT" -- run-pipeline.sh | tar -x -C "$PROJECT_DIR"
 chmod +x "$PROJECT_DIR/run-pipeline.sh"
+# Replaced by run-pipeline.sh; the copy an older deploy left still reads the
+# database settings from variables .env no longer defines.
+rm -f "$PROJECT_DIR/refresh-data.sh"
 
 # Disable legacy units if present (path watcher + old timer named with dots)
 systemctl --user disable --now "${CONTAINER_NAME}-watch.path"  2>/dev/null || true
