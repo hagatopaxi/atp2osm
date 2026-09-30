@@ -34,10 +34,12 @@ from src.utils import delete_file_if_exists, download_large_file
 
 logger = logging.getLogger(__name__)
 
-# Geofabrik hands out 502/503 for a few minutes at a time, and sometimes lets
-# a TLS handshake hang. Retry with backoff instead of failing the whole
-# nightly run on a transient blip. Connection errors are retried too; a read
-# timeout mid-stream is not, it would restart a multi-GB download from scratch.
+# Geofabrik hands out 502/503 for a few minutes at a time, sometimes lets a
+# TLS handshake hang, and under load takes minutes to send the response
+# headers. Retry with backoff instead of failing the whole nightly run on a
+# transient blip. urllib3 retries only up to the headers: a read timeout
+# mid-stream is never retried, whatever `read` says, so a multi-GB download is
+# not restarted from scratch.
 _session = requests.Session()
 _session.mount(
     "https://",
@@ -45,7 +47,7 @@ _session.mount(
         max_retries=Retry(
             total=5,
             connect=5,
-            read=0,
+            read=5,
             backoff_factor=5,  # waits 0, 5, 10, 20, 40s
             status_forcelist=(429, 500, 502, 503, 504),
             allowed_methods=("GET", "HEAD"),
