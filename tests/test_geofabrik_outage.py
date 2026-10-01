@@ -313,9 +313,9 @@ def test_an_outage_mid_download_drops_the_regions_already_downloaded(
     monkeypatch.setattr(osm, "start_import", nothing)
 
     def download(url: str, destination: Path, **_kw: object) -> None:
-        destination.write_bytes(b"x")
         if url == "wallis":
-            raise requests.TooManyRedirects("Exceeded 30 redirects.")
+            raise SourceUnavailableError("Geofabrik unreachable: Exceeded 30 redirects.")
+        destination.write_bytes(b"x")
 
     monkeypatch.setattr(osm, "download_large_file", download)
 

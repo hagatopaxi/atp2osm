@@ -476,14 +476,12 @@ def download_atp() -> None:
         delete_file_if_exists(ATP_DIR / "output.zip")
         delete_file_if_exists(SPIDERS_PATH)
 
-        with unavailable_if_unreachable("ATP"):
-            download_large_file(run["output_url"], ATP_DIR / "output.zip")
+        download_large_file(run["output_url"], ATP_DIR / "output.zip", source="ATP")
 
         stats_url = run.get("stats_url")
         if stats_url:
             stats_path = ATP_DIR / "stats.json"
-            with unavailable_if_unreachable("ATP"):
-                download_large_file(stats_url, stats_path)
+            download_large_file(stats_url, stats_path, source="ATP")
             with stats_path.open() as infile:
                 spiders: list[dict[str, Any]] = json.load(infile)["results"]
             stats_path.unlink()

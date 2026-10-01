@@ -11,6 +11,7 @@ from psycopg import sql
 from werkzeug.datastructures import MultiDict
 
 from src.config import get_settings
+from src.pipeline.errors import SourceUnavailableError, unavailable_if_unreachable
 
 logger = logging.getLogger(__name__)
 
@@ -23,85 +24,94 @@ def delete_file_if_exists(file_path: str | Path) -> None:
 def download_large_file(
     url: str,
     destination: str | Path,
+    *,
+    source: str,
     chunk_size: int = 8192,
     progress_interval: int = 15,
     session: requests.Session | None = None,
 ) -> None:
-    """Stream a file from *url* to *destination* while printing a progress
-    percentage roughly every ``progress_interval`` seconds.
+    """Stream *url* to *destination*, logging the progress every
+    ``progress_interval`` seconds.
 
-    Parameters
-    ----------
-    url               : URL of the file to download.
-    destination       : Local path where the file will be saved.
-    chunk_size        : Number of bytes read per iteration (default 8192).
-    progress_interval : Seconds between progress updates (default 15 s).
+    Every file the pipeline fetches comes through here, so the guarantee holds
+    for all of them: *destination* is a whole file or nothing. The body is
+    written to ``<destination>.part`` and renamed once complete, so a process
+    killed mid-stream leaves no stump the next run would take for the source.
+    Any failure removes the ``.part``. A network failure, or an empty body, is
+    *source* being unavailable, not a failure of the pipeline.
     """
     dest_path = Path(destination)
     dest_path.parent.mkdir(parents=True, exist_ok=True)
+    part_path = dest_path.with_name(dest_path.name + ".part")
 
     try:
-        # ``stream=True`` gives us an iterator over the response body.
-        # (connect, read): Geofabrik keeps the socket open but idle when loaded;
-        # 30 s of read timeout was enough to kill a multi-GB download.
-        with (session or requests).get(url, stream=True, timeout=(10, 120)) as resp:
-            resp.raise_for_status()
-
-            # Try to obtain the total size from the HTTP header.
-            total_bytes = resp.headers.get("Content-Length")
-            total_bytes = int(total_bytes) if total_bytes and total_bytes.isdigit() else None
-
-            written = 0
-            start = last_report = time.time()
-
-            with dest_path.open("wb") as out_file:
-                for chunk in resp.iter_content(chunk_size=chunk_size):
-                    if not chunk:  # skip keep‑alive chunks
-                        continue
-                    out_file.write(chunk)
-                    written += len(chunk)
-
-                    now = time.time()
-                    if now - last_report >= progress_interval:
-                        elapsed = now - start
-                        speed = written / elapsed if elapsed > 0 else 0
-
-                        if total_bytes is not None:
-                            logger.info(
-                                "[%6.1fs] %5.1f%% (%s / %s bytes) @ %s KiB/s",
-                                elapsed,
-                                written / total_bytes * 100,
-                                f"{written:,}",
-                                f"{total_bytes:,}",
-                                f"{speed / 1024:,.1f}",
-                            )
-                        else:
-                            # No length header → just show bytes transferred.
-                            logger.info(
-                                "[%6.1fs] %s bytes downloaded @ %s KiB/s",
-                                elapsed,
-                                f"{written:,}",
-                                f"{speed / 1024:,.1f}",
-                            )
-                        last_report = now
-
-            # ----- final summary -------------------------------------------------
-            if written == 0:
-                dest_path.unlink(missing_ok=True)
-                raise ValueError(f"Downloaded file is empty (0 bytes): {url}")
-
-            total_elapsed = time.time() - start
-            avg_speed = written / total_elapsed if total_elapsed > 0 else 0
-            logger.info(
-                "Download complete: %s bytes in %.1fs (%s KiB/s).",
-                f"{written:,}",
-                total_elapsed,
-                f"{avg_speed / 1024:,.1f}",
-            )
-
-    except requests.exceptions.RequestException:
-        dest_path.unlink(missing_ok=True)
+        with unavailable_if_unreachable(source):
+            _stream_to(url, part_path, source, chunk_size, progress_interval, session)
+    except BaseException:
+        part_path.unlink(missing_ok=True)
         raise
+    part_path.replace(dest_path)
+
+
+def _stream_to(
+    url: str,
+    path: Path,
+    source: str,
+    chunk_size: int,
+    progress_interval: int,
+    session: requests.Session | None,
+) -> None:
+    # (connect, read): Geofabrik keeps the socket open but idle when loaded;
+    # 30 s of read timeout was enough to kill a multi-GB download.
+    with (session or requests).get(url, stream=True, timeout=(10, 120)) as resp:
+        resp.raise_for_status()
+
+        total_bytes = resp.headers.get("Content-Length")
+        total_bytes = int(total_bytes) if total_bytes and total_bytes.isdigit() else None
+
+        written = 0
+        start = last_report = time.time()
+
+        with path.open("wb") as out_file:
+            for chunk in resp.iter_content(chunk_size=chunk_size):
+                if not chunk:  # skip keep-alive chunks
+                    continue
+                out_file.write(chunk)
+                written += len(chunk)
+
+                now = time.time()
+                if now - last_report >= progress_interval:
+                    elapsed = now - start
+                    speed = written / elapsed if elapsed > 0 else 0
+                    if total_bytes is not None:
+                        logger.info(
+                            "[%6.1fs] %5.1f%% (%s / %s bytes) @ %s KiB/s",
+                            elapsed,
+                            written / total_bytes * 100,
+                            f"{written:,}",
+                            f"{total_bytes:,}",
+                            f"{speed / 1024:,.1f}",
+                        )
+                    else:
+                        logger.info(
+                            "[%6.1fs] %s bytes downloaded @ %s KiB/s",
+                            elapsed,
+                            f"{written:,}",
+                            f"{speed / 1024:,.1f}",
+                        )
+                    last_report = now
+
+    if written == 0:
+        raise SourceUnavailableError(f"{source} served an empty file: {url}")
+
+    total_elapsed = time.time() - start
+    avg_speed = written / total_elapsed if total_elapsed > 0 else 0
+    logger.info(
+        "Download complete: %s bytes in %.1fs (%s KiB/s).",
+        f"{written:,}",
+        total_elapsed,
+        f"{avg_speed / 1024:,.1f}",
+    )
 
 
 # The fate of an integration. The error type lives one level below, on the

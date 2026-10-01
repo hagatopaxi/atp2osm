@@ -29,7 +29,7 @@ from src.pipeline.constants import (
     PROJECT_ROOT,
     Region,
 )
-from src.pipeline.errors import SourceUnavailableError, unavailable_if_unreachable
+from src.pipeline.errors import SourceUnavailableError
 from src.utils import delete_file_if_exists, download_large_file
 
 logger = logging.getLogger(__name__)
@@ -165,19 +165,14 @@ def download_pbf() -> None:
             logger.info("PBF %s already present, skipping", name)
             continue
         logger.info("Downloading %s...", name)
-        pbf_path.parent.mkdir(parents=True, exist_ok=True)
         try:
-            with unavailable_if_unreachable("Geofabrik"):
-                download_large_file(region["url"], pbf_path, session=_session)
+            download_large_file(region["url"], pbf_path, source="Geofabrik", session=_session)
         except SourceUnavailableError:
             # osm-import refuses a partial set, and its failure would stop the
             # ATP branch too. With no PBF at all it keeps the current tables,
             # as it does when Geofabrik is already down at the timestamp check.
             for downloaded in GEOFABRIK_REGIONS.values():
                 delete_file_if_exists(downloaded["pbf_path"])
-            raise
-        except Exception:
-            delete_file_if_exists(pbf_path)
             raise
         logger.info("Downloaded %s", name)
 

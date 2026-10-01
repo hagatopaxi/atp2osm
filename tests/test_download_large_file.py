@@ -11,14 +11,20 @@ from typing import Self, cast
 import pytest
 import requests
 
+from src.pipeline.errors import SourceUnavailableError
 from src.utils import download_large_file
 
 
 class _Stream:
     def __init__(
-        self, chunks: list[bytes], length: int | None = None, fail_after: int | None = None
+        self,
+        chunks: list[bytes],
+        length: int | None = None,
+        fail_after: int | None = None,
+        error: BaseException | None = None,
     ) -> None:
         self.chunks, self.fail_after = chunks, fail_after
+        self.error = error or requests.ConnectionError("reset by peer")
         self.headers = {"Content-Length": str(length)} if length is not None else {}
 
     def __enter__(self) -> Self:
@@ -33,7 +39,7 @@ class _Stream:
     def iter_content(self, chunk_size: int) -> Iterator[bytes]:
         for i, chunk in enumerate(self.chunks):
             if self.fail_after is not None and i == self.fail_after:
-                raise requests.ConnectionError("reset by peer")
+                raise self.error
             yield chunk
 
 
@@ -59,7 +65,7 @@ def test_the_body_is_written_whole(tmp_path: Path) -> None:
     http = _Http(_Stream([b"abc", b"", b"def"], length=6))  # keep-alive chunk in between
     dest = tmp_path / "osm" / "x.pbf"
 
-    download_large_file("https://x.example/x.pbf", dest, session=http.session)
+    download_large_file("https://x.example/x.pbf", dest, source="X", session=http.session)
 
     assert dest.read_bytes() == b"abcdef"
     ((_url, stream, timeout),) = http.calls
@@ -70,26 +76,64 @@ def test_the_body_is_written_whole(tmp_path: Path) -> None:
 
 def test_a_body_without_a_length_is_written_too(tmp_path: Path) -> None:
     dest = tmp_path / "x.bin"
-    download_large_file("https://x.example/x", dest, session=_Http(_Stream([b"ab"])).session)
+    download_large_file(
+        "https://x.example/x", dest, source="X", session=_Http(_Stream([b"ab"])).session
+    )
     assert dest.read_bytes() == b"ab"
 
 
 def test_an_empty_body_leaves_no_file(tmp_path: Path) -> None:
     dest = tmp_path / "x.pbf"
-    with pytest.raises(ValueError, match="empty"):
-        download_large_file("https://x.example/x.pbf", dest, session=_Http(_Stream([])).session)
-    assert not dest.exists()
+    with pytest.raises(SourceUnavailableError, match="empty"):
+        download_large_file(
+            "https://x.example/x.pbf", dest, source="X", session=_Http(_Stream([])).session
+        )
+    assert list(tmp_path.iterdir()) == []
 
 
 def test_a_connection_lost_mid_stream_leaves_no_stump(tmp_path: Path) -> None:
     dest = tmp_path / "x.pbf"
-    with pytest.raises(requests.ConnectionError):
+    with pytest.raises(SourceUnavailableError, match="X unreachable"):
         download_large_file(
             "https://x.example/x.pbf",
             dest,
+            source="X",
             session=_Http(_Stream([b"abc", b"def"], length=6, fail_after=1)).session,
         )
-    assert not dest.exists()
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_a_full_disk_is_not_an_outage(tmp_path: Path) -> None:
+    """Relabelled unavailable, it would be recorded 'skipped' and pass in silence."""
+    dest = tmp_path / "x.pbf"
+    with pytest.raises(OSError, match="No space left"):
+        download_large_file(
+            "https://x.example/x.pbf",
+            dest,
+            source="X",
+            session=_Http(
+                _Stream([b"abc", b"def"], fail_after=1, error=OSError("No space left"))
+            ).session,
+        )
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_the_file_takes_its_name_only_once_whole(tmp_path: Path) -> None:
+    """A process killed mid-stream leaves a .part, never a stump under the name."""
+    dest = tmp_path / "x.pbf"
+    seen: list[bool] = []
+
+    class _Watched(_Stream):
+        def iter_content(self, chunk_size: int) -> Iterator[bytes]:
+            for chunk in super().iter_content(chunk_size):
+                seen.append(dest.exists())
+                yield chunk
+
+    download_large_file(
+        "https://x.example/x.pbf", dest, source="X", session=_Http(_Watched([b"a", b"b"])).session
+    )
+    assert seen == [False, False]
+    assert list(tmp_path.iterdir()) == [dest]
 
 
 def test_the_progress_is_logged_along_the_way(
@@ -103,6 +147,7 @@ def test_the_progress_is_logged_along_the_way(
     download_large_file(
         "https://x.example/x.pbf",
         tmp_path / "x.pbf",
+        source="X",
         session=_Http(_Stream([b"a", b"b"], length=2)).session,
         progress_interval=15,
     )
