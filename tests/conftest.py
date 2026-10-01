@@ -337,8 +337,9 @@ def web_app(migrated_conn: Connection, test_db: Database, monkeypatch: pytest.Mo
     app.config["CACHE_TYPE"] = "SimpleCache"
     cache.init_app(app)  # pyright: ignore[reportUnknownMemberType] — see src/extensions.py
     # No translated path: the pages answer on their bare URL, no language
-    # redirect to follow.
-    i18n.init_app(app, settings.country.locales, (), settings.country.timezone)
+    # redirect to follow. English, the language of the source strings: the
+    # tests read the templates, not a catalog compiled or not on this machine.
+    i18n.init_app(app, ("en",), (), settings.country.timezone)
     templating.init_app(app, settings)
     for blueprint in (
         auth_bp,

@@ -97,9 +97,8 @@ def test_the_last_choice_is_replayed_and_announced(
     assert _batch(rendered) == ["1"]
     assert ctx["replayed_filter"]
     assert ctx["excluded"] == frozenset({"amenity=fuel"})
-    # The warning is on the page, in whatever language it renders — the
-    # unticked box is what says it, the sentence is what makes it deliberate.
-    assert "de nouveau décochés" in res.get_data(as_text=True)
+    # The unticked box is what says it, the sentence is what makes it deliberate.
+    assert "unticked again" in res.get_data(as_text=True)
 
 
 def test_unticking_every_type_asks_before_closing_the_brand(
