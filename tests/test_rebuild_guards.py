@@ -267,7 +267,7 @@ def test_a_failed_download_leaves_no_partial_file(
     monkeypatch.setattr(osm, "download_large_file", download)
     geofabrik(monkeypatch, TS)
 
-    with pytest.raises(requests.ConnectionError):
+    with pytest.raises(SourceUnavailableError):
         osm.download_pbf()
 
     # Otherwise the next run would take the stump for the whole extract.
