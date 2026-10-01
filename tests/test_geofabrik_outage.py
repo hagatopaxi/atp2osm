@@ -283,3 +283,43 @@ def test_no_date_at_all_is_an_error_the_probe_reports(monkeypatch: pytest.Monkey
     monkeypatch.setattr(osm, "_session", _Http())
     with pytest.raises(ValueError, match="Cannot determine"):
         osm.geofabrik_timestamp(REGION)
+
+
+def test_an_outage_mid_download_drops_the_regions_already_downloaded(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """osm-import would refuse the partial set and stop the ATP branch with it.
+
+    Production, 2026-10-01: every Geofabrik PBF answered a redirect to itself.
+    """
+    france, wallis = tmp_path / "france.pbf", tmp_path / "wallis.pbf"
+    monkeypatch.setattr(
+        osm,
+        "GEOFABRIK_REGIONS",
+        {
+            "france": region(url="france", pbf_path=france),
+            "wallis": region(url="wallis", pbf_path=wallis),
+        },
+    )
+    monkeypatch.setattr(
+        osm, "newest_geofabrik_timestamp", lambda: datetime(2026, 10, 1, tzinfo=UTC)
+    )
+    monkeypatch.setattr(osm, "connect", _FakeConn)
+
+    def nothing(*_a: object) -> None:
+        return None
+
+    monkeypatch.setattr(osm, "last_import_date", nothing)
+    monkeypatch.setattr(osm, "start_import", nothing)
+
+    def download(url: str, destination: Path, **_kw: object) -> None:
+        destination.write_bytes(b"x")
+        if url == "wallis":
+            raise requests.TooManyRedirects("Exceeded 30 redirects.")
+
+    monkeypatch.setattr(osm, "download_large_file", download)
+
+    with pytest.raises(SourceUnavailableError):
+        osm.download_pbf()
+    assert not france.exists()
+    assert not wallis.exists()

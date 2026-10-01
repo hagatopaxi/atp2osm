@@ -87,7 +87,7 @@ def test_before_the_first_refresh_the_data_pages_say_so(
     """A new instance: the views do not exist yet. Not our crash."""
     res = contributor.get(path)
     assert res.status_code == 503
-    assert "premier rafraîchissement" in res.text  # the test locale is French
+    assert "has not run its first refresh yet" in res.text
 
 
 # --- The static map ---------------------------------------------------------------
