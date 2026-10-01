@@ -228,6 +228,20 @@ def test_the_parquet_holds_every_located_feature(dirs: Path) -> None:
     assert not (dirs / ".duckdb_temp").exists()
 
 
+def test_the_progress_is_one_line_per_tenth_not_per_file(
+    dirs: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    for i in range(25):
+        ndjson(dirs / "split" / f"part_{i}.geojson", [str(i)])
+    caplog.set_level("INFO", logger=ndg.logger.name)
+
+    ndg.convert_to_parquet(dirs / "split", dirs / "latest.parquet")
+
+    progress = [r.getMessage() for r in caplog.records if "converted" in r.getMessage()]
+    assert len(progress) <= 11
+    assert progress[-1] == "[25/25] converted"
+
+
 def test_the_parquet_carries_its_geoparquet_metadata(dirs: Path) -> None:
     """Written by the spatial extension: it is what makes `geom` read back
     as a geometry rather than a blob.
