@@ -130,3 +130,26 @@ def test_the_confirmation_turns_the_brand_down_and_records_the_filter(
     assert json.loads(row["comment"]) == [
         {"reasons": ["types_all_excluded"], "comment": "amenity=fuel, shop=bakery"}
     ]
+
+
+def test_the_room_a_type_frees_stays_empty(
+    contributor: FlaskClient, brand: Connection, monkeypatch: pytest.MonkeyPatch, rendered: Rendered
+) -> None:
+    """Integration #2242: unticking the fuel stations of Paris let Marseille's
+    tobacconists into the room they freed, and they went out unreviewed — the
+    form had only offered the types of Paris.
+    """
+    give(brand, 1, [("75", 90), ("13", 40)])
+    stage(
+        monkeypatch,
+        [change(i, {"brand": "Babylone"}, {"shop": "bakery"}) for i in range(60)]
+        + [change(i, {"brand": "Babylone"}, {"amenity": "fuel"}) for i in range(60, 90)]
+        + [
+            change(i, {"brand": "Babylone"}, {"shop": "tobacco"}, sub="13", name="Marseille")
+            for i in range(90, 130)
+        ],
+    )
+    contributor.get("/brands/Q1/validate?filtered=1&keep=shop%3Dbakery")
+    ctx = _context(rendered)
+    assert ctx["size"] == 60
+    assert [s["number"] for s in ctx["scope"]] == ["75"]
