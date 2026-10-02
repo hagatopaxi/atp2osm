@@ -33,6 +33,7 @@ regardless of the input GeoJSON file sizes.
 """
 
 import logging
+import math
 import os
 import shutil
 from concurrent.futures import ThreadPoolExecutor
@@ -77,12 +78,17 @@ def convert_to_parquet(input_dir: Path, output_path: Path) -> None:
         def convert_one(args: tuple[int, Path]) -> Path:
             i, file_path = args
             out = duck_temp / f"part_{i:06d}.parquet"
-            logger.info("[%d/%d] %s", i + 1, len(files), file_path.name)
             _ndjson_to_parquet(file_path, out)
             return out
 
+        # One line per tenth: a line per file is a thousand lines a night.
+        every = math.ceil(len(files) / 10)
+        parts: list[Path] = []
         with ThreadPoolExecutor(max_workers=WORKERS) as executor:
-            parts = list(executor.map(convert_one, enumerate(files)))
+            for done, part in enumerate(executor.map(convert_one, enumerate(files)), 1):
+                parts.append(part)
+                if done % every == 0 or done == len(files):
+                    logger.info("[%d/%d] converted", done, len(files))
 
         parts = [p for p in parts if p.exists() and p.stat().st_size > 0]
         if not parts:

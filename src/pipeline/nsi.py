@@ -25,7 +25,6 @@ from src.pipeline._db import (
 from src.pipeline._version import app_version
 from src.pipeline.constants import (
     NSI_CDN_URL,
-    NSI_DIR,
     NSI_PATH,
     NSI_REGISTRY_URL,
     PROJECT_ROOT,
@@ -270,9 +269,7 @@ def download_nsi() -> None:
             record_import(conn, "nsi", _version_date(version), "skipped", stamp(version))
             return
 
-        NSI_DIR.mkdir(parents=True, exist_ok=True)
-        with unavailable_if_unreachable("NSI"):
-            download_large_file(NSI_CDN_URL.format(version=version), NSI_PATH)
+        download_large_file(NSI_CDN_URL.format(version=version), NSI_PATH, source="NSI")
         # The CDN once served a years-old file under a moving tag. The URL
         # is pinned now, and the file names its own content: a file that is
         # not the release asked for is an outage, retried later, never

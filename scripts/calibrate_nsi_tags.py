@@ -51,7 +51,7 @@ def load_nsi(path: pathlib.Path | None) -> dict[str, Any]:
     path = path or NSI_PATH
     if not path.exists():
         NSI_DIR.mkdir(parents=True, exist_ok=True)
-        download_large_file(NSI_CDN_URL.format(version=latest_version()), path)
+        download_large_file(NSI_CDN_URL.format(version=latest_version()), path, source="NSI")
     with path.open() as infile:
         return json.load(infile)
 
