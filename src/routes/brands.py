@@ -2,6 +2,7 @@ import difflib
 import json
 import logging
 import re
+import secrets
 from collections import Counter
 from collections.abc import Sequence
 from typing import Any, NamedTuple
@@ -22,6 +23,7 @@ from psycopg.rows import DictRow, dict_row
 from requests_oauthlib import OAuth2Session
 
 from src.db import get_osmdb
+from src.extensions import recall, remember
 from src.matching import (
     BLOCKED_BRANDS_SQL,
     NO_CATEGORY,
@@ -224,8 +226,9 @@ def read_excluded(
 def get_batch(brand_wikidata: str) -> Batch:
     """Matches of the next batch, its scope per subdivision, and its wave.
 
-    Recomposed on every call from the current state: two calls with no import in
-    between give the same batch. Each wave brings its own batch size.
+    Composed by the review, from the current state: /confirm and /upload work
+    on the batch it remembered (recall_batch), never on one composed again.
+    Each wave brings its own batch size.
     """
     osmdb = get_osmdb()
     with osmdb.cursor(row_factory=dict_row) as cursor:
@@ -243,12 +246,48 @@ def get_batch(brand_wikidata: str) -> Batch:
     excluded, replayed = read_excluded(brand_wikidata, categories)
     changes = exclude_categories(unfiltered, excluded)
     # A value a human posted recently is theirs, not ours. Costs no request on
-    # a wave that only adds tags, and one batch's worth on wave 2.
-    # Replayed on /validate, /confirm and /upload: a batch is one POI in alpha,
-    # so the replay is cheap. Memoize it if the batch size is raised.
+    # a wave that only adds tags, and one batch's worth on wave 2. Asked once,
+    # at the review: an edit made after it is refused by OSM itself, the
+    # upload sending the version the extract read.
     changes = protect_recent_edits(changes)
     waiting = bool(matches) and not unfiltered
     return Batch(changes, batch_scope(changes), wave, categories, excluded, replayed, waiting)
+
+
+# How long a reviewed batch waits for its upload. Kept in the cache, which
+# every worker reads and a deploy empties: a batch never outlives the code that
+# composed it — its id then matches nothing, and the review starts over.
+BATCH_TIMEOUT = 60 * 60
+
+
+def _batch_key(brand_wikidata: str, batch_id: str) -> str:
+    # The contributor and the brand are in the key: an id is no permission.
+    return f"batch/{session['user']['osm_id']}/{brand_wikidata}/{batch_id}"
+
+
+def remember_batch(brand_wikidata: str, batch: Batch) -> str:
+    """Keep the batch the review offers; its id is what /confirm and /upload
+    take, so the batch sent is exactly the batch reviewed.
+    """
+    batch_id = secrets.token_urlsafe(16)
+    remember(_batch_key(brand_wikidata, batch_id), batch, BATCH_TIMEOUT)
+    return batch_id
+
+
+def recall_batch(brand_wikidata: str) -> Batch | None:
+    """The batch the review offered, or None once it is gone."""
+    batch = recall(_batch_key(brand_wikidata, request.args.get("batch", "")))
+    return batch if isinstance(batch, Batch) else None
+
+
+def integrated_since(brand_wikidata: str, batch: Batch) -> bool:
+    """An import has touched a subdivision of the batch since its review —
+    another contributor's, or this very batch sent twice.
+    """
+    osmdb = get_osmdb()
+    with osmdb.cursor(row_factory=dict_row) as cursor:
+        blocked = get_blocked_subdivisions(cursor, brand_wikidata, batch.wave.number)
+    return any(change["subdivision_code"] in blocked for change in batch.changes)
 
 
 @brands_bp.errorhandler(OsmApiUnavailableError)
@@ -380,20 +419,21 @@ def brands_validate(brand_wikidata: str) -> str:
         items=items,
         wave_number=wave.number,
         last_import=_get_last_import(brand_wikidata),
+        batch_id=remember_batch(brand_wikidata, batch) if items else None,
     )
 
 
 @brands_bp.route("/brands/<brand_wikidata>/confirm")
 @auth_required
 def brands_confirm(brand_wikidata: str) -> ResponseReturnValue:
-    batch = get_batch(brand_wikidata)
+    batch = recall_batch(brand_wikidata)
+    # Expired, lost to a deploy, or integrated meanwhile: reviewed again.
+    if batch is None or integrated_since(brand_wikidata, batch):
+        return redirect(url_for("brands.brands_validate", brand_wikidata=brand_wikidata))
     changes, wave = batch.changes, batch.wave
     # A blocked brand is not in the list: only a forged URL lands here.
     if _get_blocking_import(brand_wikidata, wave.number):
         abort(403)
-
-    if len(changes) == 0:
-        return redirect(url_for("brands.brands_validate", brand_wikidata=brand_wikidata))
 
     stats = get_stats(changes)
 
@@ -445,7 +485,13 @@ def _returned_id(row: tuple[Any, ...] | None) -> int:
 @brands_bp.route("/brands/<brand_wikidata>/upload", methods=["POST"])
 @auth_required
 def upload_changes(brand_wikidata: str) -> ResponseReturnValue:
-    batch = get_batch(brand_wikidata)
+    batch = recall_batch(brand_wikidata)
+    if batch is None or integrated_since(brand_wikidata, batch):
+        return Response(
+            json.dumps({"errors": ["Batch no longer available, review it again"]}),
+            status=409,
+            mimetype="application/json",
+        )
     changes, wave = batch.changes, batch.wave
     if _get_blocking_import(brand_wikidata, wave.number):
         return Response(

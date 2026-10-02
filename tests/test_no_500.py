@@ -21,7 +21,7 @@ from psycopg.rows import dict_row
 from src.matching import WAVES_BY_NUMBER, Change
 from src.routes import auth, brands, history, misc, stats, todo
 from src.upload import BulkUpload
-from tests.conftest import Connection, make_change, one
+from tests.conftest import Connection, make_change, one, reviewed
 
 
 def _no_users(_ids: Iterable[int]) -> dict[int, str]:
@@ -253,7 +253,10 @@ def test_user_details_without_a_user_are_a_bad_gateway(
 
 
 def test_an_upload_whose_log_cannot_be_written_is_still_recorded(
-    contributor: FlaskClient, migrated_conn: Connection, monkeypatch: pytest.MonkeyPatch
+    contributor: FlaskClient,
+    migrated_conn: Connection,
+    monkeypatch: pytest.MonkeyPatch,
+    views: None,
 ) -> None:
     """The changesets are on OSM: the row that says so must be written."""
     change = make_change(
@@ -267,7 +270,7 @@ def test_an_upload_whose_log_cannot_be_written_is_still_recorded(
 
     monkeypatch.setattr(BulkUpload, "save_log_file", disk_full)
 
-    res = contributor.post("/brands/Q1/upload")
+    res = contributor.post(f"/brands/Q1/upload?batch={reviewed(contributor, 'Q1')}")
 
     assert res.status_code == 200
     with migrated_conn.cursor(row_factory=dict_row) as cur:

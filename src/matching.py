@@ -272,9 +272,9 @@ def waves_lateral_sql() -> sql.Composed:
 def get_matches(cursor: DictCursor, brand_wikidata: str) -> DictCursor:
     """Every match of a brand, as the last refresh materialized them.
 
-    Ordered: /validate, /confirm and /upload each compose the batch again, and
-    select_batch() cuts an oversized subdivision at max_size — the three must
-    cut it at the same POIs, so the batch sent is the one reviewed.
+    Ordered: select_batch() cuts an oversized subdivision at max_size, and two
+    reviews of a brand, a reload or a filter apart, must cut it at the same
+    POIs.
     """
     return cursor.execute(
         "SELECT * FROM mv_matches WHERE atp_brand_wikidata = %s ORDER BY osm_id, node_type",

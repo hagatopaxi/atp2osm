@@ -16,6 +16,15 @@ R = TypeVar("R")
 Decorator = Callable[[Callable[P, R]], Callable[P, R]]
 
 
+def remember(key: str, value: object, timeout: int) -> None:
+    cache.set(key, value, timeout=timeout)  # pyright: ignore[reportUnknownMemberType]
+
+
+def recall(key: str) -> object:
+    """What `remember` kept under `key`, or None once it is gone."""
+    return cache.get(key)  # pyright: ignore[reportUnknownMemberType]
+
+
 def cached(timeout: int, key_prefix: str, *, query_string: bool = False) -> Decorator[P, R]:
     """`cache.cached`, keyed on the request."""
     return cast(
