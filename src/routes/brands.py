@@ -22,7 +22,6 @@ from psycopg.rows import DictRow, dict_row
 from requests_oauthlib import OAuth2Session
 
 from src.db import get_osmdb
-from src.extensions import delete_memoized, memoize
 from src.matching import (
     BLOCKED_BRANDS_SQL,
     NO_CATEGORY,
@@ -38,7 +37,7 @@ from src.matching import (
     get_all,
     get_blocked_subdivisions,
     get_changes,
-    get_filtered,
+    get_matches,
     get_stats,
     sample_for_review,
     select_batch,
@@ -167,22 +166,16 @@ def _get_last_import(brand_wikidata: str) -> DictRow | None:
     return last
 
 
-# The ST_DWithin join costs seconds on a big brand (5 s for 3 000 matches), and
-# /validate, /confirm then /upload all replay it identically. Its result only
-# moves with the daily refresh, so it is cached; blocking, which does move after
-# an import, is read live below.
-MATCHES_TIMEOUT = 30 * 60
-
-
-@memoize(timeout=MATCHES_TIMEOUT)
 def brand_matches(brand_wikidata: str, wave: int) -> list[Change]:
-    """Every match of a brand on a wave, whatever its subdivision — the
-    expensive part. Keyed on the wave too: the two waves read the same rows but
-    produce different proposals.
+    """Every match of a brand on a wave, whatever its subdivision. The two
+    waves read the same rows but produce different proposals.
+
+    The matches only move with the daily refresh, which materializes them;
+    blocking, which does move after an import, is read live in get_batch().
     """
     osmdb = get_osmdb()
     with osmdb.cursor(row_factory=dict_row) as cursor:
-        get_filtered(cursor, brand=brand_wikidata)
+        get_matches(cursor, brand_wikidata)
         return get_changes(cursor, wave)
 
 
@@ -479,10 +472,6 @@ def upload_changes(brand_wikidata: str) -> ResponseReturnValue:
         bulk_upload.save_log_file()
     except OSError:
         logger.exception("Could not save the log of the run")
-    # The uploaded POIs now carry their tags: the next batch must be composed on
-    # freshly read matches, not on what we had before sending.
-    delete_memoized(brand_matches, brand_wikidata, wave.number)
-
     error_messages = [msg for _, msg in errors]
     status = determine_import_status(bulk_upload.results)
     stats = get_stats(bulk_upload.uploaded_changes)

@@ -29,7 +29,7 @@ from flask.sessions import SecureCookieSessionInterface
 
 from src.config import Database
 from src.phone import ensure_normalize_phone
-from src.pipeline.atp2osm import mv_places_brand_sql, mv_places_spider_sql
+from src.pipeline.atp2osm import mv_matches_sql, mv_places_brand_sql, mv_places_spider_sql
 from src.pipeline.osm import mv_places_sql
 from tests.conftest import CONFIG, TEST_DB, Connection
 
@@ -158,6 +158,7 @@ def seed(conn: Connection) -> None:
         (rows[0][0], rows[2][0], rows[2][0]),
     )
     conn.execute(mv_places_sql())
+    conn.execute(mv_matches_sql())
     conn.execute(mv_places_brand_sql())
     conn.execute(mv_places_spider_sql())
     conn.commit()
@@ -217,6 +218,7 @@ def server(
         conn.execute("""
             DROP MATERIALIZED VIEW IF EXISTS mv_places_brand;
             DROP MATERIALIZED VIEW IF EXISTS mv_places_spider;
+            DROP MATERIALIZED VIEW IF EXISTS mv_matches;
             DROP MATERIALIZED VIEW IF EXISTS mv_places;
             DROP TABLE IF EXISTS atp_places, atp_spiders, points, polygons,
                                  subdivisions, subdivision_parts
