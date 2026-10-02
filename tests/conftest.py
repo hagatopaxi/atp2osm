@@ -367,6 +367,16 @@ def contributor(web_app: Flask) -> Iterator[FlaskClient]:
         yield client
 
 
+def reviewed(client: FlaskClient, brand_wikidata: str) -> str:
+    """The batch /validate offered, by the id its next step carries — the only
+    batch /confirm and /upload take.
+    """
+    page = client.get(f"/brands/{brand_wikidata}/validate").text
+    _, found, rest = page.partition(f"/brands/{brand_wikidata}/confirm?batch=")
+    assert found, "the review offered no batch"
+    return rest.split('"', 1)[0]
+
+
 @pytest.fixture
 def guard_on(monkeypatch: pytest.MonkeyPatch) -> None:
     """Wave 2's guard, as production runs it. It stands aside in development —

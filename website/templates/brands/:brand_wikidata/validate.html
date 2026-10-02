@@ -322,7 +322,7 @@
 
     {# No POI to review, no next step: the filter emptied the batch. #}
     {% if items %}
-    <a class="nextStep btn btn-primary mt-4 self-end" disabled href="/brands/{{brand_wikidata}}/confirm{{ '?' ~ request.query_string.decode() if request.query_string }}">{{ _('Go to the next step') }} <i class="iconoir-arrow-right" aria-hidden="true"></i></a>
+    <a class="nextStep btn btn-primary mt-4 self-end" disabled href="/brands/{{ brand_wikidata }}/confirm?batch={{ batch_id }}">{{ _('Go to the next step') }} <i class="iconoir-arrow-right" aria-hidden="true"></i></a>
     {% endif %}
 
 </div>

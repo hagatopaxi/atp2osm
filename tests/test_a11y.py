@@ -29,7 +29,7 @@ from flask.sessions import SecureCookieSessionInterface
 
 from src.config import Database
 from src.phone import ensure_normalize_phone
-from src.pipeline.atp2osm import mv_places_brand_sql, mv_places_spider_sql
+from src.pipeline.atp2osm import mv_matches_sql, mv_places_brand_sql, mv_places_spider_sql
 from src.pipeline.osm import mv_places_sql
 from tests.conftest import CONFIG, TEST_DB, Connection
 
@@ -158,6 +158,7 @@ def seed(conn: Connection) -> None:
         (rows[0][0], rows[2][0], rows[2][0]),
     )
     conn.execute(mv_places_sql())
+    conn.execute(mv_matches_sql())
     conn.execute(mv_places_brand_sql())
     conn.execute(mv_places_spider_sql())
     conn.commit()
@@ -217,6 +218,7 @@ def server(
         conn.execute("""
             DROP MATERIALIZED VIEW IF EXISTS mv_places_brand;
             DROP MATERIALIZED VIEW IF EXISTS mv_places_spider;
+            DROP MATERIALIZED VIEW IF EXISTS mv_matches;
             DROP MATERIALIZED VIEW IF EXISTS mv_places;
             DROP TABLE IF EXISTS atp_places, atp_spiders, points, polygons,
                                  subdivisions, subdivision_parts
@@ -282,14 +284,26 @@ def login_cookie() -> str:
 def test_every_page_passes_wcag_2_aa(server: tuple[str, dict[str, str]], tmp_path: Path) -> None:
     base, _ = server
     cookie = login_cookie()
+    # /confirm shows the batch a review offered: one is reviewed first, and
+    # its id is what the next step carries.
+    validate = Request(f"{base}/brands/{QID}/validate", headers={"Cookie": cookie})  # noqa: S310 — http, above
+    review = urlopen(validate).read().decode()  # noqa: S310 — http, above
+    batch_id = review.partition(f"/brands/{QID}/confirm?batch=")[2].split('"', 1)[0]
+    assert batch_id, "the review offered no batch"
     urls: list[dict[str, Any]] = [{"url": base + p} for p in PUBLIC + HISTORY]
-    urls += [{"url": base + p, "headers": {"Cookie": cookie}} for p in LOGGED_IN]
+    urls += [
+        {
+            "url": base + p + (f"?batch={batch_id}" if p.endswith("/confirm") else ""),
+            "headers": {"Cookie": cookie},
+        }
+        for p in LOGGED_IN
+    ]
     # Every page twice: the browser starts light, the switch turns it dark.
     # The query string keeps pa11y-ci from folding the two runs into one.
     urls += [
         {
             **u,
-            "url": u["url"] + "?theme=dark",
+            "url": u["url"] + ("&" if "?" in u["url"] else "?") + "theme=dark",
             "actions": [
                 "click element #theme-toggle",
                 "wait for element html[data-theme=dark] to be added",

@@ -10,6 +10,7 @@ staged, through a stand-in that reports what an unreachable OSM would.
 """
 
 import json
+from collections.abc import Iterator
 from typing import Never
 
 import pytest
@@ -19,18 +20,31 @@ from psycopg.rows import DictRow, dict_row
 from src.matching import WAVES_BY_NUMBER, Change, Wave
 from src.routes import brands
 from src.upload import BulkUpload
-from tests.conftest import Connection, make_change
+from tests.conftest import Connection, make_change, reviewed
 
 
 @pytest.fixture
-def client(contributor: FlaskClient, monkeypatch: pytest.MonkeyPatch) -> FlaskClient:
+def client(
+    contributor: FlaskClient, migrated_conn: Connection, monkeypatch: pytest.MonkeyPatch
+) -> Iterator[FlaskClient]:
     # The logs of a run are a production artefact, not a test one.
     def nothing(*_args: object, **_kwargs: object) -> None:
         return None
 
     monkeypatch.setattr(BulkUpload, "save_log_file", nothing)
     monkeypatch.setattr(BulkUpload, "_write_osc", nothing)
-    return contributor
+    # The cooldowns read the brand view, empty here: the batch is staged.
+    with migrated_conn.cursor() as cur:
+        cur.execute("""
+            DROP TABLE IF EXISTS mv_places_brand;
+            CREATE TABLE mv_places_brand (brand TEXT, brand_wikidata TEXT, subdivision_code TEXT,
+                                          wave SMALLINT, total BIGINT);
+        """)
+    migrated_conn.commit()
+    yield contributor
+    with migrated_conn.cursor() as cur:
+        cur.execute("DROP TABLE IF EXISTS mv_places_brand")
+    migrated_conn.commit()
 
 
 def change(osm_id: int, sub: str = "75", name: str = "Paris") -> Change:
@@ -67,7 +81,7 @@ def test_a_full_success_answers_200_and_records_the_import(
 ) -> None:
     batch(monkeypatch, [change(1), change(2, sub="33", name="Gironde")])
 
-    res = client.post("/brands/Q123/upload")
+    res = client.post(f"/brands/Q123/upload?batch={reviewed(client, 'Q123')}")
 
     assert res.status_code == 200
     body = json.loads(res.data)
@@ -95,7 +109,7 @@ def test_a_partial_failure_answers_200_with_the_errors(
     batch(monkeypatch, [change(1), change(2, sub="33", name="Gironde")])
     monkeypatch.setattr(brands, "BulkUpload", _staged(partial=True))
 
-    res = client.post("/brands/Q123/upload")
+    res = client.post(f"/brands/Q123/upload?batch={reviewed(client, 'Q123')}")
 
     assert res.status_code == 200
     body = json.loads(res.data)
@@ -120,7 +134,7 @@ def test_a_total_failure_answers_422_and_still_records_it(
     batch(monkeypatch, [change(1)])
     monkeypatch.setattr(brands, "BulkUpload", _staged(partial=False))
 
-    res = client.post("/brands/Q123/upload")
+    res = client.post(f"/brands/Q123/upload?batch={reviewed(client, 'Q123')}")
 
     assert res.status_code == 422
     body = json.loads(res.data)
@@ -146,7 +160,7 @@ def test_a_brand_under_cooldown_is_refused_and_nothing_is_sent(
     batch(monkeypatch, [change(1)])
     monkeypatch.setattr(brands, "BulkUpload", _never_called)
 
-    res = client.post("/brands/Q123/upload")
+    res = client.post(f"/brands/Q123/upload?batch={reviewed(client, 'Q123')}")
 
     assert res.status_code == 403
     assert json.loads(res.data) == {"errors": ["Brand under cooldown"]}
@@ -159,10 +173,61 @@ def test_a_batch_over_the_limit_is_refused_and_nothing_is_sent(
     batch(monkeypatch, [change(i) for i in range(WAVES_BY_NUMBER[1].batch_size + 1)])
     monkeypatch.setattr(brands, "BulkUpload", _never_called)
 
-    res = client.post("/brands/Q123/upload")
+    res = client.post(f"/brands/Q123/upload?batch={reviewed(client, 'Q123')}")
 
     assert res.status_code == 403
     assert json.loads(res.data) == {"errors": ["Import too large"]}
+    assert history(migrated_conn) == []
+
+
+def test_the_batch_sent_is_the_one_reviewed(
+    client: FlaskClient, migrated_conn: Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The matches moved between the review and the upload — a refresh, an
+    integration of another brand: what goes out is still what was read.
+    """
+    batch(monkeypatch, [change(1)])
+    batch_id = reviewed(client, "Q123")
+    batch(monkeypatch, [change(2, sub="33", name="Gironde")])
+
+    assert client.post(f"/brands/Q123/upload?batch={batch_id}").status_code == 200
+    assert [r["subdivision_code"] for r in subdivisions(migrated_conn)] == ["75"]
+
+
+@pytest.mark.parametrize("batch_id", ["", "lost-to-a-deploy"])
+def test_a_batch_the_cache_does_not_hold_is_refused(
+    client: FlaskClient, migrated_conn: Connection, monkeypatch: pytest.MonkeyPatch, batch_id: str
+) -> None:
+    monkeypatch.setattr(brands, "BulkUpload", _never_called)
+
+    res = client.post(f"/brands/Q123/upload?batch={batch_id}")
+
+    assert res.status_code == 409
+    assert history(migrated_conn) == []
+
+
+def test_a_batch_goes_out_once(
+    client: FlaskClient, migrated_conn: Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    batch(monkeypatch, [change(1)])
+    batch_id = reviewed(client, "Q123")
+    assert client.post(f"/brands/Q123/upload?batch={batch_id}").status_code == 200
+
+    monkeypatch.setattr(brands, "BulkUpload", _never_called)
+    assert client.post(f"/brands/Q123/upload?batch={batch_id}").status_code == 409
+    assert len(history(migrated_conn)) == 1
+
+
+def test_a_batch_is_its_reviewers_own(
+    client: FlaskClient, migrated_conn: Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    batch(monkeypatch, [change(1)])
+    batch_id = reviewed(client, "Q123")
+    with client.session_transaction() as sess:
+        sess["user"] = {"osm_id": 43, "name": "someone else"}
+    monkeypatch.setattr(brands, "BulkUpload", _never_called)
+
+    assert client.post(f"/brands/Q123/upload?batch={batch_id}").status_code == 409
     assert history(migrated_conn) == []
 
 
@@ -173,7 +238,7 @@ def test_an_anonymous_visitor_cannot_upload(
     with client.session_transaction() as sess:
         sess.clear()
 
-    assert client.post("/brands/Q123/upload").status_code == 403
+    assert client.post("/brands/Q123/upload?batch=any").status_code == 403
 
 
 def _never_called(*_args: object, **_kwargs: object) -> Never:

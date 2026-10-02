@@ -286,7 +286,7 @@ def _almost_full_disk(_path: Path) -> _Usage:
     return _Usage(free=10**9)
 
 
-def _broken_view(name: str) -> str:
+def _broken_view(name: str, *_source: str) -> str:
     return f"CREATE MATERIALIZED VIEW {name} AS SELECT 1/0"
 
 
@@ -1254,11 +1254,11 @@ def test_the_review_reads_its_proposals_off_the_views(refreshed: Connection) -> 
     """
     from psycopg.rows import dict_row
 
-    from src.matching import get_changes, get_filtered
+    from src.matching import get_changes, get_matches
 
     atp2osm.create_mv_places_brand()
     with refreshed.cursor(row_factory=dict_row) as cur:
-        get_filtered(cur, brand="Q1")
+        get_matches(cur, "Q1")
         changes = get_changes(cur, wave=1)
 
     (change,) = changes

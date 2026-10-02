@@ -26,7 +26,7 @@ from src import osm_history
 from src.matching import WAVES_BY_NUMBER, Change
 from src.osm_history import Version
 from src.routes import brands
-from tests.conftest import Connection, make_change, one
+from tests.conftest import Connection, make_change, one, reviewed
 
 Rendered = list[tuple[str, dict[str, Any]]]
 
@@ -647,9 +647,12 @@ def test_wave_1_needs_no_api(
     assert contributor.get("/brands/Q1/validate").status_code == 200
 
 
-def test_an_upload_cannot_go_through_while_the_api_is_down(
+def test_the_review_decides_an_outage_after_it_stops_nothing(
     contributor: FlaskClient, brand: Connection, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """The guard ran at the review, and the batch keeps its verdict: an edit
+    made since is OSM's to refuse, the upload sending the version read.
+    """
     give(brand, 2, [("75", 1)])
     stage(
         monkeypatch,
@@ -660,14 +663,22 @@ def test_an_upload_cannot_go_through_while_the_api_is_down(
         ],
         wave=2,
     )
+
+    def set_long_ago(_node_type: str, _osm_id: int) -> list[Version]:
+        return [
+            {
+                "version": 1,
+                "timestamp": OLD.isoformat(),
+                "changeset": 9,
+                "tags": {"phone": "+33 1 11 11 11 11"},
+            }
+        ]
+
+    monkeypatch.setattr(osm_history, "versions", set_long_ago)
+    batch_id = reviewed(contributor, "Q1")
     api_down(monkeypatch)
-    monkeypatch.setattr(brands, "BulkUpload", _never_called)
 
-    res = contributor.post("/brands/Q1/upload")
-
-    assert res.status_code == 503
-    assert res.json == {"errors": ["OSM API unavailable"]}
-    assert history(brand) == []
+    assert contributor.get(f"/brands/Q1/confirm?batch={batch_id}").status_code == 200
 
 
 def test_a_rejection_cannot_be_filed_while_the_api_is_down(
@@ -696,10 +707,6 @@ def test_a_rejection_cannot_be_filed_while_the_api_is_down(
 
 def _never_a_bot(_changeset: int) -> bool:
     return False
-
-
-def _never_called(*_args: object, **_kwargs: object) -> Never:
-    raise AssertionError("the route must not reach OSM here")
 
 
 # --- report-error ---------------------------------------------------------------------
@@ -927,7 +934,7 @@ def test_the_confirmation_sums_up_the_batch(
         ],
     )
 
-    res = contributor.get("/brands/Q1/confirm")
+    res = contributor.get(f"/brands/Q1/confirm?batch={reviewed(contributor, 'Q1')}")
 
     assert res.status_code == 200
     _, context = next(c for c in rendered if c[0].endswith("confirm.html"))
@@ -960,30 +967,14 @@ def test_a_brand_under_cooldown_cannot_be_confirmed(
     """Not in the list: only a forged URL lands here."""
     give(brand, 1, [("75", 1)])
     stage(monkeypatch, [change(1, {"phone": "+33 1 00 00 00 00"}, {})])
+    batch_id = reviewed(contributor, "Q1")
     with brand.cursor() as cur:
         cur.execute(
             "INSERT INTO import_history (brand_wikidata, osm_user_id, status, items_count, wave)"
             " VALUES ('Q1', 42, 'cancelled', 0, 1)"
         )
     brand.commit()
-    assert contributor.get("/brands/Q1/confirm").status_code == 403
-
-
-def test_the_confirmation_cannot_decide_when_the_api_is_down(
-    contributor: FlaskClient, brand: Connection, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    give(brand, 2, [("75", 1)])
-    stage(
-        monkeypatch,
-        [
-            change(
-                1, {"phone": "+33 1 00 00 00 00"}, {"phone": "+33 1 11 11 11 11"}, edited=RECENT
-            ),
-        ],
-        wave=2,
-    )
-    api_down(monkeypatch)
-    assert contributor.get("/brands/Q1/confirm").status_code == 503
+    assert contributor.get(f"/brands/Q1/confirm?batch={batch_id}").status_code == 403
 
 
 def test_an_anonymous_visitor_cannot_confirm(web_app: Flask, brand: Connection) -> None:

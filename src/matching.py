@@ -75,14 +75,18 @@ class Stats(TypedDict):
     by_subdivision: dict[str, dict[str, str | int]]
 
 
-# The one ATP <-> OSM matching query, shared by /validate (get_filtered) and by
-# the mv_places_brand materialized view that feeds the counter on the brand
-# list. Both MUST stay on the same SQL: two diverging copies are what once made
-# the list show 50 POIs and /validate 60.
+# The one ATP <-> OSM matching query. The pipeline materializes it once as
+# mv_matches, which /validate reads (get_matches) and the counters of the brand
+# and spider lists aggregate: two diverging copies are what once made the list
+# show 50 POIs and /validate 60. Run live, it costs 37 s on a brand of 3 000
+# matches — the spatial join, and the normalizations below on every row.
 #
 # Deduplication includes atp_brand_wikidata: a single OSM object can match two
 # different brands, and must then be counted for each one (like /validate does,
 # which filters on a single brand).
+#
+# Every column is named once: a materialized view refuses two of the same
+# name, and both tables carry brand, phone, postcode…
 #
 # `matched_poi_sql()` fills the radius, which the country sets: 500 m is
 # calibrated on European urban density, and a country whose POIs sit further
@@ -90,10 +94,25 @@ class Stats(TypedDict):
 MATCHED_POI_SQL: Final = """
     WITH joined_poi AS (
     SELECT
-        *,
-        osm.tags as old_tags,
+        osm.osm_id,
+        osm.node_type,
+        osm.version,
+        osm.osm_timestamp,
+        osm.members,
+        osm.tags,
+        osm.nsi_tags,
+        osm.brand_wikidata_source,
         ST_X(ST_Centroid(osm.geom)) AS lon,
         ST_Y(ST_Centroid(osm.geom)) AS lat,
+        atp.id,
+        atp.brand,
+        atp.brand_wikidata AS atp_brand_wikidata,
+        atp.postcode,
+        atp.spider_id,
+        atp.source_type,
+        atp.source_uri,
+        atp.subdivision_code,
+        atp.subdivision_name,
         -- Written the way OSM writes it (normalize_opening_hours), the days
         -- ATP knows closed included: what is compared below is what gets
         -- written, minus those.
@@ -101,11 +120,6 @@ MATCHED_POI_SQL: Final = """
         atp.phone as atp_phone,
         atp.email as atp_email,
         atp.website as atp_website,
-        atp.country as atp_country,
-        atp.city as atp_city,
-        atp.source_uri as atp_source_uri,
-        atp.brand as atp_brand,
-        atp.brand_wikidata as atp_brand_wikidata,
         (
             (atp.opening_hours IS NOT NULL AND osm.opening_hours IS NULL)
             OR (atp.email   IS NOT NULL AND osm.email   IS NULL)
@@ -172,7 +186,6 @@ MATCHED_POI_SQL: Final = """
             {match_radius_m}
         )
     WHERE
-        {where_options} AND
         (
             osm.brand_wikidata = atp.brand_wikidata
             OR LOWER(osm.brand) = LOWER(atp.brand)
@@ -198,19 +211,20 @@ MATCHED_POI_SQL: Final = """
         *, modifiable_tags <> '{{}}'::jsonb AS is_modifiable
     FROM joined_poi
     WHERE pt_cnt <= 1 AND poly_cnt <= 1
-    ORDER BY osm_id, node_type, atp_brand_wikidata, atp_distance
+    -- `id` breaks the ties — two ATP POIs inside one polygon both lie 0 m
+    -- away — so that every rebuild pairs the object with the same POI.
+    ORDER BY osm_id, node_type, atp_brand_wikidata, atp_distance, id
 """
 
 
-def matched_poi_sql(where_options: LiteralString = "TRUE") -> sql.Composed:
-    """The matching query, ready to run: its filters and the country's radius.
+def matched_poi_sql() -> sql.Composed:
+    """The matching query, ready to run: the country's radius filled in.
 
     One `format` call, never two: the SQL escapes its own braces (`'{{}}'::jsonb`)
     and a second pass would unescape them into replacement fields. The radius
     comes from the configuration, so it goes in as a literal.
     """
     return sql.SQL(MATCHED_POI_SQL).format(
-        where_options=sql.SQL(where_options),
         match_radius_m=sql.Literal(get_country().match_radius_m),
     )
 
@@ -255,27 +269,17 @@ def waves_lateral_sql() -> sql.Composed:
     )
 
 
-def get_filtered(
-    cursor: DictCursor,
-    brand: str | None = None,
-    postcode: str | None = None,
-    subdivision_code: str | None = None,
-) -> DictCursor:
-    options: list[LiteralString] = []
-    params: list[str] = []
-    if brand:
-        options.append("atp.brand_wikidata = %s")
-        params.append(brand)
-    if postcode:
-        options.append("atp.postcode = %s")
-        params.append(postcode)
-    if subdivision_code:
-        options.append("atp.subdivision_code = %s")
-        params.append(subdivision_code)
+def get_matches(cursor: DictCursor, brand_wikidata: str) -> DictCursor:
+    """Every match of a brand, as the last refresh materialized them.
 
-    query = matched_poi_sql(" AND ".join(options) or "TRUE")
-
-    return cursor.execute(query, params)
+    Ordered: select_batch() cuts an oversized subdivision at max_size, and two
+    reviews of a brand, a reload or a filter apart, must cut it at the same
+    POIs.
+    """
+    return cursor.execute(
+        "SELECT * FROM mv_matches WHERE atp_brand_wikidata = %s ORDER BY osm_id, node_type",
+        (brand_wikidata,),
+    )
 
 
 # Cooldowns: how long an import keeps hiding what it just touched, until the

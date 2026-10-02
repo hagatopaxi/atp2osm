@@ -147,7 +147,7 @@ Where it is compared: stamped on `points` and gating the PBF download; recorded 
 
 In development the version is a constant, so nothing rebuilds on its own: rerun the step by hand (`python -m src.pipeline step osm-import`).
 
-**Swaps** — a rebuilding step never drops what the site reads. It builds the object beside the live one (`mv_places_new`, `atp_places_new`, the `osm_import` schema osm2pgsql writes into) and `_matview.swap()` renames it in at the end, in the transaction that records the import: the exclusive lock is held for a rename, and a failed build leaves the live object as it was. The live one retires as `<name>_old` rather than being dropped — `mv_places_brand` is materialized on `mv_places`, `mv_places` on `points`, and each keeps serving until its own swap. `mv-brand` disposes of the retired chain once it has swapped the brand view, and only what nothing depends on any more. So the site serves throughout a refresh; the `pending` row of `data_imports` is a status the home page shows, not a maintenance flag.
+**Swaps** — a rebuilding step never drops what the site reads. It builds the object beside the live one (`mv_places_new`, `atp_places_new`, the `osm_import` schema osm2pgsql writes into) and `_matview.swap()` renames it in at the end, in the transaction that records the import: the exclusive lock is held for a rename, and a failed build leaves the live object as it was. The live one retires as `<name>_old` rather than being dropped — `mv_places_brand` is materialized on `mv_matches`, `mv_matches` on `mv_places`, `mv_places` on `points`, and each keeps serving until its own swap. `mv-brand` disposes of the retired chain once it has swapped the brand view, and only what nothing depends on any more. So the site serves throughout a refresh; the `pending` row of `data_imports` is a status the home page shows, not a maintenance flag.
 
 **Deploy** (`deploy/run` — git hook `post-receive`):
 - Builds the container image, writes the `atp2osm.container` and `refresh.container` Quadlets from the `deploy/` templates, then runs `daemon-reload` + `restart` directly. Everyone else deploys through the root `compose.yml`, which runs the same three containers.
@@ -160,7 +160,7 @@ In development the version is a constant, so nothing rebuilds on its own: rerun 
 - SQL migrations in `migrations/` auto-run at startup (`src/migrate.py`), tracked in `schema_migrations` table
 
 **Core modules:**
-- `src/matching.py` — Spatial join queries between `mv_places` and `atp_places` (`MATCHED_POI_SQL`, shared with the `mv_places_brand` view and never duplicated), tag diffing logic (`apply_on_node`), batch composition (`pack_subdivisions`, `select_batch`), the `WAVES` list and the cooldown SQL it keys, stats aggregation
+- `src/matching.py` — Spatial join queries between `mv_places` and `atp_places` (`MATCHED_POI_SQL`, materialized once as `mv_matches` and never duplicated), tag diffing logic (`apply_on_node`), batch composition (`pack_subdivisions`, `select_batch`), the `WAVES` list and the cooldown SQL it keys, stats aggregation
 - `src/osm_history.py` — Wave 2's guard: dates the current value of each tag a diff would overwrite, through the OSM API, and leaves alone what a human posted within `app.recent_edit_weeks`
 - `src/upload.py` — `BulkUpload` class that creates OSM changesets grouped by subdivision, uploads via `osmapi`
 - `src/migrate.py` — Simple sequential SQL migration runner
@@ -181,7 +181,8 @@ tonight".
 - `points`, `polygons` — Raw OSM data (from osm2pgsql)
 - `mv_places` — Materialized view joining both with normalized columns, restricted to objects a match can key on (same filter as `generic.lua`, kept as a safety net)
 - `subdivisions` — OSM administrative boundaries (from osm2pgsql). Each ATP POI is attached to the finest one containing it, walking down from `country.admin_level` to the country
-- `mv_places_brand` — Match count per (brand, subdivision, wave); `get_all` sums the subdivisions that are not under cooldown, on the brand's current wave
+- `mv_matches` — The matches themselves (`MATCHED_POI_SQL`, the one place the join runs), one row per (OSM object, brand); `/validate` reads its brand's rows off it
+- `mv_places_brand` — Match count per (brand, subdivision, wave), aggregated from `mv_matches`; `get_all` sums the subdivisions that are not under cooldown, on the brand's current wave
 - `atp_places` — ATP data filtered to the country served
 - `import_history` — One row per human integration action, with the `wave` it belonged to (which is also what confines its cooldown)
 - `import_subdivisions` — One row per changeset: subdivision code and name, count, status, and the `tag_counts` frozen at integration time. Carries the per-subdivision blocking and the history detail
