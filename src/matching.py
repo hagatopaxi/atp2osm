@@ -805,8 +805,8 @@ def category_key(change: LoggedChange) -> str:
 def exclude_categories(changes: Sequence[Change], excluded: Collection[str]) -> list[Change]:
     """The changes whose primary tag the reviewer did not take out.
 
-    Applied on the matches, before the batch is composed: a type left out
-    frees its room for another POI rather than shrinking the batch.
+    Applied on the composed batch, which it shrinks: the batch sent is the one
+    the review offered, minus what the reviewer took out.
     """
     return [c for c in changes if category_key(c) not in excluded]
 

@@ -240,12 +240,15 @@ def get_batch(brand_wikidata: str) -> Batch:
         blocked = get_blocked_subdivisions(cursor, brand_wikidata, wave.number)
 
     matches = brand_matches(brand_wikidata, wave.number)
+    # Composed once, then only narrowed: the room a type left out frees stays
+    # empty. Refilling it would bring in subdivisions, and types, the form
+    # never offered — the reviewer sends exactly the batch they reviewed.
     # The counts the form shows are those of the unfiltered batch: a type the
     # reviewer took out must stay tickable, with the weight it would have had.
     unfiltered = select_batch(matches, blocked, wave.batch_size)
     categories = batch_categories(unfiltered)
     excluded, replayed = read_excluded(brand_wikidata, categories)
-    changes = select_batch(exclude_categories(matches, excluded), blocked, wave.batch_size)
+    changes = exclude_categories(unfiltered, excluded)
     # A value a human posted recently is theirs, not ours. Costs no request on
     # a wave that only adds tags, and one batch's worth on wave 2.
     # Replayed on /validate, /confirm and /upload: a batch is one POI in alpha,
