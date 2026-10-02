@@ -255,7 +255,7 @@ REGION = region(
 def test_the_state_file_is_read_with_its_escaped_colons(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         osm,
-        "_session",
+        "_probe_session",
         _Http(
             state="# original OSM minutely replication sequence number 6543210\n"
             "sequenceNumber=4321\ntimestamp=2026-08-27T20\\:21\\:02Z\n"
@@ -265,14 +265,14 @@ def test_the_state_file_is_read_with_its_escaped_colons(monkeypatch: pytest.Monk
 
 
 def test_a_region_without_a_state_file_dates_its_pbf(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(osm, "_session", _Http(last_modified="Thu, 27 Aug 2026 20:21:02 GMT"))
+    monkeypatch.setattr(osm, "_probe_session", _Http(last_modified="Thu, 27 Aug 2026 20:21:02 GMT"))
     assert osm.geofabrik_timestamp(REGION) == datetime(2026, 8, 27, 20, 21, 2, tzinfo=UTC)
 
 
 def test_a_state_file_without_a_timestamp_falls_back_too(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         osm,
-        "_session",
+        "_probe_session",
         _Http(state="sequenceNumber=1\n", last_modified="Thu, 27 Aug 2026 20:21:02 GMT"),
     )
     assert osm.geofabrik_timestamp(REGION).day == 27
@@ -280,7 +280,7 @@ def test_a_state_file_without_a_timestamp_falls_back_too(monkeypatch: pytest.Mon
 
 def test_no_date_at_all_is_an_error_the_probe_reports(monkeypatch: pytest.MonkeyPatch) -> None:
     """Not a date: the region counts as down, and download_pbf decides."""
-    monkeypatch.setattr(osm, "_session", _Http())
+    monkeypatch.setattr(osm, "_probe_session", _Http())
     with pytest.raises(ValueError, match="Cannot determine"):
         osm.geofabrik_timestamp(REGION)
 

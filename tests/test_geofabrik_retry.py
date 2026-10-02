@@ -6,7 +6,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import pytest
 import requests
 
-from src.pipeline.osm import _session  # pyright: ignore[reportPrivateUsage]
+from src.pipeline.osm import (
+    _probe_session,  # pyright: ignore[reportPrivateUsage]
+    _session,  # pyright: ignore[reportPrivateUsage]
+)
 
 # Taken at import, before conftest's no_network replaces it: the server below
 # listens on loopback, it is not the network.
@@ -43,11 +46,14 @@ def geofabrik(monkeypatch: pytest.MonkeyPatch) -> Iterator[str]:
     server = ThreadingHTTPServer(("127.0.0.1", 0), _Geofabrik)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     # The retries are mounted on https://; the test server speaks plain http.
-    plain = _session.get_adapter("http://")
-    _session.mount("http://", _session.get_adapter("https://"))
+    sessions = (_session, _probe_session)
+    plain = [s.get_adapter("http://") for s in sessions]
+    for s in sessions:
+        s.mount("http://", s.get_adapter("https://"))
     yield f"http://127.0.0.1:{server.server_port}/"
     server.shutdown()
-    _session.mount("http://", plain)
+    for s, adapter in zip(sessions, plain, strict=True):
+        s.mount("http://", adapter)
 
 
 def test_slow_headers_are_retried(geofabrik: str) -> None:
@@ -64,4 +70,12 @@ def test_stall_mid_body_is_not_retried(geofabrik: str) -> None:
         pytest.raises(requests.ConnectionError),
     ):
         b"".join(resp.iter_content(chunk_size=5))
+    assert _Geofabrik.requests_seen == 1
+
+
+def test_the_probe_does_not_wait_for_slow_headers(geofabrik: str) -> None:
+    """The OSM branch waits for the probe: a slow region counts as down."""
+    _Geofabrik.stall_mid_body = False
+    with pytest.raises(requests.ConnectionError):
+        _probe_session.get(geofabrik, timeout=(1, 0.3))
     assert _Geofabrik.requests_seen == 1
