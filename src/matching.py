@@ -174,6 +174,11 @@ MATCHED_POI_SQL: Final = """
             ) AS t(key, atp_value, differs)
             WHERE t.atp_value IS NOT NULL AND t.differs
         ) AS modifiable_tags,
+        -- Which of the keys held for this pair: the very array the WHERE
+        -- below filters on, so what an audit reads and what the join accepts
+        -- can never disagree. In declaration order, so a distribution
+        -- grouped by it sorts by how much each key carries the matches.
+        mk.matched_keys,
         ST_Distance(osm.geom::geography, ST_GeomFromGeoJSON(atp.geom)::geography) AS atp_distance,
         count(*) FILTER (WHERE osm.node_type = 'node')                 OVER (PARTITION BY atp.id) AS pt_cnt,
         count(*) FILTER (WHERE osm.node_type IN ('way', 'relation'))   OVER (PARTITION BY atp.id) AS poly_cnt
@@ -185,27 +190,35 @@ MATCHED_POI_SQL: Final = """
             ST_GeomFromGeoJSON(atp.geom)::geography,
             {match_radius_m}
         )
-    WHERE
-        (
-            osm.brand_wikidata = atp.brand_wikidata
-            OR LOWER(osm.brand) = LOWER(atp.brand)
+    -- A lateral selector: WHERE cannot name a SELECT alias, so the array is
+    -- built once here and read twice — filtered on below, carried out with
+    -- the row. A key therefore can never filter without being recorded, nor
+    -- be recorded without filtering. A comparison with NULL yields NULL:
+    -- the CASE then stands for nothing and ARRAY_REMOVE drops it, so a NULL
+    -- value keeps a pair apart the way it always did.
+    CROSS JOIN LATERAL (
+        SELECT ARRAY_REMOVE(ARRAY[
+            CASE WHEN osm.brand_wikidata = atp.brand_wikidata THEN 'brand:wikidata' END,
+            CASE WHEN LOWER(osm.brand) = LOWER(atp.brand) THEN 'brand' END,
             -- A name alone matches whatever else carries it nearby: the
             -- board that signs the place, the landuse around it, anything
             -- named after the same commune. Both sides know their primary
             -- tag, so it has to be the same one — and when ATP carries none
             -- (a POI in twenty), the name stands on its own as it always
             -- did.
-            OR (
+            CASE WHEN
                 LOWER(osm.name) = LOWER(atp."name")
                 -- Cast: the DuckDB import writes the column as varchar[],
                 -- the migration that added it to the live table as text[].
                 AND (atp.category IS NULL
                      OR atp.category::text[] = osm_primary_tag(osm.tags))
-            )
-            OR LOWER(osm.email) = LOWER(atp.email)
-            OR LOWER(REGEXP_REPLACE(osm.website, '^https?://', '', 'i')) = LOWER(REGEXP_REPLACE(atp.website, '^https?://', '', 'i'))
-            OR normalize_phone(osm.phone) = normalize_phone(atp.phone)
-        )
+            THEN 'name' END,
+            CASE WHEN LOWER(osm.email) = LOWER(atp.email) THEN 'email' END,
+            CASE WHEN LOWER(REGEXP_REPLACE(osm.website, '^https?://', '', 'i')) = LOWER(REGEXP_REPLACE(atp.website, '^https?://', '', 'i')) THEN 'website' END,
+            CASE WHEN normalize_phone(osm.phone) = normalize_phone(atp.phone) THEN 'phone' END
+        ], NULL) AS matched_keys
+    ) AS mk
+    WHERE cardinality(mk.matched_keys) > 0
     )
     SELECT DISTINCT ON (osm_id, node_type, atp_brand_wikidata)
         *, modifiable_tags <> '{{}}'::jsonb AS is_modifiable
