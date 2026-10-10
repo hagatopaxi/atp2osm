@@ -16,6 +16,7 @@ from src.config import get_database, get_pipeline
 from src.pipeline import _matview
 from src.pipeline._db import (
     connect,
+    keep_dumps,
     last_import_comment,
     last_import_date,
     record_import,
@@ -338,8 +339,9 @@ def _import_pbfs() -> None:
 
     # Only once the tables are in: a swap that failed can be retried from
     # here without downloading again.
-    for p in pbf_paths:
-        p.unlink()
+    if not keep_dumps():
+        for p in pbf_paths:
+            p.unlink()
 
     logger.info("osm2pgsql import complete (%d file(s))", len(pbf_paths))
 

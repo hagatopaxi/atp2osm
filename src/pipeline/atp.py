@@ -17,6 +17,7 @@ from src.pipeline import _matview
 from src.pipeline._db import (
     Connection,
     connect,
+    keep_dumps,
     last_import_comment,
     last_import_date,
     record_import,
@@ -745,9 +746,13 @@ def discard_workdir() -> None:
     """Erase what a run downloaded and derived, keeping latest.parquet.
 
     The parquet is deliberately kept: it is what lets import_atp no-op on a run
-    where ATP published nothing new.
+    where ATP published nothing new. With keep_dumps() the output.zip is kept
+    too — a development run that prefers the disk over the download again.
     """
+    kept = "output.zip" if keep_dumps() else ""
     for name in ["output.zip", "geojson", "ndgeojson", "split", "stats.json"]:
+        if name == kept:
+            continue
         path = ATP_DIR / name
         if not path.exists():
             continue
