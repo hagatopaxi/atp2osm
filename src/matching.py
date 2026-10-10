@@ -218,7 +218,24 @@ MATCHED_POI_SQL: Final = """
             CASE WHEN normalize_phone(osm.phone) = normalize_phone(atp.phone) THEN 'phone' END
         ], NULL) AS matched_keys
     ) AS mk
-    WHERE cardinality(mk.matched_keys) > 0
+    -- The same keys as a flat OR: the planner reads it as a BitmapOr over
+    -- the mv_places key indexes, ANDed with the spatial one, so only pairs
+    -- sharing a key are ever compared — about 17 minutes on France. The
+    -- cardinality test keeps the array the judge: a pair the OR lets
+    -- through and no key records stays out.
+    WHERE (
+            osm.brand_wikidata = atp.brand_wikidata
+            OR LOWER(osm.brand) = LOWER(atp.brand)
+            OR (
+                LOWER(osm.name) = LOWER(atp."name")
+                AND (atp.category IS NULL
+                     OR atp.category::text[] = osm_primary_tag(osm.tags))
+            )
+            OR LOWER(osm.email) = LOWER(atp.email)
+            OR LOWER(REGEXP_REPLACE(osm.website, '^https?://', '', 'i')) = LOWER(REGEXP_REPLACE(atp.website, '^https?://', '', 'i'))
+            OR normalize_phone(osm.phone) = normalize_phone(atp.phone)
+        )
+        AND cardinality(mk.matched_keys) > 0
     )
     SELECT DISTINCT ON (osm_id, node_type, atp_brand_wikidata)
         *, modifiable_tags <> '{{}}'::jsonb AS is_modifiable
