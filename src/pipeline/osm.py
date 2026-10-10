@@ -286,14 +286,6 @@ def _import_pbfs() -> None:
             "Refusing a partial osm2pgsql --create: missing " + ", ".join(p.name for p in missing)
         )
 
-    # Fast-fail on low disk before hours of import.
-    # Heuristic: need ~3x total PBF size (tables + indexes + temp), floor 15 GB.
-    # Override the floor with OSM2PGSQL_MIN_FREE_GB.
-    total_pbf = sum(p.stat().st_size for p in pbf_paths)
-    floor = get_pipeline().min_free_gb * 1e9
-    needed = max(floor, 3 * total_pbf)
-    _require_free_space(pbf_paths[0].parent, needed)
-
     db = get_database()
     conn = connect()
     try:
@@ -305,6 +297,16 @@ def _import_pbfs() -> None:
         conn.commit()
     finally:
         conn.close()
+
+    # Fast-fail on low disk before hours of import. Measured once the import
+    # schema is gone: an interrupted run leaves its tables there, and their
+    # space is free again for this one.
+    # Heuristic: need ~3x total PBF size (tables + indexes + temp), floor 15 GB.
+    # Override the floor with OSM2PGSQL_MIN_FREE_GB.
+    total_pbf = sum(p.stat().st_size for p in pbf_paths)
+    floor = get_pipeline().min_free_gb * 1e9
+    needed = max(floor, 3 * total_pbf)
+    _require_free_space(pbf_paths[0].parent, needed)
 
     logger.info("Importing %d PBF file(s) into PostGIS...", len(pbf_paths))
     env = os.environ.copy()
