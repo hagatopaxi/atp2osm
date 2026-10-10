@@ -59,6 +59,8 @@ services:
     volumes:
       - ./config.json:/app/config.json:ro,Z
       - ./data:/app/data:Z
+    # uv stays PID 1 and reaps no orphan: a minimal init takes that role.
+    init: true
     command: uv run --no-sync python -m src.pipeline setup
     stop_grace_period: 6h
     depends_on:

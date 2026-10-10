@@ -11,6 +11,8 @@ Environment=ATP2OSM_CONFIG=/app/config.json
 Environment=GIT_COMMIT=${GIT_SHORT}
 Volume=${PROJECT_DIR}/config.json:/app/config.json:ro,Z
 Volume=${PROJECT_DIR}/data:/app/data:Z
+# uv stays PID 1 and reaps no orphan: a minimal init takes that role.
+RunInit=true
 Exec=uv run --no-sync python -m src.pipeline setup
 # A restart during a refresh waits for it: supercronic finishes the job first.
 StopTimeout=21600
