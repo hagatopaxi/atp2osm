@@ -17,6 +17,16 @@ def forced() -> bool:
     return bool(os.environ.get("ATP2OSM_FORCE"))
 
 
+def keep_dumps() -> bool:
+    """ATP2OSM_KEEP_DUMPS=1: the imported PBF files stay in data/osm and the
+    ATP output.zip in data/atp instead of being unlinked after the swap — a
+    development run that prefers paying the disk over the 625 MB again on the
+    next forced reimport. latest.parquet and the alltheplaces clone are kept
+    regardless.
+    """
+    return bool(os.environ.get("ATP2OSM_KEEP_DUMPS"))
+
+
 def connect() -> Connection:
     return psycopg.connect(get_database().conninfo)
 
