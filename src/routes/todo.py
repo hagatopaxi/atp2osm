@@ -1,5 +1,6 @@
 import logging
 import re
+import unicodedata
 from typing import Any, Final
 
 import psycopg
@@ -28,6 +29,8 @@ logger = logging.getLogger(__name__)
 todo_bp = Blueprint("todo", __name__)
 
 _WIKIDATA: Final = re.compile(r"^Q[1-9]\d*$")
+# Brand names run to a few dozen characters; a page of them is everyone's.
+MAX_NAME_LENGTH: Final = 200
 
 SORT_COLUMNS = {
     "name": "brand_name",
@@ -107,6 +110,14 @@ def todo_check() -> ResponseReturnValue:
     return {"matches": matches}
 
 
+def _visible(text: str) -> str:
+    """`text` without control and format characters: no newline in a table
+    cell, and no right-to-left override or zero-width character to make one
+    entry read as another in everyone's list.
+    """
+    return "".join(c for c in text if unicodedata.category(c) not in ("Cc", "Cf"))
+
+
 class _Form:
     """The fields of a todo entry, read from the JSON body of the request."""
 
@@ -116,7 +127,7 @@ class _Form:
         if _WIKIDATA.match(wikidata.upper()):
             wikidata = wikidata.upper()
         self.brand_wikidata = wikidata or None
-        self.brand_name = (str(data.get("brand_name") or "")).strip()
+        self.brand_name = _visible(str(data.get("brand_name") or "")).strip()
         self.github_issue = (str(data.get("github_issue") or "")).strip() or None
         self.estimation: int | None = None
         estimation = data.get("estimation")
@@ -132,6 +143,8 @@ def _invalid(form: _Form) -> str | None:
     """What is wrong with the fields of an entry, None when nothing is."""
     if not form.brand_name:
         return _("The brand name is required")
+    if len(form.brand_name) > MAX_NAME_LENGTH:
+        return _("The brand name is too long (%(max)d characters at most)", max=MAX_NAME_LENGTH)
     if form.brand_wikidata and not _WIKIDATA.match(form.brand_wikidata):
         return _(
             "“%(code)s” is not a Wikidata code: it is a Q followed by digits, e.g. Q123456",

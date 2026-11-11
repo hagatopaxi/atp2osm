@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-11-11 07:58+0100\n"
+"POT-Creation-Date: 2026-11-11 10:19+0100\n"
 "PO-Revision-Date: 2026-09-06 17:06+0200\n"
 "Last-Translator: the atp2osm contributors\n"
 "Language: fr\n"
@@ -31,54 +31,59 @@ msgstr "Intégration des données ATP (%(subdivision)s ; %(brand)s)"
 msgid "OpenStreetMap could not be reached: nothing was changed."
 msgstr "OpenStreetMap n’a pas pu être joint : rien n’a été modifié."
 
-#: src/routes/todo.py:132
+#: src/routes/todo.py:136
 msgid "The brand name is required"
 msgstr "Le nom de la marque est requis"
 
-#: src/routes/todo.py:135
+#: src/routes/todo.py:138
+#, python-format
+msgid "The brand name is too long (%(max)d characters at most)"
+msgstr "Le nom de l’enseigne est trop long (%(max)d caractères au plus)"
+
+#: src/routes/todo.py:141
 #, python-format
 msgid "“%(code)s” is not a Wikidata code: it is a Q followed by digits, e.g. Q123456"
 msgstr "« %(code)s » n'est pas un code Wikidata : c'est un Q suivi de chiffres, par ex. Q123456"
 
-#: src/routes/todo.py:139
+#: src/routes/todo.py:145
 msgid "The estimation cannot be negative"
 msgstr "L'estimation ne peut pas être négative"
 
-#: src/routes/todo.py:142
+#: src/routes/todo.py:148
 #, python-format
 msgid "“%(url)s” is not a link to an All The Places issue or pull request, e.g. https://github.com/alltheplaces/alltheplaces/issues/1234"
 msgstr "« %(url)s » n'est pas un lien vers une issue ou une pull request d'All The Places, par ex. https://github.com/alltheplaces/alltheplaces/issues/1234"
 
-#: src/routes/todo.py:153
+#: src/routes/todo.py:159
 msgid "The request body must be a JSON object"
 msgstr "Le corps de la requête doit être un objet JSON"
 
-#: src/routes/todo.py:157
+#: src/routes/todo.py:163
 msgid "The estimation must be a whole number"
 msgstr "L’estimation doit être un nombre entier"
 
-#: src/routes/todo.py:171
+#: src/routes/todo.py:177
 msgid "This brand is already in the list"
 msgstr "Cette marque est déjà dans la liste"
 
-#: src/routes/todo.py:174
+#: src/routes/todo.py:180
 #, python-format
 msgid "The Wikidata code %(code)s is already in the list, as “%(name)s”"
 msgstr "Le code Wikidata %(code)s est déjà dans la liste, sous le nom « %(name)s »"
 
-#: src/routes/todo.py:219
+#: src/routes/todo.py:226
 msgid "The database refused the entry, please try again later."
 msgstr "La base de données a refusé l'ajout, réessayez plus tard."
 
-#: src/routes/todo.py:258
+#: src/routes/todo.py:266
 msgid "The database refused the change, please try again later."
 msgstr "La base de données a refusé la modification, réessayez plus tard."
 
-#: src/routes/todo.py:260 src/routes/todo.py:273
+#: src/routes/todo.py:268 src/routes/todo.py:282
 msgid "This entry no longer exists: someone deleted it meanwhile."
 msgstr "Cette entrée n'existe plus : quelqu'un l'a supprimée entre-temps."
 
-#: src/routes/todo.py:275
+#: src/routes/todo.py:284
 msgid "Only the contributor who added this entry can delete it."
 msgstr "Seul le contributeur qui a ajouté cette entrée peut la supprimer."
 
@@ -192,7 +197,7 @@ msgstr "atp2osm — Enrichir OpenStreetMap avec All The Places"
 msgid "Integrate All The Places points of interest into OpenStreetMap. A collaborative contribution tool for OpenStreetMap mappers."
 msgstr "Intégrez les points d'intérêt All The Places dans OpenStreetMap. Outil de contribution collaboratif pour les cartographes OpenStreetMap."
 
-#: website/templates/_base.html:60
+#: website/templates/_base.html:61
 msgid "Open the sidebar"
 msgstr "Ouvrir la barre latérale"
 
