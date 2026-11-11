@@ -1,0 +1,24 @@
+name: Security
+
+# The checks the pre-push hook runs (scripts/security.sh), plus a weekly run:
+# an advisory published against a locked dependency fails it with no push.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0 # gitleaks reads the whole history
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+      - run: scripts/security.sh

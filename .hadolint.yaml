@@ -1,0 +1,4 @@
+ignored:
+  # Debian's apt pins would break on every point release of the base image,
+  # which is itself pinned by digest: the digest is what freezes the packages.
+  - DL3008

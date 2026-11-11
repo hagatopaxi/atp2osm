@@ -63,6 +63,27 @@ the code calls; a stub package from typeshed is preferred when one exists.
 `reportMissingTypeStubs` is off because osmapi is typed inline without a
 `py.typed`.
 
+## Security
+
+`scripts/security.sh` runs in the pre-push hook and in CI
+(`.github/workflows/security.yml`, also weekly): gitleaks over the pushed
+commits, pip-audit over `uv.lock`, semgrep (registry rules plus ours in
+`.semgrep/`), hadolint and zizmor. Every finding blocks; a false positive is
+silenced on its line with the reason beside it. The image build scans the
+image with trivy before pushing it.
+
+The pages run under a Content-Security-Policy with `script-src 'self'`
+(`src/security.py`): no inline script and no `onclick=`. A handler is declared
+as `data-on-click="fn"` (or `data-on-submit`, `data-on-focusout`) with its
+arguments in `data-args`, a JSON array; `static/js/actions.js` dispatches it.
+Markup is never built from a value: `createElement` and `textContent`, not
+`innerHTML` — `.semgrep/html-sinks.yml` refuses it.
+
+The OSM token is sealed in the session cookie (`seal_token`, `osm_token` in
+`src/routes/auth.py`); read it through `osm_token()`, never `session["token"]`.
+The routes that cost something per call — a tile fetch, a GitHub request, an
+OSM upload — carry a `@limit(...)` (`src/extensions.py`).
+
 ## Icons
 
 `static/lib/iconoir.css` is a subset of Iconoir: only the icons the templates,

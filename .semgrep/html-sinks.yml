@@ -1,0 +1,21 @@
+rules:
+  # The registry's rules only flag a sink fed from a source they recognise
+  # (location, a message event…); OSM names reach ours through fetch and
+  # sessionStorage, which they do not follow. Any markup built from a
+  # non-literal is refused: build nodes and set textContent instead.
+  - id: html-sink-with-dynamic-value
+    languages: [javascript]
+    severity: ERROR
+    message: >-
+      Markup built from a value: $SINK receives something other than a string
+      literal. Build the nodes with createElement and set textContent.
+    patterns:
+      - pattern-either:
+          - pattern: $EL.$SINK = $VALUE
+          - pattern: $EL.insertAdjacentHTML($POS, $VALUE)
+          - pattern: document.write($VALUE)
+      - metavariable-regex:
+          metavariable: $SINK
+          regex: ^(innerHTML|outerHTML)$
+      - pattern-not: $EL.$SINK = "..."
+      - pattern-not: $EL.$SINK = '...'

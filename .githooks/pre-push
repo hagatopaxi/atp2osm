@@ -24,6 +24,9 @@ while read -r _local_ref local_sha _remote_ref remote_sha; do
 		echo "$coauthored" >&2
 		exit 1
 	fi
+
+	# What gitleaks reads: the commits this push sends and no remote has yet.
+	secrets_range="$local_sha --not --remotes"
 done
 
 uv sync --quiet
@@ -36,6 +39,13 @@ if ! uv run ruff check . || ! uv run ruff format --check .; then
 fi
 if ! uv run pyright; then
 	echo "pre-push: pyright refused the push" >&2
+	exit 1
+fi
+
+# Secrets in the pushed commits, vulnerable dependencies, semgrep's injection
+# and XSS rules, the Containerfile and the workflows (scripts/security.sh).
+if ! scripts/security.sh "${secrets_range:-HEAD --not --remotes}"; then
+	echo "pre-push: a security check refused the push" >&2
 	exit 1
 fi
 
