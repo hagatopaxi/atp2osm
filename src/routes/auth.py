@@ -71,7 +71,9 @@ def login() -> ResponseReturnValue:
 @auth_bp.route("/oauth-callback")
 def oauth_callback() -> ResponseReturnValue:
     if "error" in request.args:
-        return "Authentication failed: " + request.args["error"], 401
+        # Logged, never echoed: the query string is anyone's to write.
+        logger.info("OAuth authorization refused: %s", request.args.get("error", "")[:100])
+        return "Authentication failed", 401
 
     # The state ties the callback to the login that started it — and both
     # missing is no match either.

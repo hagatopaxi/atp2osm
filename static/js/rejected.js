@@ -15,19 +15,34 @@ function renderInvalidations() {
     return;
   }
 
+  // Built node by node: the title and the comment come from OSM, ATP and the
+  // contributor, so none of them may reach the page as markup.
+  const element = (tag, className, text) => {
+    const node = document.createElement(tag);
+    node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  };
+
   for (const item of data) {
-    const card = document.createElement("div");
-    card.className =
-      "card bg-base-100 border-error border shadow-md p-4 flex flex-row items-start gap-4";
-    card.innerHTML = `
-      <i class="iconoir-prohibition text-error text-2xl mt-1"></i>
-      <div>
-        <p class="font-semibold">${item.title}</p>
-        ${(item.reason_labels || []).map((l) => `<span class="badge badge-error badge-outline badge-sm mt-1 mr-1">${l}</span>`).join("")}
-        ${item.comment ? `<p class="text-base-content/70 mt-1">${item.comment}</p>` : ""}
-        ${item.atp_id ? `<p class="text-xs text-base-content/50 font-mono mt-1">ATP ${item.spider_id ? item.spider_id + "/" : ""}${item.atp_id}</p>` : ""}
-      </div>
-    `;
+    const card = element(
+      "div",
+      "card bg-base-100 border-error border shadow-md p-4 flex flex-row items-start gap-4",
+    );
+    card.appendChild(element("i", "iconoir-prohibition text-error text-2xl mt-1"));
+    const body = document.createElement("div");
+    body.appendChild(element("p", "font-semibold", item.title));
+    for (const label of item.reason_labels || []) {
+      body.appendChild(element("span", "badge badge-error badge-outline badge-sm mt-1 mr-1", label));
+    }
+    if (item.comment) {
+      body.appendChild(element("p", "text-base-content/70 mt-1", item.comment));
+    }
+    if (item.atp_id) {
+      const atp = `ATP ${item.spider_id ? item.spider_id + "/" : ""}${item.atp_id}`;
+      body.appendChild(element("p", "text-xs text-base-content/50 font-mono mt-1", atp));
+    }
+    card.appendChild(body);
     container.appendChild(card);
   }
 }
