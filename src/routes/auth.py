@@ -105,7 +105,7 @@ def login() -> ResponseReturnValue:
 def oauth_callback() -> ResponseReturnValue:
     if "error" in request.args:
         # Logged, never echoed: the query string is anyone's to write.
-        logger.info("OAuth authorization refused: %s", request.args.get("error", "")[:100])
+        logger.info("OAuth authorization refused: %r", request.args.get("error", "")[:100])
         return "Authentication failed", 401
 
     # The state ties the callback to the login that started it — and both
