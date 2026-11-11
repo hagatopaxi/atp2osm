@@ -172,7 +172,7 @@
             {% if current_user_id %}
             <div class="row-actions flex justify-end gap-1">
               <button class="btn btn-sm btn-soft rounded-md" aria-label="{{ _('Edit') }}"
-                onclick='editEntry({{ entry.id }}, {{ entry.brand_name|tojson }}, {{ entry.brand_wikidata|tojson }}, {{ entry.estimation|tojson }}, {{ entry.github_issue|tojson }})'>
+                data-on-click="editEntry" data-args='{{ [entry.id, entry.brand_name, entry.brand_wikidata, entry.estimation, entry.github_issue]|tojson }}'>
                 <i class="iconoir-edit-pencil" aria-hidden="true"></i>
               </button>
               {% if current_user_id == entry.osm_user_id %}

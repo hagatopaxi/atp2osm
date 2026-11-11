@@ -211,6 +211,17 @@ def test_the_name_is_required(contributor: FlaskClient, migrated_conn: Connectio
     assert rows(migrated_conn) == []
 
 
+def test_a_hostile_name_reaches_other_contributors_as_text(
+    contributor: FlaskClient, migrated_conn: Connection
+) -> None:
+    """Anyone may edit any entry: what one writes must not run in another's page."""
+    name = "</td><img src=x onerror=alert(1)>'\"`"
+    assert contributor.post("/todo", json={"brand_name": name}).status_code == 201
+    page = contributor.get("/todo").text
+    assert "<img src=x" not in page
+    assert " onclick=" not in page  # the CSP refuses inline handlers
+
+
 def test_the_estimation_must_be_a_number(
     contributor: FlaskClient, migrated_conn: Connection
 ) -> None:
