@@ -160,13 +160,16 @@ def test_the_reference_document_is_what_the_file_would_hold(
     config.get_settings.cache_clear()
 
 
-def test_the_example_the_schema_carries_is_a_document_the_loader_accepts() -> None:
+def test_the_example_the_schema_carries_is_a_document_the_loader_accepts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """The schema documents and exemplifies; nothing else has to stay in step.
 
     Filling the blanks the example deliberately leaves must be enough to make it
     load: a key the loader does not know raises here, and so does a required key
     the example forgot to document.
     """
+    monkeypatch.setenv("SECRET_KEY", "k" * config.MIN_SECRET_KEY_LENGTH)
     from src.config import SCHEMA_PATH
 
     document = json.loads(SCHEMA_PATH.read_text())["examples"][0]
@@ -178,6 +181,17 @@ def test_the_example_the_schema_carries_is_a_document_the_loader_accepts() -> No
     settings = config.load(document)
     assert settings.country.code == "fr"
     assert settings.env == "PRODUCTION"
+
+
+def test_production_refuses_a_secret_key_short_enough_to_guess(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """It signs the session: whoever guesses it signs in as anyone."""
+    monkeypatch.setenv("SECRET_KEY", "k" * (config.MIN_SECRET_KEY_LENGTH - 1))
+    with pytest.raises(config.ConfigError, match="SECRET_KEY"):
+        load(app={"env": "PRODUCTION"})
+    # Development keeps whatever it has.
+    assert load(app={"env": "DEVELOPMENT"}).secret_key == "k" * (config.MIN_SECRET_KEY_LENGTH - 1)
 
 
 def test_the_first_code_is_the_country_and_the_rest_its_territories() -> None:

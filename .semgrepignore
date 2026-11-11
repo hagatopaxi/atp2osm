@@ -1,0 +1,6 @@
+# Vendored libraries: upstream's code, not ours to annotate.
+static/lib/
+# Tests stage hostile input on purpose.
+tests/
+.venv/
+.worktrees/

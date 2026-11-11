@@ -225,14 +225,14 @@
                 {% elif item['source_uri'] %}
                 <a class="btn btn-primary btn-sm" href="{{ item['source_uri'] }}" target="_blank"
                     data-source-btn="{{ item['node_type'] }}-{{ item['id'] }}"
-                    onclick="markSourceChecked(`{{ item['node_type'] }}-{{ item['id'] }}`)">
+                    data-on-click="markSourceChecked" data-args='["{{ item['node_type'] }}-{{ item['id'] }}"]'>
                     {{ _('Open the data source') }} <i class="iconoir-open-new-window ml-1" aria-hidden="true"></i>
                 </a>
                 {% call info_card('info', 'hidden', 'data-api-question="' ~ item['node_type'] ~ '-' ~ item['id'] ~ '"') %}
                 <span data-api-msg>{{ _('Is this an API? If so, the source will no longer be required for the remaining points.') }}</span>
                 <div class="flex gap-2" data-api-choices>
-                    <button class="btn btn-xs btn-outline bg-base-100 flex-1" onclick="answerIsApi(this, true)">{{ _('Yes') }}</button>
-                    <button class="btn btn-xs btn-outline bg-base-100 flex-1" onclick="answerIsApi(this, false)">{{ _('No') }}</button>
+                    <button class="btn btn-xs btn-outline bg-base-100 flex-1" data-on-click="answerIsApi" data-args='["$el", true]'>{{ _('Yes') }}</button>
+                    <button class="btn btn-xs btn-outline bg-base-100 flex-1" data-on-click="answerIsApi" data-args='["$el", false]'>{{ _('No') }}</button>
                 </div>
                 {% endcall %}
                 {% endif %}
@@ -298,12 +298,12 @@
                     <div class="flex gap-2">
                         <button class="btn btn-error md:btn-sm flex-1" {{ 'disabled' if needs_source }}
                             data-validate-btn="{{ item['node_type'] }}-{{ item['id'] }}"
-                            onclick="invalidateData(`{{ item['node_type'] }}-{{ item['id'] }}`)">
+                            data-on-click="invalidateData" data-args='["{{ item['node_type'] }}-{{ item['id'] }}"]'>
                             {{ _('Reject') }} <i class="iconoir-prohibition" aria-hidden="true"></i>
                         </button>
                         <button class="btn btn-success md:btn-sm flex-1" {{ 'disabled' if needs_source }}
                             data-validate-btn="{{ item['node_type'] }}-{{ item['id'] }}"
-                            onclick="validateData(`{{ item['node_type'] }}-{{ item['id'] }}`)">
+                            data-on-click="validateData" data-args='["{{ item['node_type'] }}-{{ item['id'] }}"]'>
                             {{ _('Accept') }} <i class="iconoir-check" aria-hidden="true"></i>
                         </button>
                     </div>
@@ -339,8 +339,8 @@
         <textarea id="invalidation_comment" class="textarea textarea-bordered w-full mt-4"
             placeholder="{{ _('Explain here…') }}"></textarea>
         <div class="modal-action">
-            <button id="submit_invalidation" class="btn btn-error" onclick="publishComment()">{{ _('Submit') }}</button>
-            <button onclick="document.getElementById('invalidation_modal').close()" class="btn">{{ _('Cancel') }}</button>
+            <button id="submit_invalidation" class="btn btn-error" data-on-click="publishComment">{{ _('Submit') }}</button>
+            <button data-on-click="closeDialog" data-args='["invalidation_modal"]' class="btn">{{ _('Cancel') }}</button>
         </div>
     </div>
 </dialog>

@@ -36,17 +36,17 @@
   <div class="card bg-base-100 shadow-sm">
     <div class="card-body p-4">
       <h2 class="card-title text-base">{{ _('Add a brand') }}</h2>
-      <form id="add-form" onsubmit="addEntry(event)" class="flex flex-col gap-3">
+      <form id="add-form" data-on-submit="addEntry" data-args='["$event"]' class="flex flex-col gap-3">
         <div class="flex flex-wrap gap-3">
           <label class="form-control flex-1 min-w-48">
             <div class="label"><span class="label-text">{{ _('Brand name') }}</span></div>
             <input id="input-name" type="text" placeholder="{{ _('e.g. Carrefour') }}" class="input input-bordered"
-              onblur="checkDuplicate()" {% if 'user' not in session %}disabled{% endif %} />
+              data-on-focusout="checkDuplicate" {% if 'user' not in session %}disabled{% endif %} />
           </label>
           <label class="form-control flex-1 min-w-48">
             <div class="label"><span class="label-text">{{ _('Wikidata code') }} <span class="muted">{{ _('(optional)') }}</span></span></div>
             <input id="input-wikidata" type="text" placeholder="{{ _('e.g. Q123456') }}" class="input input-bordered"
-              onblur="checkDuplicate()" {% if 'user' not in session %}disabled{% endif %} />
+              data-on-focusout="checkDuplicate" {% if 'user' not in session %}disabled{% endif %} />
           </label>
           <label class="form-control flex-1 min-w-48">
             <div class="label"><span class="label-text">{{ _('Estimated POI count') }} <span class="muted">{{ _('(optional)') }}</span></span></div>
@@ -176,7 +176,7 @@
                 <i class="iconoir-edit-pencil" aria-hidden="true"></i>
               </button>
               {% if current_user_id == entry.osm_user_id %}
-              <button class="btn btn-sm btn-soft btn-error rounded-md" onclick="deleteEntry({{ entry.id }})"
+              <button class="btn btn-sm btn-soft btn-error rounded-md" data-on-click="deleteEntry" data-args='[{{ entry.id }}]'
                 aria-label="{{ _('Delete') }}">
                 <i class="iconoir-trash" aria-hidden="true"></i>
               </button>
@@ -195,7 +195,7 @@
   <dialog id="edit-dialog" class="modal">
     <div class="modal-box">
       <h3 class="text-lg font-bold mb-3">{{ _('Edit the brand') }}</h3>
-      <form onsubmit="saveEntry(event)" class="flex flex-col gap-3">
+      <form data-on-submit="saveEntry" data-args='["$event"]' class="flex flex-col gap-3">
         <input type="hidden" id="edit-id" />
         <div class="fieldset">
           <label class="fieldset-legend" for="edit-name">{{ _('Brand name') }}</label>
@@ -215,7 +215,7 @@
         </div>
         <div class="modal-action">
           <button type="button" class="btn btn-sm btn-soft"
-            onclick="document.getElementById('edit-dialog').close()">{{ _('Cancel') }}</button>
+            data-on-click="closeDialog" data-args='["edit-dialog"]'>{{ _('Cancel') }}</button>
           <button type="submit" class="btn btn-sm btn-primary">{{ _('Save') }}</button>
         </div>
       </form>

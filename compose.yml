@@ -1,7 +1,10 @@
 # A complete instance: the database, the site and the daily refresh.
 # Next to this file: config.json (jq '.examples[0]' config.schema.json) with
 # app.db pointing at {host: db, name: atp2osm, user: atp2osm}, and .env with
-# the secrets. Then: podman-compose up -d   (or docker compose)
+# the secrets. The image runs as uid 1000, which must own ./data:
+#   mkdir -p data && sudo chown 1000:1000 data           (docker)
+#   mkdir -p data && podman unshare chown 1000:1000 data (rootless podman)
+# Then: podman-compose up -d   (or docker compose)
 services:
   db:
     image: docker.io/postgis/postgis:16-3.4

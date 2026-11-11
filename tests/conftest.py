@@ -123,6 +123,7 @@ from psycopg.rows import TupleRow  # noqa: E402
 
 from src.config import Database  # noqa: E402
 from src.matching import Change  # noqa: E402
+from src.routes.auth import seal_token  # noqa: E402
 
 # What the fixtures hand out: a connection on the throwaway database.
 Connection = psycopg.Connection[TupleRow]
@@ -317,7 +318,7 @@ def no_network(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.fixture
 def web_app(migrated_conn: Connection, test_db: Database, monkeypatch: pytest.MonkeyPatch) -> Flask:
     import src.db
-    from src import i18n, templating
+    from src import i18n, security, templating
     from src.config import STATIC_DIR, TEMPLATE_DIR, get_settings
     from src.extensions import cache
     from src.routes.auth import auth_bp
@@ -336,6 +337,10 @@ def web_app(migrated_conn: Connection, test_db: Database, monkeypatch: pytest.Mo
     app.secret_key = "test"
     app.config["CACHE_TYPE"] = "SimpleCache"
     cache.init_app(app)  # pyright: ignore[reportUnknownMemberType] — see src/extensions.py
+    # The headers and cookie flags production sends; not the rate limits,
+    # whose counters would outlive a test and trip the next one.
+    app.config["RATELIMIT_ENABLED"] = False
+    security.init_app(app, settings)
     # No translated path: the pages answer on their bare URL, no language
     # redirect to follow. English, the language of the source strings: the
     # tests read the templates, not a catalog compiled or not on this machine.
@@ -363,7 +368,7 @@ def contributor(web_app: Flask) -> Iterator[FlaskClient]:
         with client.session_transaction() as sess:
             # What oauth_callback stores: the pages read the name too.
             sess["user"] = {"osm_id": 42, "name": "reviewer"}
-            sess["token"] = {"access_token": "x"}
+            sess["token"] = seal_token({"access_token": "x"}, "test")
         yield client
 
 

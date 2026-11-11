@@ -73,7 +73,7 @@
     </table>
 </div>
 
-<button class="btn btn-primary mt-4 self-end" onclick="document.getElementById('last_confirm_modal').show()">{{ _('Confirm the integration') }}</button>
+<button class="btn btn-primary mt-4 self-end" data-on-click="showDialog" data-args='["last_confirm_modal"]'>{{ _('Confirm the integration') }}</button>
 <dialog id="last_confirm_modal" class="modal">
     <div class="modal-box">
         <h3 class="font-bold text-lg">{{ _('This action cannot be undone') }}</h3>
@@ -82,11 +82,11 @@
         {% endcall %}
 
         <div class="modal-action">
-            <button id="submit_importation" class="btn btn-error" onclick="confirm_import()">
+            <button id="submit_importation" class="btn btn-error" data-on-click="confirm_import">
                 <div id="loading" class="loading loading-spinner loading-md hidden"></div>
                 {{ _('Integrate the data') }}
             </button>
-            <button id="cancel" onclick="document.getElementById('last_confirm_modal').close()"
+            <button id="cancel" data-on-click="closeDialog" data-args='["last_confirm_modal"]'
                 class="btn">{{ _('Cancel') }}</button>
         </div>
     </div>

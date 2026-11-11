@@ -10,6 +10,7 @@ from psycopg import sql
 from psycopg.rows import dict_row
 
 from src.db import get_osmdb
+from src.extensions import limit
 from src.github_issues import IssueState, fetch_issue_state, issue_number
 from src.routes.auth import auth_required
 from src.utils import TODO_FILTERS as FILTERS
@@ -83,6 +84,7 @@ def todo() -> str:
 
 
 @todo_bp.route("/todo/check")
+@limit("60/minute")
 def todo_check() -> ResponseReturnValue:
     wikidata = request.args.get("wikidata", "").strip()
     name = request.args.get("name", "").strip()
@@ -184,6 +186,7 @@ def _issue_state(url: str | None) -> IssueState | None:
 
 
 @todo_bp.route("/todo", methods=["POST"])
+@limit("20/minute")
 @auth_required
 def todo_add() -> ResponseReturnValue:
     form = _form()
@@ -221,6 +224,7 @@ def todo_add() -> ResponseReturnValue:
 
 
 @todo_bp.route("/todo/<int:entry_id>", methods=["PUT"])
+@limit("20/minute")
 @auth_required
 def todo_update(entry_id: int) -> ResponseReturnValue:
     form = _form()
@@ -262,6 +266,7 @@ def todo_update(entry_id: int) -> ResponseReturnValue:
 
 
 @todo_bp.route("/todo/<int:entry_id>", methods=["DELETE"])
+@limit("20/minute")
 @auth_required
 def todo_delete(entry_id: int) -> ResponseReturnValue:
     osmdb = get_osmdb()

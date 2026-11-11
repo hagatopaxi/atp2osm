@@ -1,16 +1,21 @@
+import base64
 import functools
+import hashlib
+import json
 import logging
 from collections.abc import Callable
 from typing import ParamSpec
 from urllib.parse import urlparse
 
 import requests
-from flask import Blueprint, Response, abort, redirect, request, session, url_for
+from cryptography.fernet import Fernet, InvalidToken
+from flask import Blueprint, Response, abort, current_app, redirect, request, session
 from flask.typing import ResponseReturnValue
 from oauthlib.oauth2 import OAuth2Error
 from requests_oauthlib import OAuth2Session
 
 from src.config import get_settings
+from src.extensions import limit
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +30,31 @@ token_url = f"{api_url}/oauth2/token"
 scope = ["write_api", "read_prefs"]
 
 
+# The session cookie is signed, not encrypted: whatever it holds, its bearer
+# reads. The OSM token writes to the contributor's account, so it travels
+# sealed, under a key of its own derived from the secret key.
+def _cipher(secret_key: str) -> Fernet:
+    digest = hashlib.sha256(b"atp2osm-osm-token\0" + secret_key.encode()).digest()
+    return Fernet(base64.urlsafe_b64encode(digest))
+
+
+def seal_token(token: dict[str, object], secret_key: str) -> str:
+    """The token as the session stores it."""
+    return _cipher(secret_key).encrypt(json.dumps(token).encode()).decode()
+
+
+def osm_token() -> dict[str, object] | None:
+    """The contributor's OSM token, or None when the session holds none we can open."""
+    sealed = session.get("token")
+    if not isinstance(sealed, str):
+        return None
+    try:
+        token = json.loads(_cipher(str(current_app.secret_key)).decrypt(sealed))
+    except InvalidToken:
+        return None
+    return token if isinstance(token, dict) else None  # pyright: ignore[reportUnknownVariableType]
+
+
 P = ParamSpec("P")
 
 
@@ -33,7 +63,9 @@ def auth_required(f: Callable[P, ResponseReturnValue]) -> Callable[P, ResponseRe
     def decorator(*args: P.args, **kwargs: P.kwargs) -> ResponseReturnValue:
         if "user" not in session:
             abort(403)
-        if "token" not in session:
+        # A token we cannot open — a session from before the sealing, a
+        # rotated secret key — is no token: sign in again.
+        if osm_token() is None:
             session.clear()
             return redirect("/?session_expired=1")
         return f(*args, **kwargs)
@@ -42,12 +74,13 @@ def auth_required(f: Callable[P, ResponseReturnValue]) -> Callable[P, ResponseRe
 
 
 def get_oauth_redirect_uri() -> str:
-    if _settings.app_base_url:
-        return f"{_settings.app_base_url}/oauth-callback"
-    return url_for("auth.oauth_callback", _external=True)
+    # Always the configured URL (the schema requires it): never one built
+    # from the request's Host header.
+    return f"{_settings.app_base_url}/oauth-callback"
 
 
 @auth_bp.route("/login", methods=["POST"])
+@limit("10/minute")
 def login() -> ResponseReturnValue:
     redirect_uri = get_oauth_redirect_uri()
 
@@ -71,7 +104,9 @@ def login() -> ResponseReturnValue:
 @auth_bp.route("/oauth-callback")
 def oauth_callback() -> ResponseReturnValue:
     if "error" in request.args:
-        return "Authentication failed: " + request.args["error"], 401
+        # Logged, never echoed: the query string is anyone's to write.
+        logger.info("OAuth authorization refused: %s", request.args.get("error", "")[:100])
+        return "Authentication failed", 401
 
     # The state ties the callback to the login that started it — and both
     # missing is no match either.
@@ -112,11 +147,13 @@ def oauth_callback() -> ResponseReturnValue:
         # Unreachable, or an answer that is not a user: OSM's side either way.
         logger.exception("OSM API did not answer the user details")
         abort(502)
-    del session["oauth_state"]
+    next_url = session.get("oauth_next", "/")
+    # A fresh session on sign-in: nothing set before it carries over.
+    session.clear()
+    session.permanent = True
     session["user"] = user
-    session["token"] = dict(token)
+    session["token"] = seal_token(dict(token), str(current_app.secret_key))
 
-    next_url = session.pop("oauth_next", "/")
     return redirect(next_url)
 
 

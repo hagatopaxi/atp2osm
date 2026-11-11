@@ -12,12 +12,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
 
       - id: meta
         run: echo "short=$(git rev-parse --short=6 HEAD)" >> "$GITHUB_OUTPUT"
 
-      - uses: redhat-actions/buildah-build@v3
+      - uses: redhat-actions/buildah-build@719e3c40d8af9790c23eca13f7daa339f2867034 # v3
         id: build
         with:
           containerfiles: Containerfile
@@ -25,7 +27,17 @@ jobs:
           tags: latest ${{ steps.meta.outputs.short }}
           build-args: GIT_COMMIT=${{ steps.meta.outputs.short }}
 
-      - uses: redhat-actions/push-to-registry@v3
+      # Known vulnerabilities in the image (OS packages and Python wheels)
+      # block the push; one with no fix yet is not the image's to carry.
+      - name: Scan the image
+        env:
+          IMAGE: ${{ steps.build.outputs.image }}
+        run: |
+          podman save -o image.tar "$IMAGE:latest"
+          podman run --rm -v "$PWD/image.tar:/image.tar:ro" docker.io/aquasec/trivy:0.76.2 \
+            image --input /image.tar --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1
+
+      - uses: redhat-actions/push-to-registry@94ade333c38ecc0e60e94785125d9a52ca423b37 # v3
         with:
           image: ${{ steps.build.outputs.image }}
           tags: ${{ steps.build.outputs.tags }}

@@ -52,11 +52,12 @@ echo "--> [3/3] Writing unit files..."
 # Read the settings the units need through the image just built: it carries the
 # schema, applies the defaults, and refuses a configuration the app would refuse
 # to start on — so a bad file fails here rather than at the first restart.
-read -r PORT REFRESH_SCHEDULE < <(podman run --rm \
+read -r PORT REFRESH_SCHEDULE < <(podman run --rm --userns=keep-id:uid=1000,gid=1000 \
   -v "$CONFIG:/app/config.json:ro,Z" \
   --env ATP2OSM_CONFIG=/app/config.json \
   --env OSM_DB_PASSWORD=- --env OSM_OAUTH_CLIENT_ID=- \
-  --env OSM_OAUTH_CLIENT_SECRET=- --env SECRET_KEY=- \
+  --env OSM_OAUTH_CLIENT_SECRET=- \
+  --env SECRET_KEY=placeholder-long-enough-for-the-production-check \
   "${IMAGE_NAME}:${GIT_SHORT}" \
   uv run --no-sync python -c \
   "from src.config import get_settings as s; c = s(); print(c.port, c.refresh_schedule)")
@@ -107,7 +108,7 @@ rm -f "$SYSTEMD_USER_DIR/${CONTAINER_NAME}-refresh-osm.timer" "$SYSTEMD_USER_DIR
 # schema, so nothing races. A failed migration aborts the deploy and leaves the
 # running container as it was.
 echo "--> Migrating the database..."
-podman run --rm --network host \
+podman run --rm --network host --userns=keep-id:uid=1000,gid=1000 \
   -v "$CONFIG:/app/config.json:ro,Z" \
   --env-file "$PROJECT_DIR/.env" \
   --env ATP2OSM_CONFIG=/app/config.json --env GIT_COMMIT="$GIT_SHORT" \

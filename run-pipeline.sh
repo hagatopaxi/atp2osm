@@ -14,6 +14,7 @@ log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 log "Starting data refresh pipeline..."
 podman run --rm \
     --network host \
+    --userns=keep-id:uid=1000,gid=1000 \
     --env-file "$PROJECT_DIR/.env" \
     --env ATP2OSM_CONFIG=/app/config.json \
     --env ATP2OSM_FORCE \

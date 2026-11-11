@@ -23,7 +23,7 @@ from psycopg.rows import DictRow, dict_row
 from requests_oauthlib import OAuth2Session
 
 from src.db import get_osmdb
-from src.extensions import recall, remember
+from src.extensions import limit, recall, remember
 from src.matching import (
     BLOCKED_BRANDS_SQL,
     NO_CATEGORY,
@@ -45,7 +45,7 @@ from src.matching import (
     select_batch,
 )
 from src.osm_history import OsmApiUnavailableError, protect_recent_edits
-from src.routes.auth import auth_required
+from src.routes.auth import auth_required, osm_token
 from src.upload import BulkUpload
 from src.utils import (
     determine_import_status,
@@ -454,6 +454,7 @@ def brands_rejected(brand_wikidata: str) -> str:  # noqa: ARG001 — Flask passe
 
 
 @brands_bp.route("/brands/<brand_wikidata>/report-error", methods=["POST"])
+@limit("20/minute")
 @auth_required
 def report_error(brand_wikidata: str) -> ResponseReturnValue:
     data = request.get_json(silent=True)
@@ -483,6 +484,7 @@ def _returned_id(row: tuple[Any, ...] | None) -> int:
 
 
 @brands_bp.route("/brands/<brand_wikidata>/upload", methods=["POST"])
+@limit("10/minute")
 @auth_required
 def upload_changes(brand_wikidata: str) -> ResponseReturnValue:
     batch = recall_batch(brand_wikidata)
@@ -509,7 +511,7 @@ def upload_changes(brand_wikidata: str) -> ResponseReturnValue:
             mimetype="application/json",
         )
 
-    osm_session = OAuth2Session(token=session["token"])
+    osm_session = OAuth2Session(token=osm_token())
     bulk_upload = BulkUpload(changes, session=osm_session, max_size=wave.batch_size)
     errors = bulk_upload.upload()
     # The changesets are on OSM now: nothing after this line may stop the

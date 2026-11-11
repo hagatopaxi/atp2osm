@@ -1,0 +1,28 @@
+rules:
+  # A view that returns a string answers text/html: request data in it is
+  # markup the requester wrote (the OAuth callback once echoed `error`).
+  - id: request-data-in-returned-string
+    languages: [python]
+    severity: ERROR
+    message: >-
+      Request data in a returned string, served as HTML. Log it, render it
+      through a template (autoescaped), or answer text/plain.
+    patterns:
+      - pattern-inside: |
+          @$BP.route(...)
+          def $VIEW(...):
+              ...
+      - pattern-either:
+          - pattern: return $A + $B
+          - pattern: return ($A + $B, ...)
+          - pattern: return f"..."
+          - pattern: return (f"...", ...)
+          - pattern: return $S.format(...)
+          - pattern: return ($S.format(...), ...)
+          - pattern: return $S % $X
+          - pattern: return ($S % $X, ...)
+      - pattern-either:
+          - pattern-inside: |
+              return <... request.$ATTR ...>
+          - pattern-inside: |
+              return (<... request.$ATTR ...>, ...)

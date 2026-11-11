@@ -16,7 +16,7 @@ import pathlib
 import zoneinfo
 from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import Any
+from typing import Any, Final
 
 import jsonschema
 from babel import Locale, UnknownLocaleError
@@ -204,12 +204,30 @@ def _parse_country(raw: dict[str, Any]) -> Country:
     )
 
 
+MIN_SECRET_KEY_LENGTH: Final = 32
+
+
+def _secret_key(env: str) -> str:
+    """SECRET_KEY signs the session and seals the OSM token in it: a short one
+    is guessed, and whoever holds it signs in as anyone. Development keeps
+    whatever it has.
+    """
+    key = get_env("SECRET_KEY")
+    if env == "PRODUCTION" and len(key) < MIN_SECRET_KEY_LENGTH:
+        raise ConfigError(
+            f"SECRET_KEY must be at least {MIN_SECRET_KEY_LENGTH} characters in production"
+            " (python -c 'import secrets; print(secrets.token_urlsafe(48))')"
+        )
+    return key
+
+
 def _parse_app(raw: dict[str, Any], country: Country) -> Settings:
     """Build the deployment settings, taking the secrets from the environment."""
     db = raw["db"]
     pipeline = raw.get("pipeline", {})
+    env = raw.get("env", _default("app", "env")).upper()
     return Settings(
-        env=raw.get("env", _default("app", "env")).upper(),
+        env=env,
         api_url=raw["osm_api_host"].strip("/"),
         app_base_url=raw["base_url"].rstrip("/"),
         # An empty value falls back too: a deployment that has no repository of
@@ -234,7 +252,7 @@ def _parse_app(raw: dict[str, Any], country: Country) -> Settings:
         ),
         oauth_client_id=get_env("OSM_OAUTH_CLIENT_ID"),
         oauth_client_secret=get_env("OSM_OAUTH_CLIENT_SECRET"),
-        secret_key=get_env("SECRET_KEY"),
+        secret_key=_secret_key(env),
         app_version=get_version(),
         country=country,
     )
