@@ -31,6 +31,7 @@ from src.config import Database
 from src.phone import ensure_normalize_phone
 from src.pipeline.atp2osm import mv_matches_sql, mv_places_brand_sql, mv_places_spider_sql
 from src.pipeline.osm import mv_places_sql
+from src.routes.auth import seal_token
 from tests.conftest import CONFIG, TEST_DB, Connection
 
 QID = "Q999001"
@@ -251,7 +252,7 @@ def test_every_get_route_is_visited(server: tuple[str, dict[str, str]]) -> None:
         "/sitemap.xml",
         "/llms.txt",
         "/google1387dd4d6e23b123.html",
-        "/staticmap/<long>/<lat>",
+        "/staticmap/<float(signed=True):long>/<float(signed=True):lat>",
         "/api/export/departements.<fmt>",
         "/api/export/<dataset>.<fmt>",
         "/api/stats.json",
@@ -274,7 +275,10 @@ def test_every_get_route_is_visited(server: tuple[str, dict[str, str]]) -> None:
 def login_cookie() -> str:
     app = Flask(__name__)
     app.secret_key = SECRET
-    session = {"user": {"osm_id": 42, "name": "Tester"}, "token": {"access_token": "x"}}
+    session = {
+        "user": {"osm_id": 42, "name": "Tester"},
+        "token": seal_token({"access_token": "x"}, SECRET),
+    }
     serializer = SecureCookieSessionInterface().get_signing_serializer(app)
     assert serializer is not None
     return f"session={serializer.dumps(session)}"

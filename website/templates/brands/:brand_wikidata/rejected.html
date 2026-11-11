@@ -21,7 +21,7 @@
 
     <div class="flex gap-2 self-end">
         <a class="btn btn-ghost" href="/brands">{{ _('Cancel') }}</a>
-        <button id="confirm_btn" class="btn btn-error" onclick="confirmRejection()">
+        <button id="confirm_btn" class="btn btn-error" data-on-click="confirmRejection">
             <div id="loading" class="loading loading-spinner loading-md hidden"></div>
             {{ _('Confirm the report') }}
         </button>

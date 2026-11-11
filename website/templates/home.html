@@ -56,7 +56,7 @@
         <i class="iconoir-double-check" aria-hidden="true"></i> {{ _('Start integrating!') }}
     </a>
     {% else %}
-    <button onclick="login('/brands')" class="btn btn-primary rounded-full">
+    <button data-on-click="login" data-args='["/brands"]' class="btn btn-primary rounded-full">
         <i class="iconoir-log-in" aria-hidden="true"></i> {{ _('Sign in to OpenStreetMap to start') }}
     </button>
     {% endif %}

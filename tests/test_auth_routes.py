@@ -9,7 +9,7 @@ from typing import Any, ClassVar
 
 import pytest
 import requests
-from flask import Flask
+from flask import Flask, session
 from flask.testing import FlaskClient
 from werkzeug.test import TestResponse
 
@@ -114,9 +114,14 @@ def test_the_callback_signs_the_contributor_in_and_sends_them_on(
         assert res.headers["Location"].endswith("/brands")
         with client.session_transaction() as sess:
             assert sess["user"] == {"osm_id": 42, "name": "reviewer"}
-            assert sess["token"]["access_token"] == "tok"
             assert "oauth_state" not in sess
             assert "oauth_next" not in sess
+            sealed = sess["token"]
+        # Sealed: the cookie's bearer does not read the OSM token out of it.
+        assert "tok" not in sealed
+        with web_app.test_request_context():
+            session["token"] = sealed
+            assert auth.osm_token() == _Session.token
 
 
 def test_a_callback_with_a_foreign_state_is_refused(web_app: Flask, osm: type[_Session]) -> None:

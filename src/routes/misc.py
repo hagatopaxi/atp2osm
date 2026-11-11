@@ -1,14 +1,14 @@
 import logging
 from io import BytesIO
 
-from flask import Blueprint, Response, abort, render_template, request, send_from_directory, url_for
+from flask import Blueprint, Response, abort, render_template, send_from_directory
 from flask.typing import ResponseReturnValue
 from psycopg.rows import dict_row
 from staticmap import CircleMarker, StaticMap
 
 from src.config import STATIC_DIR, get_settings
 from src.db import get_osmdb
-from src.extensions import cached
+from src.extensions import cached, limit
 from src.routes.spiders import SPIDERS_PAGE_LINKED
 
 logger = logging.getLogger(__name__)
@@ -87,7 +87,7 @@ def google_site_verification() -> ResponseReturnValue:
 
 @misc_bp.route("/robots.txt")
 def robots() -> ResponseReturnValue:
-    body = render_template("robots.txt", sitemap_url=url_for("misc.sitemap", _external=True))
+    body = render_template("robots.txt", sitemap_url=f"{get_settings().app_base_url}/sitemap.xml")
     return Response(body, mimetype="text/plain")
 
 
@@ -106,7 +106,7 @@ def version() -> ResponseReturnValue:
 
 @misc_bp.route("/sitemap.xml")
 def sitemap() -> ResponseReturnValue:
-    body = render_template("sitemap.xml", pages=PUBLIC_PAGES, root=request.host_url.rstrip("/"))
+    body = render_template("sitemap.xml", pages=PUBLIC_PAGES, root=get_settings().app_base_url)
     return Response(body, mimetype="application/xml")
 
 
@@ -116,15 +116,14 @@ def llms_txt() -> ResponseReturnValue:
     return Response(body, mimetype="text/plain")
 
 
-@misc_bp.route("/staticmap/<long>/<lat>")
+# The float converter takes digits and a point only: no NaN, no infinity, and
+# anything else is a 404 before a tile is asked.
+@misc_bp.route("/staticmap/<float(signed=True):long>/<float(signed=True):lat>")
 @cached(timeout=300, key_prefix="staticmap/", query_string=True)
-def staticmap(long: str, lat: str) -> ResponseReturnValue:
-    # Anything but a point on Earth is no map: 404, before a tile is asked.
-    try:
-        point = (float(long), float(lat))
-    except ValueError:
-        abort(404)
-    return _render_map(*point)
+# Under the cache: only a map drawn from tiles counts against the client.
+@limit("120/minute")
+def staticmap(long: float, lat: float) -> ResponseReturnValue:
+    return _render_map(long, lat)
 
 
 MAX_LONGITUDE = 180
@@ -134,7 +133,7 @@ MAX_LATITUDE = 90
 def _render_map(long: float, lat: float) -> Response:
     if not (-MAX_LONGITUDE <= long <= MAX_LONGITUDE and -MAX_LATITUDE <= lat <= MAX_LATITUDE):
         abort(404)
-    m = StaticMap(400, 300, url_template="http://b.tile.osm.org/{z}/{x}/{y}.png")
+    m = StaticMap(400, 300, url_template="https://tile.openstreetmap.org/{z}/{x}/{y}.png")
     m.add_marker(CircleMarker((long, lat), "white", 18))
     m.add_marker(CircleMarker((long, lat), "#0036FF", 12))
     try:

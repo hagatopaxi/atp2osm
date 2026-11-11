@@ -36,7 +36,7 @@
     <p class="font-semibold">{{ _('Sign-in required') }}</p>
     <p class="text-sm">{{ _('Sign in with your OpenStreetMap account to start an integration.') }}</p>
 </div>
-<button onclick="login('/brands')" class="btn btn-sm btn-primary rounded-full self-start">
+<button data-on-click="login" data-args='["/brands"]' class="btn btn-sm btn-primary rounded-full self-start">
     <i class="iconoir-log-in" aria-hidden="true"></i> {{ _('Sign in with OSM') }}
 </button>
 {% endcall %}

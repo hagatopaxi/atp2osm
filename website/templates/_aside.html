@@ -95,15 +95,15 @@
         </div>
       </div>
       <span class="flex-1 min-w-0 truncate text-sm font-semibold sidebar-hide">{{ session['user']['name'] }}</span>
-      <button class="btn btn-ghost btn-sm btn-square hover:text-error sidebar-hide" onclick="logout()" title="{{ _('Log out') }}" aria-label="{{ _('Log out') }}">
+      <button class="btn btn-ghost btn-sm btn-square hover:text-error sidebar-hide" data-on-click="logout" title="{{ _('Log out') }}" aria-label="{{ _('Log out') }}">
         <i class="iconoir-log-out" aria-hidden="true"></i>
       </button>
     </div>
     {% else %}
-    <button class="btn btn-primary w-full rounded-full sidebar-hide" onclick="login()">
+    <button class="btn btn-primary w-full rounded-full sidebar-hide" data-on-click="login">
       <i class="iconoir-log-in" aria-hidden="true"></i> {{ _('Sign in with OSM') }}
     </button>
-    <button class="btn btn-primary btn-circle sidebar-show" onclick="login()" title="{{ _('Sign in with OSM') }}">
+    <button class="btn btn-primary btn-circle sidebar-show" data-on-click="login" title="{{ _('Sign in with OSM') }}">
       <i class="iconoir-log-in" aria-hidden="true"></i>
     </button>
     {% endif %}
