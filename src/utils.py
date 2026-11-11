@@ -211,7 +211,9 @@ def _search_condition(
         + sql.SQL(" OR ").join(sql.SQL("{} ILIKE %s").format(_column(c, alias)) for c in columns)
         + sql.SQL(")")
     )
-    return condition, [f"%{needle}%"] * len(columns)
+    # The needle is text to find, not a pattern: its own % and _ match themselves.
+    literal = needle.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return condition, [f"%{literal}%"] * len(columns)
 
 
 def build_filters(

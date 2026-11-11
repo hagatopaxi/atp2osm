@@ -231,6 +231,15 @@ def test_a_name_loses_the_characters_that_disguise_it(
     assert rows(migrated_conn)[0]["brand_name"] == "BabyloneX"
 
 
+def test_a_search_finds_its_percent_sign_and_nothing_else(
+    contributor: FlaskClient, migrated_conn: Connection
+) -> None:
+    for name in ("Babylone", "100% Bio"):
+        assert contributor.post("/todo", json={"brand_name": name}).status_code == 201
+    names = one(contributor.get("/api/export/todo.json?q=%25").json)
+    assert [n["brand_name"] for n in names] == ["100% Bio"]
+
+
 def test_a_name_too_long_is_refused(contributor: FlaskClient, migrated_conn: Connection) -> None:
     res = contributor.post("/todo", json={"brand_name": "x" * (todo.MAX_NAME_LENGTH + 1)})
     assert res.status_code == 400
