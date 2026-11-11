@@ -1,14 +1,16 @@
 import logging
-from typing import Any
+import re
+from typing import Any, Final
 
 import psycopg
-from flask import Blueprint, Response, abort, render_template, request, session
+from flask import Blueprint, Response, render_template, request, session
 from flask.typing import ResponseReturnValue
 from flask_babel import gettext as _
 from psycopg import sql
 from psycopg.rows import dict_row
 
 from src.db import get_osmdb
+from src.github_issues import IssueState, fetch_issue_state, issue_number
 from src.routes.auth import auth_required
 from src.utils import TODO_FILTERS as FILTERS
 from src.utils import (
@@ -23,6 +25,8 @@ from src.utils import (
 logger = logging.getLogger(__name__)
 
 todo_bp = Blueprint("todo", __name__)
+
+_WIKIDATA: Final = re.compile(r"^Q[1-9]\d*$")
 
 SORT_COLUMNS = {
     "name": "brand_name",
@@ -74,6 +78,7 @@ def todo() -> str:
             ((uid, users.get(uid, str(uid))) for uid in all_user_ids),
             key=lambda u: u[1].lower(),
         ),
+        issue_number=issue_number,
     )
 
 
@@ -104,26 +109,78 @@ class _Form:
     """The fields of a todo entry, read from the JSON body of the request."""
 
     def __init__(self, data: dict[str, Any]) -> None:
-        self.brand_wikidata = (str(data.get("brand_wikidata") or "")).strip() or None
+        wikidata = (str(data.get("brand_wikidata") or "")).strip()
+        # q42 is Q42 typed in a hurry; anything else is echoed back as typed.
+        if _WIKIDATA.match(wikidata.upper()):
+            wikidata = wikidata.upper()
+        self.brand_wikidata = wikidata or None
         self.brand_name = (str(data.get("brand_name") or "")).strip()
+        self.github_issue = (str(data.get("github_issue") or "")).strip() or None
         self.estimation: int | None = None
         estimation = data.get("estimation")
         if estimation is not None:
             self.estimation = int(estimation)
 
 
+def _error(message: str, status: int) -> tuple[dict[str, str], int]:
+    return {"error": message}, status
+
+
+def _invalid(form: _Form) -> str | None:
+    """What is wrong with the fields of an entry, None when nothing is."""
+    if not form.brand_name:
+        return _("The brand name is required")
+    if form.brand_wikidata and not _WIKIDATA.match(form.brand_wikidata):
+        return _(
+            "“%(code)s” is not a Wikidata code: it is a Q followed by digits, e.g. Q123456",
+            code=form.brand_wikidata,
+        )
+    if form.estimation is not None and form.estimation < 0:
+        return _("The estimation cannot be negative")
+    if form.github_issue and issue_number(form.github_issue) is None:
+        return _(
+            "“%(url)s” is not a link to an All The Places issue or pull request, "
+            "e.g. https://github.com/alltheplaces/alltheplaces/issues/1234",
+            url=form.github_issue,
+        )
+    return None
+
+
 def _form() -> _Form | tuple[dict[str, str], int]:
-    """The entry the request describes, or the error response refusing it."""
+    """The entry the request describes, or the error response saying what is wrong."""
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
-        return {"error": _("The request body must be a JSON object")}, 400
+        return _error(_("The request body must be a JSON object"), 400)
     try:
         form = _Form(data)  # pyright: ignore[reportUnknownArgumentType] — a JSON object
     except (ValueError, TypeError):
-        return {"error": _("The estimation must be a whole number")}, 400
-    if not form.brand_name:
-        return {"error": _("The brand name is required")}, 400
+        return _error(_("The estimation must be a whole number"), 400)
+    if message := _invalid(form):
+        return _error(message, 400)
     return form
+
+
+def _duplicate(
+    cursor: psycopg.Cursor[dict[str, Any]], wikidata: str | None
+) -> tuple[dict[str, str], int]:
+    """The conflict response naming the entry that already holds the Wikidata code."""
+    row = cursor.execute(
+        "SELECT brand_name FROM todo_brands WHERE brand_wikidata = %s", (wikidata,)
+    ).fetchone()
+    if row is None:
+        return _error(_("This brand is already in the list"), 409)
+    return _error(
+        _(
+            "The Wikidata code %(code)s is already in the list, as “%(name)s”",
+            code=wikidata,
+            name=row["brand_name"],
+        ),
+        409,
+    )
+
+
+def _issue_state(url: str | None) -> IssueState | None:
+    return fetch_issue_state(url) if url else None
 
 
 @todo_bp.route("/todo", methods=["POST"])
@@ -133,22 +190,33 @@ def todo_add() -> ResponseReturnValue:
     if not isinstance(form, _Form):
         return form
     osm_user_id = session["user"]["osm_id"]
+    state = _issue_state(form.github_issue)
     osmdb = get_osmdb()
     with osmdb.cursor(row_factory=dict_row) as cursor:
         try:
             cursor.execute(
-                """INSERT INTO todo_brands (brand_wikidata, brand_name, osm_user_id, estimation)
-                   VALUES (%s, %s, %s, %s)""",
-                (form.brand_wikidata, form.brand_name, osm_user_id, form.estimation),
+                """INSERT INTO todo_brands (brand_wikidata, brand_name, osm_user_id, estimation,
+                                            github_issue, issue_state, issue_checked_at)
+                   VALUES (%s, %s, %s, %s, %s, %s,
+                           CASE WHEN %s::text IS NULL THEN NULL ELSE NOW() END)""",
+                (
+                    form.brand_wikidata,
+                    form.brand_name,
+                    osm_user_id,
+                    form.estimation,
+                    form.github_issue,
+                    state,
+                    state,
+                ),
             )
             osmdb.commit()
         except psycopg.errors.UniqueViolation:
             osmdb.rollback()
-            return {"error": _("This brand is already in the list")}, 409
+            return _duplicate(cursor, form.brand_wikidata)
         except Exception:
             osmdb.rollback()
             logger.exception("Failed to insert todo brand")
-            return {"error": _("Something went wrong, please try again.")}, 500
+            return _error(_("The database refused the entry, please try again later."), 500)
     return Response(status=201)
 
 
@@ -158,18 +226,24 @@ def todo_update(entry_id: int) -> ResponseReturnValue:
     form = _form()
     if not isinstance(form, _Form):
         return form
+    state = _issue_state(form.github_issue)
     osmdb = get_osmdb()
     with osmdb.cursor(row_factory=dict_row) as cursor:
         try:
             updated = cursor.execute(
                 """UPDATE todo_brands
                    SET brand_wikidata = %s, brand_name = %s, estimation = %s,
+                       github_issue = %s, issue_state = %s,
+                       issue_checked_at = CASE WHEN %s::text IS NULL THEN NULL ELSE NOW() END,
                        updated_by = %s, updated_at = NOW()
                    WHERE id = %s RETURNING id""",
                 (
                     form.brand_wikidata,
                     form.brand_name,
                     form.estimation,
+                    form.github_issue,
+                    state,
+                    state,
                     session["user"]["osm_id"],
                     entry_id,
                 ),
@@ -177,13 +251,13 @@ def todo_update(entry_id: int) -> ResponseReturnValue:
             osmdb.commit()
         except psycopg.errors.UniqueViolation:
             osmdb.rollback()
-            return {"error": _("This brand is already in the list")}, 409
+            return _duplicate(cursor, form.brand_wikidata)
         except Exception:
             osmdb.rollback()
             logger.exception("Failed to update todo brand")
-            return {"error": _("Something went wrong, please try again.")}, 500
+            return _error(_("The database refused the change, please try again later."), 500)
     if updated is None:
-        return Response(status=404)
+        return _error(_("This entry no longer exists: someone deleted it meanwhile."), 404)
     return Response(status=204)
 
 
@@ -196,9 +270,9 @@ def todo_delete(entry_id: int) -> ResponseReturnValue:
             "SELECT osm_user_id FROM todo_brands WHERE id = %s", (entry_id,)
         ).fetchone()
         if entry is None:
-            return Response(status=404)
+            return _error(_("This entry no longer exists: someone deleted it meanwhile."), 404)
         if entry["osm_user_id"] != session["user"]["osm_id"]:
-            return abort(403)
+            return _error(_("Only the contributor who added this entry can delete it."), 403)
         cursor.execute("DELETE FROM todo_brands WHERE id = %s", (entry_id,))
         osmdb.commit()
     return Response(status=204)

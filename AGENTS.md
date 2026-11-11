@@ -230,7 +230,9 @@ strings they both hold, so a language the product does not ship needs no fork.
 
 Secrets stay in the environment, `.env` today and sops tomorrow:
 `OSM_DB_PASSWORD`, `OSM_OAUTH_CLIENT_ID`, `OSM_OAUTH_CLIENT_SECRET`,
-`SECRET_KEY`. So does `GIT_COMMIT`, which the build computes.
+`SECRET_KEY`, and the optional `GITHUB_TOKEN`, which lifts GitHub's anonymous
+limit of 60 requests an hour when the states of the missing brands' issues are
+read. So does `GIT_COMMIT`, which the build computes.
 
 In development, `config.json` sits in the main checkout, gitignored, and
 `dev.sh` symlinks it into every worktree next to `.env`.
