@@ -6,6 +6,9 @@ After=network.target
 Image=${IMAGE_NAME}:${GIT_SHORT}
 ContainerName=${CONTAINER_NAME}-refresh
 Network=host
+# The image runs as uid 1000: mapped onto the deploying user, it owns the
+# mounted data and reads config.json as the files' owner.
+UserNS=keep-id:uid=1000,gid=1000
 EnvironmentFile=${PROJECT_DIR}/.env
 Environment=ATP2OSM_CONFIG=/app/config.json
 Environment=GIT_COMMIT=${GIT_SHORT}

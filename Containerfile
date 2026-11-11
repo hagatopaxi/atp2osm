@@ -1,14 +1,17 @@
-FROM docker.io/library/python:3.11-slim
+# Base images pinned by digest: a tag moves under the same name. Renovate or
+# a hand bump updates them — `podman pull` the tag, read its digest.
+FROM docker.io/library/python:3.11-slim@sha256:b701198cb708b68d9413ca67d6311bd97c9389a2c5fe4da0511fc652642366cd
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     osm2pgsql \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.13.7@sha256:c7db1d63057f268a8b6da8af9077850a60461f98d23db23c676a82089a050c91 /uv /uvx /bin/
 # Cron for containers: runs the daily refresh in the image that carries the
 # pipeline, so a deployment needs no scheduler on the host.
-ADD --chmod=755 https://github.com/aptible/supercronic/releases/download/v0.2.49/supercronic-linux-amd64 /bin/supercronic
+ADD --chmod=755 --checksum=sha256:a53ae236602c7338aba3fbaff40bda6300eae3b9fedb8261eb06cfe3724430c1 \
+    https://github.com/aptible/supercronic/releases/download/v0.2.49/supercronic-linux-amd64 /bin/supercronic
 
 WORKDIR /app
 
@@ -37,8 +40,15 @@ ARG PORT=8000
 ENV PORT=${PORT}
 EXPOSE ${PORT}
 
-CMD uv run --no-sync gunicorn \
-    --bind "0.0.0.0:${PORT}" \
-    --workers 2 \
-    --timeout 120 \
-    "src.app:app"
+# 0.0.0.0 so a published port reaches it (compose). A host-network deploy
+# behind a reverse proxy binds 127.0.0.1 instead (deploy/atp2osm.container):
+# the proxy is then the only way in, and the X-Forwarded-* headers ProxyFix
+# trusts are the proxy's.
+ARG BIND_HOST=0.0.0.0
+ENV BIND_HOST=${BIND_HOST}
+
+# Not root: uid 1000, which the Quadlets map onto the deploying user.
+RUN useradd --uid 1000 --create-home app && mkdir -p .cache data logs && chown -R app:app .cache data logs
+USER 1000:1000
+
+CMD ["sh", "-c", "exec uv run --no-sync gunicorn --bind \"${BIND_HOST}:${PORT}\" --workers 2 --timeout 120 src.app:app"]
