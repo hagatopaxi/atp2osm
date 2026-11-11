@@ -9,7 +9,7 @@ import csv
 import json
 import logging
 from io import StringIO
-from typing import LiteralString
+from typing import Final, LiteralString
 
 from flask import Blueprint, Response, redirect, request, url_for
 from flask.typing import ResponseReturnValue
@@ -139,8 +139,16 @@ def export(dataset: str, fmt: str) -> ResponseReturnValue:
     )
 
 
+CSV_FORMULA_PREFIXES: Final = ("=", "+", "-", "@", "\t", "\r")
+
+
 def csv_value(value: object) -> object:
     """Flatten the values CSV has no cell type for (JSON objects, arrays)."""
     if isinstance(value, (dict, list)):
         return json.dumps(value, ensure_ascii=False)
+    # A cell a contributor wrote (a todo brand name) opening with one of these
+    # is a formula to a spreadsheet: =HYPERLINK(…) runs in the reader's Excel.
+    # The quote makes it text again (OWASP, CSV injection).
+    if isinstance(value, str) and value.startswith(CSV_FORMULA_PREFIXES):
+        return "'" + value
     return value
