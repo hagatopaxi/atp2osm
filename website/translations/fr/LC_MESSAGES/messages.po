@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-26 11:44+0200\n"
+"POT-Creation-Date: 2026-11-11 07:58+0100\n"
 "PO-Revision-Date: 2026-09-06 17:06+0200\n"
 "Last-Translator: the atp2osm contributors\n"
 "Language: fr\n"
@@ -27,30 +27,60 @@ msgstr "Les données sont en cours de préparation : cette instance n’a pas en
 msgid "ATP data integration (%(subdivision)s; %(brand)s)"
 msgstr "Intégration des données ATP (%(subdivision)s ; %(brand)s)"
 
-#: src/routes/brands.py:272
+#: src/routes/brands.py:307
 msgid "OpenStreetMap could not be reached: nothing was changed."
 msgstr "OpenStreetMap n’a pas pu être joint : rien n’a été modifié."
 
-#: src/routes/todo.py:119
-msgid "The request body must be a JSON object"
-msgstr "Le corps de la requête doit être un objet JSON"
-
-#: src/routes/todo.py:123
-msgid "The estimation must be a whole number"
-msgstr "L’estimation doit être un nombre entier"
-
-#: src/routes/todo.py:125
+#: src/routes/todo.py:132
 msgid "The brand name is required"
 msgstr "Le nom de la marque est requis"
 
-#: src/routes/todo.py:147 src/routes/todo.py:180
+#: src/routes/todo.py:135
+#, python-format
+msgid "“%(code)s” is not a Wikidata code: it is a Q followed by digits, e.g. Q123456"
+msgstr "« %(code)s » n'est pas un code Wikidata : c'est un Q suivi de chiffres, par ex. Q123456"
+
+#: src/routes/todo.py:139
+msgid "The estimation cannot be negative"
+msgstr "L'estimation ne peut pas être négative"
+
+#: src/routes/todo.py:142
+#, python-format
+msgid "“%(url)s” is not a link to an All The Places issue or pull request, e.g. https://github.com/alltheplaces/alltheplaces/issues/1234"
+msgstr "« %(url)s » n'est pas un lien vers une issue ou une pull request d'All The Places, par ex. https://github.com/alltheplaces/alltheplaces/issues/1234"
+
+#: src/routes/todo.py:153
+msgid "The request body must be a JSON object"
+msgstr "Le corps de la requête doit être un objet JSON"
+
+#: src/routes/todo.py:157
+msgid "The estimation must be a whole number"
+msgstr "L’estimation doit être un nombre entier"
+
+#: src/routes/todo.py:171
 msgid "This brand is already in the list"
 msgstr "Cette marque est déjà dans la liste"
 
-#: src/routes/todo.py:151 src/routes/todo.py:184
-#: website/templates/_js_strings.html:12
-msgid "Something went wrong, please try again."
-msgstr "Une erreur est survenue, veuillez réessayer."
+#: src/routes/todo.py:174
+#, python-format
+msgid "The Wikidata code %(code)s is already in the list, as “%(name)s”"
+msgstr "Le code Wikidata %(code)s est déjà dans la liste, sous le nom « %(name)s »"
+
+#: src/routes/todo.py:219
+msgid "The database refused the entry, please try again later."
+msgstr "La base de données a refusé l'ajout, réessayez plus tard."
+
+#: src/routes/todo.py:258
+msgid "The database refused the change, please try again later."
+msgstr "La base de données a refusé la modification, réessayez plus tard."
+
+#: src/routes/todo.py:260 src/routes/todo.py:273
+msgid "This entry no longer exists: someone deleted it meanwhile."
+msgstr "Cette entrée n'existe plus : quelqu'un l'a supprimée entre-temps."
+
+#: src/routes/todo.py:275
+msgid "Only the contributor who added this entry can delete it."
+msgstr "Seul le contributeur qui a ajouté cette entrée peut la supprimer."
 
 #: website/templates/_aside.html:8
 msgid "Toggle the sidebar"
@@ -254,6 +284,10 @@ msgstr "Retirer ce filtre"
 msgid "Your session has expired, please sign in again."
 msgstr "Votre session a expiré, veuillez vous reconnecter."
 
+#: website/templates/_js_strings.html:12
+msgid "Something went wrong, please try again."
+msgstr "Une erreur est survenue, veuillez réessayer."
+
 #: website/templates/_js_strings.html:13
 #, python-brace-format
 msgid "Careful: this brand looks like it is already there: {names}"
@@ -264,36 +298,41 @@ msgid "Delete this entry?"
 msgstr "Supprimer cette entrée ?"
 
 #: website/templates/_js_strings.html:15
-msgid "You can only delete your own entries."
-msgstr "Vous ne pouvez supprimer que vos propres entrées."
+msgid "You must be signed in to OpenStreetMap to change this list."
+msgstr "Vous devez être connecté à OpenStreetMap pour modifier cette liste."
 
 #: website/templates/_js_strings.html:16
-msgid "The deletion failed."
-msgstr "Erreur lors de la suppression."
+#, python-brace-format
+msgid "The server failed (error {status}), please try again later."
+msgstr "Le serveur a échoué (erreur {status}), réessayez plus tard."
 
 #: website/templates/_js_strings.html:17
+msgid "The server could not be reached: check your connection."
+msgstr "Le serveur est injoignable : vérifiez votre connexion."
+
+#: website/templates/_js_strings.html:18
 #, python-brace-format
 msgid "Sending failed: {error}"
 msgstr "Erreur lors de l'envoi : {error}"
 
-#: website/templates/_js_strings.html:18
+#: website/templates/_js_strings.html:19
 msgid "No rejection found."
 msgstr "Aucune invalidation trouvée."
 
-#: website/templates/_js_strings.html:19
+#: website/templates/_js_strings.html:20
 msgid "This data source is an API."
 msgstr "Cette source de données est une API."
 
-#: website/templates/_js_strings.html:20
+#: website/templates/_js_strings.html:21
 msgid "This data source is not an API."
 msgstr "Cette source de données n'est pas une API."
 
-#: website/templates/_js_strings.html:21
+#: website/templates/_js_strings.html:22
 #, python-brace-format
 msgid "The integration failed: {errors}. You can try again later."
 msgstr "Erreur lors de l'intégration : {errors}. Vous pouvez réessayer ultérieurement."
 
-#: website/templates/_js_strings.html:22
+#: website/templates/_js_strings.html:23
 #, python-brace-format
 msgid "Partial integration: some subdivisions could not be integrated ({errors}). Redirecting in a few seconds…"
 msgstr "Intégration partielle : certains départements n'ont pas pu être intégrés ({errors}). Redirection dans quelques secondes…"
@@ -441,14 +480,14 @@ msgstr "Dernière intégration après le"
 msgid "Last integration before"
 msgstr "Dernière intégration avant le"
 
-#: website/templates/brands.html:64 website/templates/todo.html:96
+#: website/templates/brands.html:64 website/templates/todo.html:101
 #, python-format
 msgid "%(count)s brand"
 msgid_plural "%(count)s brands"
 msgstr[0] "%(count)s marque"
 msgstr[1] "%(count)s marques"
 
-#: website/templates/brands.html:69 website/templates/todo.html:94
+#: website/templates/brands.html:69 website/templates/todo.html:99
 msgid "No brand matches these filters."
 msgstr "Aucune marque ne correspond à ces filtres."
 
@@ -886,7 +925,7 @@ msgstr[0] "%(count)s intégration"
 msgstr[1] "%(count)s intégrations"
 
 #: website/templates/history.html:70 website/templates/history_detail.html:81
-#: website/templates/todo.html:105
+#: website/templates/todo.html:110
 msgid "Date"
 msgstr "Date"
 
@@ -1460,7 +1499,7 @@ msgid "Add a brand"
 msgstr "Ajouter une marque"
 
 #: website/templates/brands/:brand_wikidata/validate.html:240
-#: website/templates/todo.html:42 website/templates/todo.html:177
+#: website/templates/todo.html:42 website/templates/todo.html:201
 msgid "Brand name"
 msgstr "Nom de la marque"
 
@@ -1469,12 +1508,13 @@ msgid "e.g. Carrefour"
 msgstr "ex. : Carrefour"
 
 #: website/templates/brands/:brand_wikidata/validate.html:242
-#: website/templates/todo.html:47 website/templates/todo.html:181
+#: website/templates/todo.html:47 website/templates/todo.html:205
 msgid "Wikidata code"
 msgstr "Code Wikidata"
 
 #: website/templates/todo.html:47 website/templates/todo.html:52
-#: website/templates/todo.html:181 website/templates/todo.html:185
+#: website/templates/todo.html:57 website/templates/todo.html:205
+#: website/templates/todo.html:209 website/templates/todo.html:213
 msgid "(optional)"
 msgstr "(optionnel)"
 
@@ -1482,7 +1522,7 @@ msgstr "(optionnel)"
 msgid "e.g. Q123456"
 msgstr "ex. : Q123456"
 
-#: website/templates/todo.html:52 website/templates/todo.html:185
+#: website/templates/todo.html:52 website/templates/todo.html:209
 msgid "Estimated POI count"
 msgstr "Nombre de POI estimé"
 
@@ -1490,84 +1530,109 @@ msgstr "Nombre de POI estimé"
 msgid "e.g. 200"
 msgstr "ex. : 200"
 
-#: website/templates/todo.html:63 website/templates/todo.html:68
+#: website/templates/todo.html:57 website/templates/todo.html:213
+msgid "All The Places issue or pull request"
+msgstr "Issue ou pull request All The Places"
+
+#: website/templates/todo.html:68 website/templates/todo.html:73
 msgid "Add"
 msgstr "Ajouter"
 
-#: website/templates/todo.html:66
+#: website/templates/todo.html:71
 msgid "You must sign in to add a brand"
 msgstr "Vous devez vous connecter pour ajouter une marque"
 
-#: website/templates/todo.html:78
+#: website/templates/todo.html:83
 msgid "No brand in the list yet."
 msgstr "Aucune marque dans la liste pour le moment."
 
-#: website/templates/todo.html:86 website/templates/todo.html:104
+#: website/templates/todo.html:91 website/templates/todo.html:109
 msgid "Added by"
 msgstr "Ajoutée par"
 
-#: website/templates/todo.html:87
+#: website/templates/todo.html:92
 msgid "Added after"
 msgstr "Ajoutée après le"
 
-#: website/templates/todo.html:88
+#: website/templates/todo.html:93
 msgid "Added before"
 msgstr "Ajoutée avant le"
 
-#: website/templates/todo.html:89
+#: website/templates/todo.html:94
 msgid "Brands already in ATP"
 msgstr "Marques déjà dans ATP"
 
-#: website/templates/todo.html:89
+#: website/templates/todo.html:94
 msgid "Shown"
 msgstr "Affichées"
 
-#: website/templates/todo.html:101
+#: website/templates/todo.html:106
 msgid "Name"
 msgstr "Nom"
 
-#: website/templates/todo.html:102
+#: website/templates/todo.html:107
 msgid "Wikidata"
 msgstr "Wikidata"
 
-#: website/templates/todo.html:103
+#: website/templates/todo.html:108
 msgid "Estimate"
 msgstr "Estimation"
 
-#: website/templates/todo.html:106
+#: website/templates/todo.html:111
+msgid "Progress"
+msgstr "Avancement"
+
+#: website/templates/todo.html:112
 msgid "Edited by"
 msgstr "Modifiée par"
 
-#: website/templates/brands/:brand_wikidata/validate.html:85
 #: website/templates/todo.html:142
+msgid "Open"
+msgstr "Ouverte"
+
+#: website/templates/todo.html:143
+msgid "Merged"
+msgstr "Fusionnée"
+
+#: website/templates/todo.html:144
+msgid "Closed"
+msgstr "Fermée"
+
+#: website/templates/todo.html:151
+#, python-format
+msgid "As of %(date)s"
+msgstr "Au %(date)s"
+
+#: website/templates/brands/:brand_wikidata/validate.html:85
+#: website/templates/todo.html:166
 #, python-format
 msgid "on %(date)s"
 msgstr "le %(date)s"
 
-#: website/templates/todo.html:150
+#: website/templates/todo.html:174
 msgid "Edit"
 msgstr "Modifier"
 
-#: website/templates/todo.html:156
+#: website/templates/todo.html:180
 msgid "Delete"
 msgstr "Supprimer"
 
-#: website/templates/todo.html:173
+#: website/templates/todo.html:197
 msgid "Edit the brand"
 msgstr "Modifier la marque"
 
 #: website/templates/brands/:brand_wikidata/confirm.html:90
 #: website/templates/brands/:brand_wikidata/rejected.html:23
 #: website/templates/brands/:brand_wikidata/validate.html:343
-#: website/templates/todo.html:190
+#: website/templates/todo.html:218
 msgid "Cancel"
 msgstr "Annuler"
 
-#: website/templates/todo.html:191
+#: website/templates/todo.html:219
 msgid "Save"
 msgstr "Enregistrer"
 
-#: website/templates/todo.html:195
+#: website/templates/todo.html:223
 msgid "Close"
 msgstr "Fermer"
 
@@ -1940,4 +2005,10 @@ msgstr "503 - Temporairement indisponible"
 #: website/templates/errors/503.html:6
 msgid "Please try again in a few minutes."
 msgstr "Réessayez dans quelques minutes."
+
+#~ msgid "You can only delete your own entries."
+#~ msgstr "Vous ne pouvez supprimer que vos propres entrées."
+
+#~ msgid "The deletion failed."
+#~ msgstr "Erreur lors de la suppression."
 

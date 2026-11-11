@@ -9,13 +9,27 @@ function showToast(message, type = 'error') {
   setTimeout(() => container.remove(), 4000);
 }
 
-// The server sends a message of its own when it has one to send.
+// The server sends a message of its own when it has one to send; otherwise
+// the status says what went wrong.
 async function errorMessage(res) {
+  if (res.redirected) return t('session_expired');
   try {
     const data = await res.json();
     if (data.error) return data.error;
   } catch (_) {}
+  if (res.status === 403) return t('sign_in_required');
+  if (res.status >= 500) return t('server_error', { status: res.status });
   return t('generic_error');
+}
+
+// fetch() throws when the server cannot be reached at all.
+async function send(url, options) {
+  try {
+    return await fetch(url, options);
+  } catch (_) {
+    showToast(t('network_error'));
+    return null;
+  }
 }
 
 async function checkDuplicate() {
@@ -51,45 +65,49 @@ async function addEntry(event) {
   const brand_name = document.getElementById('input-name').value.trim();
   const estimationRaw = document.getElementById('input-estimation').value.trim();
   const estimation = estimationRaw !== '' ? parseInt(estimationRaw, 10) : null;
+  const github_issue = document.getElementById('input-issue').value.trim();
 
   const btn = event.target.querySelector('button[type="submit"]');
   btn.disabled = true;
   btn.classList.add('loading', 'loading-spinner');
 
-  const res = await fetch('/todo', {
+  const res = await send('/todo', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ brand_wikidata, brand_name, estimation }),
+    body: JSON.stringify({ brand_wikidata, brand_name, estimation, github_issue }),
   });
 
-  if (res.status === 201) {
+  if (res && res.status === 201) {
     document.getElementById('input-wikidata').value = '';
     document.getElementById('input-name').value = '';
     document.getElementById('input-estimation').value = '';
+    document.getElementById('input-issue').value = '';
     document.getElementById('duplicate-warning').classList.add('hidden');
     window.location.reload();
   } else {
     btn.disabled = false;
     btn.classList.remove('loading', 'loading-spinner');
-    showToast(await errorMessage(res));
+    if (res) showToast(await errorMessage(res));
   }
 }
 
 async function deleteEntry(id) {
   if (!confirm(t('confirm_delete'))) return;
-  const res = await fetch(`/todo/${id}`, { method: 'DELETE' });
-  if (res.ok) {
+  const res = await send(`/todo/${id}`, { method: 'DELETE' });
+  if (!res) return;
+  if (res.ok && !res.redirected) {
     window.location.reload();
   } else {
-    showToast(res.status === 403 ? t('delete_forbidden') : t('delete_failed'));
+    showToast(await errorMessage(res));
   }
 }
 
-function editEntry(id, name, wikidata, estimation) {
+function editEntry(id, name, wikidata, estimation, issue) {
   document.getElementById('edit-id').value = id;
   document.getElementById('edit-name').value = name || '';
   document.getElementById('edit-wikidata').value = wikidata || '';
   document.getElementById('edit-estimation').value = estimation ?? '';
+  document.getElementById('edit-issue').value = issue || '';
   document.getElementById('edit-dialog').showModal();
 }
 
@@ -102,21 +120,22 @@ async function saveEntry(event) {
   btn.disabled = true;
   btn.classList.add('loading', 'loading-spinner');
 
-  const res = await fetch(`/todo/${id}`, {
+  const res = await send(`/todo/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       brand_name: document.getElementById('edit-name').value.trim(),
       brand_wikidata: document.getElementById('edit-wikidata').value.trim(),
       estimation: estimationRaw !== '' ? parseInt(estimationRaw, 10) : null,
+      github_issue: document.getElementById('edit-issue').value.trim(),
     }),
   });
 
-  if (res.ok) {
+  if (res && res.ok && !res.redirected) {
     window.location.reload();
   } else {
     btn.disabled = false;
     btn.classList.remove('loading', 'loading-spinner');
-    showToast(await errorMessage(res));
+    if (res) showToast(await errorMessage(res));
   }
 }

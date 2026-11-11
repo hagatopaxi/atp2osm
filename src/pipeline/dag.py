@@ -27,6 +27,7 @@ from src.pipeline.atp import (
 )
 from src.pipeline.atp2osm import create_mv_places_brand
 from src.pipeline.errors import SourceUnavailableError
+from src.pipeline.github import refresh_github_issues
 from src.pipeline.ndgeojson_to_parquet import convert_atp, split_atp
 from src.pipeline.nsi import download_nsi, import_nsi
 from src.pipeline.osm import (
@@ -40,7 +41,9 @@ from src.pipeline.runner import Pipeline
 logger = logging.getLogger(__name__)
 
 PIPELINE: Pipeline = {
-    "start": (None, ["osm-probe", "atp-download", "nsi-download"]),
+    "start": (None, ["osm-probe", "atp-download", "nsi-download", "github-issues"]),
+    # The progress of the issues the missing brands link to; never fails the run.
+    "github-issues": (refresh_github_issues, []),
     # Unlocked on purpose: the freshness probe can retry for minutes when
     # Geofabrik is slow, and it must not hold "network" while it sleeps.
     "osm-probe": (probe_osm_freshness, ["osm-download"]),

@@ -53,6 +53,11 @@
             <input id="input-estimation" type="number" min="0" placeholder="{{ _('e.g. 200') }}" class="input input-bordered"
               {% if 'user' not in session %}disabled{% endif %} />
           </label>
+          <label class="form-control flex-1 min-w-48">
+            <div class="label"><span class="label-text">{{ _('All The Places issue or pull request') }} <span class="muted">{{ _('(optional)') }}</span></span></div>
+            <input id="input-issue" type="url" placeholder="https://github.com/alltheplaces/alltheplaces/issues/1234" class="input input-bordered"
+              {% if 'user' not in session %}disabled{% endif %} />
+          </label>
         </div>
         {% call info_card('warning', 'hidden py-2 text-sm', 'id="duplicate-warning"') %}
         <span id="duplicate-warning-text"></span>
@@ -103,6 +108,7 @@
           {{ sort_th('todo.todo', 'estimation', _('Estimate')) }}
           {{ sort_th('todo.todo', 'user', _('Added by')) }}
           {{ sort_th('todo.todo', 'date', _('Date')) }}
+          <th>{{ _('Progress') }}</th>
           <th>{{ _('Edited by') }}</th>
           <th class="w-0"></th>
         </tr>
@@ -131,6 +137,24 @@
           </td>
           <td class="whitespace-nowrap">{{ entry.created_at | dateformat('short') }}</td>
           <td class="whitespace-nowrap">
+            {% if entry.github_issue %}
+            {% set states = {
+                'open': ('badge-info', _('Open')),
+                'merged': ('badge-success', _('Merged')),
+                'closed': ('badge-neutral', _('Closed')),
+            } %}
+            <a class="link font-mono text-sm" href="{{ entry.github_issue }}" target="_blank" rel="noopener">
+              <i class="iconoir-github" aria-hidden="true"></i> #{{ issue_number(entry.github_issue) }}<i class="iconoir-open-new-window" aria-hidden="true"></i></a>
+            {% if entry.issue_state %}
+            {% set badge, label = states[entry.issue_state] %}
+            <span class="badge badge-soft badge-sm {{ badge }}"
+              {% if entry.issue_checked_at %}title="{% trans date=entry.issue_checked_at | dateformat('short') %}As of {{ date }}{% endtrans %}"{% endif %}>{{ label }}</span>
+            {% endif %}
+            {% else %}
+            —
+            {% endif %}
+          </td>
+          <td class="whitespace-nowrap">
             {% if entry.updated_by %}
             {% set updater_name = users.get(entry.updated_by) %}
             {% if updater_name %}
@@ -148,7 +172,7 @@
             {% if current_user_id %}
             <div class="row-actions flex justify-end gap-1">
               <button class="btn btn-sm btn-soft rounded-md" aria-label="{{ _('Edit') }}"
-                onclick='editEntry({{ entry.id }}, {{ entry.brand_name|tojson }}, {{ entry.brand_wikidata|tojson }}, {{ entry.estimation|tojson }})'>
+                onclick='editEntry({{ entry.id }}, {{ entry.brand_name|tojson }}, {{ entry.brand_wikidata|tojson }}, {{ entry.estimation|tojson }}, {{ entry.github_issue|tojson }})'>
                 <i class="iconoir-edit-pencil" aria-hidden="true"></i>
               </button>
               {% if current_user_id == entry.osm_user_id %}
@@ -184,6 +208,10 @@
         <div class="fieldset">
           <label class="fieldset-legend" for="edit-estimation">{{ _('Estimated POI count') }} <span class="muted">{{ _('(optional)') }}</span></label>
           <input id="edit-estimation" type="number" min="0" class="input input-bordered w-full" />
+        </div>
+        <div class="fieldset">
+          <label class="fieldset-legend" for="edit-issue">{{ _('All The Places issue or pull request') }} <span class="muted">{{ _('(optional)') }}</span></label>
+          <input id="edit-issue" type="url" class="input input-bordered w-full" />
         </div>
         <div class="modal-action">
           <button type="button" class="btn btn-sm btn-soft"
