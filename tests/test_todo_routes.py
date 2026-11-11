@@ -211,6 +211,45 @@ def test_the_name_is_required(contributor: FlaskClient, migrated_conn: Connectio
     assert rows(migrated_conn) == []
 
 
+def test_a_hostile_name_reaches_other_contributors_as_text(
+    contributor: FlaskClient, migrated_conn: Connection
+) -> None:
+    """Anyone may edit any entry: what one writes must not run in another's page."""
+    name = "</td><img src=x onerror=alert(1)>'\"`"
+    assert contributor.post("/todo", json={"brand_name": name}).status_code == 201
+    page = contributor.get("/todo").text
+    assert "<img src=x" not in page
+    assert " onclick=" not in page  # the CSP refuses inline handlers
+
+
+def test_a_name_loses_the_characters_that_disguise_it(
+    contributor: FlaskClient, migrated_conn: Connection
+) -> None:
+    """A right-to-left override would make one entry read as another."""
+    name = "Baby\u202elone\u200b\nX"
+    assert contributor.post("/todo", json={"brand_name": name}).status_code == 201
+    assert rows(migrated_conn)[0]["brand_name"] == "BabyloneX"
+
+
+def test_a_search_finds_its_percent_sign_and_nothing_else(
+    contributor: FlaskClient, migrated_conn: Connection
+) -> None:
+    for name in ("Babylone", "100% Bio"):
+        assert contributor.post("/todo", json={"brand_name": name}).status_code == 201
+    names = one(contributor.get("/api/export/todo.json?q=%25").json)
+    assert [n["brand_name"] for n in names] == ["100% Bio"]
+
+
+def test_a_name_too_long_is_refused(contributor: FlaskClient, migrated_conn: Connection) -> None:
+    res = contributor.post("/todo", json={"brand_name": "x" * (todo.MAX_NAME_LENGTH + 1)})
+    assert res.status_code == 400
+    assert rows(migrated_conn) == []
+    assert (
+        contributor.post("/todo", json={"brand_name": "x" * todo.MAX_NAME_LENGTH}).status_code
+        == 201
+    )
+
+
 def test_the_estimation_must_be_a_number(
     contributor: FlaskClient, migrated_conn: Connection
 ) -> None:

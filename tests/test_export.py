@@ -32,6 +32,19 @@ def testcsv_value_flattens_json_columns() -> None:
     assert csv_value(None) is None
 
 
+@pytest.mark.parametrize(
+    "cell", ['=HYPERLINK("https://evil.example")', "+1", "-1+2", "@SUM(A1)", "\tx"]
+)
+def test_a_cell_a_spreadsheet_would_run_is_written_as_text(cell: str) -> None:
+    """A todo brand name is anyone's to write, and its CSV is opened in Excel."""
+    assert csv_value(cell) == "'" + cell
+
+
+def test_plain_text_and_numbers_are_left_alone() -> None:
+    assert csv_value("Babylone") == "Babylone"
+    assert csv_value(-3) == -3
+
+
 def test_export_routes_stay_out_of_the_sitemap() -> None:
     """The sitemap is built from PUBLIC_PAGES: the API has no place in it."""
     from src.routes.misc import PUBLIC_PAGES
